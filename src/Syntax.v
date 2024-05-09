@@ -38,6 +38,19 @@ Inductive term : Type :=
 | TmAssume (t : term)
 | TmWeight (t : term).
 
+Inductive value : term -> Prop :=
+| VLam T t : value (TmLam T t)
+| VConst c : value (TmConst c)
+| VUnit : value TmUnit
+| VPair v1 v2 :
+    value v1 ->
+    value v2 ->
+    value (TmPair v1 v2)
+| VDist d v :
+    value v ->
+    value (TmDist d v).
+#[export]
+ Hint Constructors value : core.
 
 Fixpoint fv (t : term) :=
   match t with
