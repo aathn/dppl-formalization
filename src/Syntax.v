@@ -17,7 +17,6 @@ Inductive type : Type :=
 | TyDist (T : type).
 
 Inductive const : Type :=
-| CReal (r : R)
 | CAdd.
 
 Inductive dist : Type :=
@@ -28,6 +27,7 @@ Inductive term : Type :=
 | TmFVar (x : var)
 | TmLam  (T : type) (t : term)
 | TmApp  (t1 : term) (t2 : term)
+| TmReal (r : R)
 | TmConst (c : const)
 | TmUnit
 | TmPair (t1 : term) (t2 : term)
@@ -41,6 +41,7 @@ Inductive term : Type :=
 Inductive value : term -> Prop :=
 | VLam T t : value (TmLam T t)
 | VConst c : value (TmConst c)
+| VReal r : value (TmReal r)
 | VUnit : value TmUnit
 | VPair v1 v2 :
     value v1 ->
@@ -58,6 +59,7 @@ Fixpoint fv (t : term) :=
   | TmFVar x => \{x}
   | TmLam T t' => fv t'
   | TmApp t1 t2 => fv t1 \u fv t2
+  | TmReal _ => \{}
   | TmConst _ => \{}
   | TmUnit => \{}
   | TmPair t1 t2 => fv t1 \u fv t2
@@ -76,6 +78,7 @@ Fixpoint open (k : nat) (u : term) (t : term) :=
   | TmFVar _ => t
   | TmLam T t' => TmLam T ([S k ~> u]t')
   | TmApp t1 t2 => TmApp ([k ~> u]t1) ([k ~> u]t2)
+  | TmReal _ => t
   | TmConst c => TmConst c
   | TmUnit => TmUnit
   | TmPair t1 t2 => TmPair ([k ~> u]t1) ([k ~> u]t2)
@@ -97,6 +100,7 @@ Fixpoint subst (x : var) (u : term) (t : term) :=
   | TmFVar y => (If x = y then u else t)
   | TmLam T t' => TmLam T ([x => u]t')
   | TmApp t1 t2 => TmApp ([x => u]t1) ([x => u]t2)
+  | TmReal r => TmReal r
   | TmConst c => TmConst c
   | TmUnit => TmUnit
   | TmPair t1 t2 => TmPair ([x => u]t1) ([x => u]t2)

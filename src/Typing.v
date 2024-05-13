@@ -5,10 +5,9 @@ From DPPL Require Import Syntax.
 (** TYPING RELATION DEFINITIONS **)
 (*********************************)
 
-Definition const_type (c : const) (m : modifier) :=
+Definition const_type (c : const) :=
   match c with
-  | CReal _ => TyReal
-  | CAdd => TyArr m (TyProd TyReal TyReal) TyReal
+  | CAdd => (TyProd TyReal TyReal, TyReal)
   end.
 
 Definition dist_type (d : dist) (m : modifier) :=
@@ -30,8 +29,11 @@ Inductive has_type : env -> term -> modifier -> type -> Prop :=
     Gamma |= t1 ~: m, TyArr m T1 T2 ->
     Gamma |= t2 ~: m, T1 ->
     Gamma |= TmApp t1 t2 ~: m, T2
-| TConst Gamma c m m' :
-    Gamma |= TmConst c ~: m, const_type c m'
+| TReal Gamma r m :
+    Gamma |= TmReal r ~: m, TyReal
+| TConst Gamma c T1 T2 m m' :
+    const_type c = (T1, T2) ->
+    Gamma |= TmConst c ~: m, TyArr m' T1 T2
 | TUnit Gamma m :
     Gamma |= TmUnit ~: m, TyUnit
 | TProd Gamma T1 T2 t1 t2 m :
