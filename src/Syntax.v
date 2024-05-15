@@ -5,24 +5,24 @@ From Coq Require Import Reals.
 (** SYNTAX DEFINITIONS **)
 (************************)
 
-Inductive modifier : Type :=
+Inductive modifier : Set :=
 | Det
 | Rnd.
 
-Inductive type : Type :=
+Inductive type : Set :=
 | TyReal
 | TyUnit
 | TyArr (m : modifier) (T1 : type) (T2 : type)
 | TyProd (T1 : type) (T2 : type)
 | TyDist (T : type).
 
-Inductive const : Type :=
+Inductive const : Set :=
 | CAdd.
 
-Inductive dist : Type :=
+Inductive dist : Set :=
 | DNormal.
 
-Inductive term : Type :=
+Inductive term : Set :=
 | TmBVar (x : nat)
 | TmFVar (x : var)
 | TmLam  (T : type) (t : term)

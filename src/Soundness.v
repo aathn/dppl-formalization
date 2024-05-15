@@ -66,10 +66,39 @@ Proof.
     + right*.
   - destruct IHHtype as [Hvalue | (t' & Hstep)] ; try reflexivity.
     + left. apply VDist. assumption.
-    + right. exists (TmDist d t'). apply ECongD. apply ECDist. apply Hstep.
+    + right. exists (TmDist d t'). apply (ECongD _ (ECDist d)). apply Hstep.
   - discriminate.
   - discriminate.
 Qed.
+
+Lemma preservation_const_eval :
+  forall Gamma c T1 T2 v v' m,
+  const_type c = (T1, T2) ->
+  value v ->
+  Gamma |= v ~: m, T1 ->
+  const_eval c v = Some v' ->
+  Gamma |= v' ~: m, T2.
+Proof.
+  introv Hconsttype Hvalue Htype Heval. destruct c.
+  - inverts Hconsttype.
+    inverts Hvalue as Hvalue1 Hvalue2 ; inverts Htype as Htype1 Htype2.
+    inverts Hvalue1 ; inverts Htype1. inverts Hvalue2 ; inverts Htype2.
+    inverts* Heval.
+Qed.
+
+Lemma subst_intro : forall x t u,
+  x \notin fv t ->
+  ([x => u] [0 ~> TmFVar x] t) = [0 ~> u] t.
+Proof.
+Admitted.
+
+Lemma has_type_subst :
+  forall Gamma t T x T1 u m,
+  Gamma & x ~ T1 |= t ~: m, T ->
+  Gamma |= u ~: m, T1 ->
+  Gamma |= [x => u] t ~: m, T.
+Proof.
+Admitted.
 
 Theorem preservation_det :
   forall Gamma t t' T m,
@@ -79,13 +108,15 @@ Theorem preservation_det :
 Proof.
   introv Htype Hstep. gen T.
   induction Hstep ; intros.
-  - admit.
-  - admit.
+  - inverts Htype as Htypelam Htypev. inverts Htypelam as Htypet. pick_fresh x.
+    replace ([0 ~> v] t) with ([x => v] [0 ~> TmFVar x] t) by apply* subst_intro.
+    apply* has_type_subst.
+  - inverts Htype as Htypec Htypev. inverts Htypec as Hconsttype.
+    eapply preservation_const_eval ; eassumption.
   - inverts Htype. assumption.
   - inverts Htype. assumption.
   - inverts Htype as Htype'. inverts Htype'. assumption.
   - inverts Htype as Htype'. inverts Htype'. assumption.
   - inverts H ; inverts* Htype.
-    admit.
 Admitted.
 
