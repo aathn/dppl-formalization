@@ -118,5 +118,5 @@ Proof.
   - inverts Htype as Htype'. inverts Htype'. assumption.
   - inverts Htype as Htype'. inverts Htype'. assumption.
   - inverts H ; inverts* Htype.
-Admitted.
+Qed.
 
