@@ -1,93 +1,127 @@
-From TLC Require Import LibLN.
+From TLC Require Import LibLN LibList.
 From Coq Require Import Reals.
 
 (************************)
 (** SYNTAX DEFINITIONS **)
 (************************)
 
-Inductive modifier : Set :=
+Inductive coeffect : Set :=
+| A
+| B
+| C.
+
+Inductive effect : Set :=
 | Det
 | Rnd.
 
 Inductive type : Set :=
-| TyReal
-| TyUnit
-| TyArr (m : modifier) (T1 : type) (T2 : type)
-| TyProd (T1 : type) (T2 : type)
+| TyReal (c : coeffect)
+| TyArr (e : effect) (T1 : type) (T2 : type)
+| TyTuple (Ts : list type)
 | TyDist (T : type).
 
-Inductive const : Set :=
-| CAdd.
+Inductive prim : Set :=
+| PAdd
+| PMul
+| PWiener (p : R).
 
 Inductive dist : Set :=
-| DNormal.
+| DNormal
+| DBeta.
 
 Inductive term : Set :=
 | TmBVar (x : nat)
 | TmFVar (x : var)
-| TmLam  (T : type) (t : term)
+| TmAbs  (T : type) (t : term)
 | TmApp  (t1 : term) (t2 : term)
+| TmPrimApp (phi : prim) (ts : list term)
 | TmReal (r : R)
-| TmConst (c : const)
-| TmUnit
-| TmPair (t1 : term) (t2 : term)
-| TmFst (t : term)
-| TmSnd (t : term)
+| TmTuple (ts : list term)
+| TmProj (n : nat) (i : nat) (t : term)
 | TmIf (t1 : term) (t2 : term) (t3 : term)
-| TmDist (D : dist) (t : term)
+| TmFail
+| TmDist (D : dist) (ts : list term)
 | TmAssume (t : term)
-| TmWeight (t : term).
+| TmWeight (t : term)
+| TmInfer (t : term)
+| TmDiff (t1 : term) (t2 : term)
+| TmSolve (t1 : term) (t2 : term) (t3 : term).
 
 Inductive value : term -> Prop :=
-| VLam T t : value (TmLam T t)
-| VConst c : value (TmConst c)
+| VAbs T t : value (TmAbs T t)
+| VPrimApp (phi : prim) (vs : list term) :
+  Forall value vs -> value (TmPrimApp phi vs)
 | VReal r : value (TmReal r)
-| VUnit : value TmUnit
-| VPair v1 v2 :
-    value v1 ->
-    value v2 ->
-    value (TmPair v1 v2)
-| VDist d v :
+| VPair (vs : list term) :
+  Forall value vs -> value (TmTuple vs)
+| VDist d vs :
+  Forall value vs -> value (TmDist d vs)
+| VInfer v :
     value v ->
-    value (TmDist d v).
+    value (TmInfer v).
 #[export]
  Hint Constructors value : core.
 
+Inductive value_fail : term -> Prop :=
+| VFail : value_fail TmFail
+| VVal (v : term) : value v -> value_fail v.
+ Hint Constructors value_fail : core.
+
+Inductive real_fail : term -> Prop :=
+| RFail : real_fail TmFail
+| RReal r : real_fail (TmReal r).
+
 Fixpoint fv (t : term) :=
+  let fv_list := fix f (ts : list term) :=
+    match ts with
+    | nil => \{}
+    | t :: ts => fv t \u f ts
+    end
+  in
   match t with
   | TmBVar _ => \{}
   | TmFVar x => \{x}
-  | TmLam T t' => fv t'
+  | TmAbs T t => fv t
   | TmApp t1 t2 => fv t1 \u fv t2
+  | TmPrimApp phi ts => fv_list ts
   | TmReal _ => \{}
-  | TmConst _ => \{}
-  | TmUnit => \{}
-  | TmPair t1 t2 => fv t1 \u fv t2
-  | TmFst t' => fv t'
-  | TmSnd t' => fv t'
+  | TmFail => \{}
+  | TmTuple ts => fv_list ts
+  | TmProj n i t => fv t
   | TmIf t1 t2 t3 => fv t1 \u fv t2 \u fv t3
-  | TmDist _ t => fv t
+  | TmDist _ ts => fv_list ts
   | TmAssume t => fv t
   | TmWeight t => fv t
+  | TmInfer t => fv t
+  | TmDiff t1 t2 => fv t1 \u fv t2
+  | TmSolve t1 t2 t3 => fv t1 \u fv t2 \u fv t3
   end.
 
 Reserved Notation "[ k ~> u ] t" (at level 67).
 Fixpoint open (k : nat) (u : term) (t : term) :=
+  let open_list := fix f (ts : list term) :=
+    match ts with
+    | nil => nil
+    | t :: ts => ([k ~> u] t) :: f ts
+    end
+  in
   match t with
   | TmBVar i => (If i = k then u else t)
   | TmFVar _ => t
-  | TmLam T t' => TmLam T ([S k ~> u]t')
+  | TmAbs T t' => TmAbs T ([S k ~> u]t')
   | TmApp t1 t2 => TmApp ([k ~> u]t1) ([k ~> u]t2)
   | TmReal _ => t
-  | TmConst c => TmConst c
-  | TmUnit => TmUnit
-  | TmPair t1 t2 => TmPair ([k ~> u]t1) ([k ~> u]t2)
-  | TmFst t' => TmFst ([k ~> u]t')
-  | TmSnd t' => TmSnd ([k ~> u]t')
+  | TmFail => TmFail
+  | TmPrimApp phi ts => TmPrimApp phi (open_list ts)
+  | TmTuple ts => TmTuple (open_list ts)
+  | TmProj n i t' => TmProj n i ([k ~> u]t')
   | TmIf t1 t2 t3 => TmIf ([k ~> u]t1) ([S k ~> u]t2) ([k ~> u]t3)
-  | TmDist d t => TmDist d ([k ~> u]t)
+  | TmDist d ts => TmDist d (open_list ts)
   | TmAssume t => TmAssume ([k ~> u]t)
   | TmWeight t => TmWeight ([k ~> u]t)
+  | TmInfer t => TmInfer ([k ~> u]t)
+  | TmDiff t1 t2 => TmDiff ([k ~> u]t1) ([k ~> u]t2)
+  | TmSolve t1 t2 t3 => TmSolve ([k ~> u]t1) ([k ~> u]t2) ([k ~> u]t3)
   end
 where "[ k ~> u ] t " := (open k u t).
 #[export]
@@ -95,21 +129,29 @@ where "[ k ~> u ] t " := (open k u t).
 
 Reserved Notation "[ x => u ] t" (at level 67).
 Fixpoint subst (x : var) (u : term) (t : term) :=
+  let subst_list := fix f (ts : list term) :=
+    match ts with
+    | nil => nil
+    | t :: ts => ([x => u] t) :: f ts
+    end
+  in
   match t with
   | TmBVar _ => t
   | TmFVar y => (If x = y then u else t)
-  | TmLam T t' => TmLam T ([x => u]t')
+  | TmAbs T t' => TmAbs T ([x => u]t')
   | TmApp t1 t2 => TmApp ([x => u]t1) ([x => u]t2)
   | TmReal r => TmReal r
-  | TmConst c => TmConst c
-  | TmUnit => TmUnit
-  | TmPair t1 t2 => TmPair ([x => u]t1) ([x => u]t2)
-  | TmFst t' => TmFst ([x => u]t')
-  | TmSnd t' => TmSnd ([x => u]t')
+  | TmFail => TmFail
+  | TmPrimApp phi ts => TmPrimApp phi (subst_list ts)
+  | TmTuple ts => TmTuple (subst_list ts)
+  | TmProj n i t => TmProj n i ([x => u]t)
   | TmIf t1 t2 t3 => TmIf ([x => u]t1) ([x => u]t2) ([x => u]t3)
-  | TmDist d t => TmDist d ([x => u]t)
+  | TmDist d ts => TmDist d (subst_list ts)
   | TmAssume t => TmAssume ([x => u]t)
   | TmWeight t => TmWeight ([x => u]t)
+  | TmInfer t => TmInfer ([x => u]t)
+  | TmDiff t1 t2 => TmDiff ([x => u]t1) ([x => u]t2)
+  | TmSolve t1 t2 t3 => TmSolve ([x => u]t1) ([x => u]t2) ([x => u]t3)
   end
 where "[ x => u ] t" := (subst x u t).
 #[export]
