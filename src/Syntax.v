@@ -20,6 +20,24 @@ Inductive type : Set :=
 | TyTuple (Ts : list type)
 | TyDist (T : type).
 
+Inductive real_structure : type -> Prop :=
+| RSReal (c : coeffect) : real_structure (TyReal c)
+| RSTuple (Ts : list type) :
+  Forall real_structure Ts -> real_structure (TyTuple Ts).
+
+Fixpoint subs_coeffects (c : coeffect) (T : type) :=
+  let subs_coeffects_list := fix f (Ts : list type) :=
+      match Ts with
+      | nil => nil
+      | T :: Ts => subs_coeffects c T :: f Ts
+      end
+  in
+  match T with
+  | TyReal _ => TyReal c
+  | TyTuple Ts => TyTuple (subs_coeffects_list Ts)
+  | T => T
+  end.
+
 Inductive prim : Set :=
 | PAdd
 | PMul
@@ -28,6 +46,10 @@ Inductive prim : Set :=
 Inductive dist : Set :=
 | DNormal
 | DBeta.
+
+Inductive diff_flag : Set :=
+| FA
+| FB.
 
 Inductive term : Set :=
 | TmBVar (x : nat)
@@ -39,12 +61,11 @@ Inductive term : Set :=
 | TmTuple (ts : list term)
 | TmProj (n : nat) (i : nat) (t : term)
 | TmIf (t1 : term) (t2 : term) (t3 : term)
-| TmFail
 | TmDist (D : dist) (ts : list term)
 | TmAssume (t : term)
 | TmWeight (t : term)
 | TmInfer (t : term)
-| TmDiff (t1 : term) (t2 : term)
+| TmDiff (d : diff_flag) (t1 : term) (t2 : term)
 | TmSolve (t1 : term) (t2 : term) (t3 : term).
 
 Inductive value : term -> Prop :=
@@ -62,14 +83,9 @@ Inductive value : term -> Prop :=
 #[export]
  Hint Constructors value : core.
 
-Inductive value_fail : term -> Prop :=
-| VFail : value_fail TmFail
-| VVal (v : term) : value v -> value_fail v.
- Hint Constructors value_fail : core.
-
-Inductive real_fail : term -> Prop :=
-| RFail : real_fail TmFail
-| RReal r : real_fail (TmReal r).
+(* Syntatic sugar *)
+Definition TyUnit := TyTuple nil.
+Definition TmUnit := TmTuple nil.
 
 Fixpoint fv (t : term) :=
   let fv_list := fix f (ts : list term) :=
@@ -85,7 +101,6 @@ Fixpoint fv (t : term) :=
   | TmApp t1 t2 => fv t1 \u fv t2
   | TmPrimApp phi ts => fv_list ts
   | TmReal _ => \{}
-  | TmFail => \{}
   | TmTuple ts => fv_list ts
   | TmProj n i t => fv t
   | TmIf t1 t2 t3 => fv t1 \u fv t2 \u fv t3
@@ -93,7 +108,7 @@ Fixpoint fv (t : term) :=
   | TmAssume t => fv t
   | TmWeight t => fv t
   | TmInfer t => fv t
-  | TmDiff t1 t2 => fv t1 \u fv t2
+  | TmDiff _ t1 t2 => fv t1 \u fv t2
   | TmSolve t1 t2 t3 => fv t1 \u fv t2 \u fv t3
   end.
 
@@ -111,7 +126,6 @@ Fixpoint open (k : nat) (u : term) (t : term) :=
   | TmAbs T t' => TmAbs T ([S k ~> u]t')
   | TmApp t1 t2 => TmApp ([k ~> u]t1) ([k ~> u]t2)
   | TmReal _ => t
-  | TmFail => TmFail
   | TmPrimApp phi ts => TmPrimApp phi (open_list ts)
   | TmTuple ts => TmTuple (open_list ts)
   | TmProj n i t' => TmProj n i ([k ~> u]t')
@@ -120,7 +134,7 @@ Fixpoint open (k : nat) (u : term) (t : term) :=
   | TmAssume t => TmAssume ([k ~> u]t)
   | TmWeight t => TmWeight ([k ~> u]t)
   | TmInfer t => TmInfer ([k ~> u]t)
-  | TmDiff t1 t2 => TmDiff ([k ~> u]t1) ([k ~> u]t2)
+  | TmDiff d t1 t2 => TmDiff d ([k ~> u]t1) ([k ~> u]t2)
   | TmSolve t1 t2 t3 => TmSolve ([k ~> u]t1) ([k ~> u]t2) ([k ~> u]t3)
   end
 where "[ k ~> u ] t " := (open k u t).
@@ -141,7 +155,6 @@ Fixpoint subst (x : var) (u : term) (t : term) :=
   | TmAbs T t' => TmAbs T ([x => u]t')
   | TmApp t1 t2 => TmApp ([x => u]t1) ([x => u]t2)
   | TmReal r => TmReal r
-  | TmFail => TmFail
   | TmPrimApp phi ts => TmPrimApp phi (subst_list ts)
   | TmTuple ts => TmTuple (subst_list ts)
   | TmProj n i t => TmProj n i ([x => u]t)
@@ -150,7 +163,7 @@ Fixpoint subst (x : var) (u : term) (t : term) :=
   | TmAssume t => TmAssume ([x => u]t)
   | TmWeight t => TmWeight ([x => u]t)
   | TmInfer t => TmInfer ([x => u]t)
-  | TmDiff t1 t2 => TmDiff ([x => u]t1) ([x => u]t2)
+  | TmDiff d t1 t2 => TmDiff d ([x => u]t1) ([x => u]t2)
   | TmSolve t1 t2 t3 => TmSolve ([x => u]t1) ([x => u]t2) ([x => u]t3)
   end
 where "[ x => u ] t" := (subst x u t).
