@@ -1,7 +1,1 @@
-*.aux
-*.glob
-*.vo
-*.vok
-*.vos
-*.lia.cache
-*Makefile.coq*
+*.agdai

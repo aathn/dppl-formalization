@@ -622,3 +622,19 @@ module DenotationsViaInitiality
   infix 6 ⟦_⟧
   ⟦_⟧ : Trm (ΛSig) → CD
   ⟦_⟧ = UniversalProperty.rec vrCD alg
+
+----------------------------------------------------------------------
+-- Example 4.5
+----------------------------------------------------------------------
+module Subst {Σ : Sig} where
+  Subst : Set
+  Subst = (ℕ𝔸 → Trm Σ) → Trm Σ
+
+  var-subst : ℕ𝔸 → Subst
+  var-subst na ρ = ρ na
+
+  alg-subst : Σ ∙ Subst → Subst
+  alg-subst (o , f) ρ = op (o , λ k → f k ρ)
+
+  substTrm : Trm Σ → Subst
+  substTrm = UniversalProperty.rec var-subst alg-subst
