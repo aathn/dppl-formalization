@@ -28,14 +28,14 @@ open Sig public
 ΛSig = mkSig ΛOp ΛAr
   module _ where
     data ΛOp : Set where
-      lam : ΛOp
-      app : ΛOp
+      Λlam : ΛOp
+      Λapp : ΛOp
     ΛAr : ΛOp → Array ℕ
-    length (ΛAr lam)             = 1 -- lam is unary
-    index  (ΛAr lam) zero        = 1 -- and binds one variable
-    length (ΛAr app)             = 2 -- app is binary
-    index  (ΛAr app) zero        = 0 -- and binds no variables...
-    index  (ΛAr app) (succ zero) = 0 -- ...in each argument
+    length (ΛAr Λlam)             = 1 -- lam is unary
+    index  (ΛAr Λlam) zero        = 1 -- and binds one variable
+    length (ΛAr Λapp)             = 2 -- app is binary
+    index  (ΛAr Λapp) zero        = 0 -- and binds no variables...
+    index  (ΛAr Λapp) (succ zero) = 0 -- ...in each argument
 
 ----------------------------------------------------------------------
 -- Set functor associated with a signature
@@ -615,8 +615,8 @@ module DenotationsViaInitiality
 
   -- lmCD and apCD combine to give a ΛSig-algebra structure for CD
   alg : ΛSig ∙ CD → CD
-  alg (lam , f) = lmCD (f zero)
-  alg (app , f) = apCD (f zero , f (succ zero))
+  alg (Λlam , f) = lmCD (f zero)
+  alg (Λapp , f) = apCD (f zero , f (succ zero))
 
   -- The unique alegra morphism from the intial algebra Trm (ΛSig)
   infix 6 ⟦_⟧

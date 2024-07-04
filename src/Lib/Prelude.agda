@@ -3,16 +3,8 @@ module Lib.Prelude where
 ------------------------------------------------------------------------
 -- Universe levels
 ------------------------------------------------------------------------
-open import Agda.Primitive public
-
-ℓ₀ : Level
-ℓ₀ = lzero
-
-ℓ₁ : Level
-ℓ₁ = lsuc ℓ₀
-
-ℓ₂ : Level
-ℓ₂ = lsuc ℓ₁
+open import Agda.Primitive public using (Level)
+open import Agda.Primitive using (_⊔_)
 
 ----------------------------------------------------------------------
 -- Instance
@@ -396,6 +388,12 @@ wf< = <-wellFounded
 ----------------------------------------------------------------------
 open import Data.Fin public using (Fin ; zero) renaming (suc to succ)
 
+-- -- Reducing finitely many elements
+-- reduce : ∀ {n : ℕ} {l : Level} {A B : Set l}
+--        → (A → B → B) → B → (Fin n → A) → B
+-- reduce {0}    _⊛_ z f = z
+-- reduce {n +1} _⊛_ z f = f zero ⊛ reduce _⊛_ z (f ∘ succ)
+
 -- Maximum of finitely many numbers
 Max : {n : ℕ} → (Fin n → ℕ) → ℕ
 Max {0} f = 0
@@ -424,7 +422,7 @@ open Array public
 ----------------------------------------------------------------------
 -- Lists
 ----------------------------------------------------------------------
-open import Data.List using ([]) renaming (_∷_ to _::_) public
+open import Data.List using (List ; []) renaming (_∷_ to _::_) public
 
 ----------------------------------------------------------------------
 --  Finite sets represented by trees
