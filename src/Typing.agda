@@ -12,9 +12,16 @@ open import Function using (const ; _∘_)
 open import Data.List using (map)
 open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_)
 open import Data.Nat using (_⊔_)
+open import Relation.Binary using (Rel)
 
 TyEnv : Set
 TyEnv = List (𝔸 × Type)
+
+DistinctName : Rel (𝔸 × Type) _
+DistinctName (x , _) (x₁ , _) = ¬ x ≡ x₁
+
+open import Data.List.Relation.Unary.AllPairs.Core DistinctName
+  using () renaming (AllPairs to Distinct)
 
 pattern [_∶_]   x T = (x , T) :: []
 pattern _,_∶_ Γ x T = (x , T) :: Γ
@@ -102,7 +109,7 @@ data _⊢_∶[_]_ : TyEnv → Term → Eff → Type → Set where
     : ∀ {Γ t₁ t₂ e T₁ T₂}
     → Γ ⊢ t₁ ∶[ e ] T₁ ⇒[ e ] T₂
     → Γ ⊢ t₂ ∶[ e ] T₂
-    → --------------------------
+    → -----------------------
       Γ ⊢ app t₁ t₂ ∶[ e ] T₂
 
   tprim
@@ -113,9 +120,9 @@ data _⊢_∶[_]_ : TyEnv → Term → Eff → Type → Set where
       Γ ⊢ prim ϕ ts ∶[ e ] T
 
   treal
-    : ∀ {Γ r}
-    → ----------------------------
-      Γ ⊢ real r ∶[ det ] treal cc
+    : ∀ {r}
+    → -----------------------------
+      [] ⊢ real r ∶[ det ] treal cc
 
   ttup
     : ∀ {Γ Ts ts e}
@@ -150,7 +157,7 @@ data _⊢_∶[_]_ : TyEnv → Term → Eff → Type → Set where
     → Γ ⊢ t₁ ∶[ e ] tpair (treal c) (treals {n} cs) ⇒[ det ] treals cs
     → Γ ⊢ t₂ ∶[ e ] treals cs
     → Γ ⊢ t₃ ∶[ e ] treal c
-    → ----------------------------------------------------------------
+    → -----------------------------------
       Γ ⊢ solve t₁ t₂ t₃ ∶[ e ] treals cs
 
   tdist
@@ -187,14 +194,16 @@ data _⊢_∶[_]_ : TyEnv → Term → Eff → Type → Set where
   tweaken
     : ∀ {Γ Γ′ t e T}
     → Γ ⊢ t ∶[ e ] T
-    → Γ ⊆ Γ′ -- → okEnv Γ′
+    → Γ ⊆ Γ′
+    → Distinct Γ′
     → ---------------
       Γ′ ⊢ t ∶[ e ] T
 
   tsub
     : ∀ {Γ t e e′ T T′}
     → Γ ⊢ t ∶[ e ] T
-    → e ≤ e′ → T <: T′
+    → e ≤ e′
+    → T <: T′
     → ----------------
       Γ ⊢ t ∶[ e′ ] T′
 
