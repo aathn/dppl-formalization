@@ -386,22 +386,17 @@ wf< = <-wellFounded
 ----------------------------------------------------------------------
 -- Finite enumerated sets
 ----------------------------------------------------------------------
+open import Data.Vec.Functional as Vec public using (Vector)
+
 open import Data.Fin public using (Fin ; zero) renaming (suc to succ)
 
--- -- Reducing finitely many elements
--- reduce : ∀ {n : ℕ} {l : Level} {A B : Set l}
---        → (A → B → B) → B → (Fin n → A) → B
--- reduce {0}    _⊛_ z f = z
--- reduce {n +1} _⊛_ z f = f zero ⊛ reduce _⊛_ z (f ∘ succ)
-
 -- Maximum of finitely many numbers
-Max : {n : ℕ} → (Fin n → ℕ) → ℕ
-Max {0} f = 0
-Max {n +1} f = max (f zero) (Max (f ∘ succ))
+Max : {n : ℕ} → Vector ℕ n → ℕ
+Max = Vec.foldr max 0
 
 ≤Max :
   {n : ℕ}
-  (f : Fin n → ℕ)
+  (f : Vector ℕ n)
   (k : Fin n)
   → -------------
   f k ≤ Max f
@@ -415,7 +410,7 @@ record Array {l : Level}(A : Set l) : Set l where
   constructor mkArray
   field
     length : ℕ
-    index  : Fin length → A
+    index  : Vector A length
 
 open Array public
 
@@ -546,16 +541,15 @@ Fset′∉ :
 Fset′∉ = ¬∈→∉ λ q → ∉→¬∈ (Fset′∈ q)
 
 -- Finite union of finite subsets
-⋃ : {l : Level}{A : Set l}{n : ℕ} → (Fin n → Fset A) → Fset A
-⋃ {n = 0} _ = Ø
-⋃ {n = n +1} f = f zero ∪ ⋃ {n = n} (f ∘ succ)
+⋃ : {l : Level}{A : Set l}{n : ℕ} → Vector (Fset A) n → Fset A
+⋃ = Vec.foldr _∪_ Ø
 
 ∉⋃ :
   {l : Level}
   {A : Set l}
   {{_ : hasDecEq A}}
   {n : ℕ}
-  (f : Fin n → Fset A)
+  (f : Vector (Fset A) n)
   {x : A}
   (k : Fin n)
   {{p : x ∉ ⋃ f}}
@@ -569,7 +563,7 @@ Fset′∉ = ¬∈→∉ λ q → ∉→¬∈ (Fset′∈ q)
   {A : Set l}
   {{_ : hasDecEq A}}
   {n : ℕ}
-  (f : Fin n → Fset A)
+  (f : Vector (Fset A) n)
   {x : A}
   (g : (k : Fin n)→ x ∉ f k)
   → ------------------------

@@ -6,7 +6,8 @@ open import Lib.oc-Sets
 open import Lib.Support
 open import Lib.BindingSignature
 
-open import Function using (_∘_ ; const)
+open import Function using (_∘_ ; _$_ ; const)
+open import Data.Vec.Functional using (map ; fromList)
 
 Coeff : Set
 Coeff = ℕ
@@ -26,7 +27,7 @@ pattern rnd = 1
 data Type : Set where
   treal   : Coeff → Type
   _⇒[_]_  : Type → Eff → Type → Type
-  ttup    : Array Type → Type
+  ttup    : ∀ {n} → Vector Type n → Type
   tdist   : Type → Type
 
 -- Terms
@@ -36,10 +37,20 @@ data Prim : Set where
   pmul    : Prim
   pwiener : ℝ → Prim
 
+PrimAr : Prim → ℕ
+PrimAr padd = 2
+PrimAr pmul = 2
+PrimAr (pwiener _) = 1
+
 data Dist : Set where
   dnormal : Dist
   dbeta   : Dist
   dwiener : Dist
+
+DistAr : Dist → ℕ
+DistAr dnormal = 2
+DistAr dbeta   = 2
+DistAr dwiener = 0
 
 TermSig : Sig
 TermSig = mkSig TermOp TermAr
@@ -47,46 +58,35 @@ TermSig = mkSig TermOp TermAr
   data TermOp : Set where
     oabs    : Type → TermOp
     oapp    : TermOp
-    oprim   : ℕ → Prim → TermOp
+    oprim   : Prim → TermOp
     oreal   : ℝ → TermOp
     otup    : ℕ → TermOp
     oproj   : ℕ → TermOp
     oif     : TermOp
     odiff   : TermOp
     osolve  : TermOp
-    odist   : ℕ → Dist → TermOp
+    odist   : Dist → TermOp
     oassume : TermOp
     oweight : TermOp
     oinfer  : TermOp
     oexpect : TermOp
   TermAr : TermOp → Array ℕ
-  length (TermAr (oabs _))      = 1
-  length (TermAr oapp)          = 2
-  length (TermAr (oprim n _))   = n
-  length (TermAr (oreal _))     = 0
-  length (TermAr (otup n))      = n
-  length (TermAr (oproj _))     = 1
-  length (TermAr oif)           = 3
-  length (TermAr odiff)         = 2
-  length (TermAr osolve)        = 3
-  length (TermAr (odist n _))   = n
-  length (TermAr oassume)       = 1
-  length (TermAr oweight)       = 1
-  length (TermAr oinfer)        = 1
-  length (TermAr oexpect)       = 1
-  index  (TermAr (oabs _))    i = 1
-  index  (TermAr oapp)        i = 0
-  index  (TermAr (oprim _ _)) i = 0
-  index  (TermAr (otup _))    i = 0
-  index  (TermAr (oproj _))   i = 0
-  index  (TermAr oif)         i = 0
-  index  (TermAr odiff)       i = 0
-  index  (TermAr osolve)      i = 0
-  index  (TermAr (odist _ _)) i = 0
-  index  (TermAr oassume)     i = 0
-  index  (TermAr oweight)     i = 0
-  index  (TermAr oinfer)      i = 0
-  index  (TermAr oexpect)     i = 0
+  length (TermAr (oabs _))  = 1
+  length (TermAr oapp)      = 2
+  length (TermAr (oprim ϕ)) = PrimAr ϕ
+  length (TermAr (oreal _)) = 0
+  length (TermAr (otup n))  = n
+  length (TermAr (oproj _)) = 1
+  length (TermAr oif)       = 3
+  length (TermAr odiff)     = 2
+  length (TermAr osolve)    = 3
+  length (TermAr (odist D)) = DistAr D
+  length (TermAr oassume)   = 1
+  length (TermAr oweight)   = 1
+  length (TermAr oinfer)    = 1
+  length (TermAr oexpect)   = 1
+  index  (TermAr (oabs _))  = const 1
+  index  (TermAr _)         = const 0
 
 Term : Set
 Term = Trm TermSig
@@ -96,8 +96,20 @@ instance
 
 -- Substitution
 
-_≈>_ : 𝔸 → Term → Term → Term
-(a ≈> u) t = Subst.substTrm t ρ
+-- Bound variable substitution
+_≈>_ : ℕ → Term → Term → Term
+(n ≈> u) t = Subst.substTrm t ρ
+  where
+  ρ : ℕ𝔸 → Term
+  ρ (ι₁ x) = case (n ≐ x) λ
+    { equ     → u
+    ; (neq _) → bvar x
+    }
+  ρ (ι₂ y) = fvar y
+
+-- Free variable substitution
+_=>_ : 𝔸 → Term → Term → Term
+(a => u) t = Subst.substTrm t ρ
   where
   ρ : ℕ𝔸 → Term
   ρ (ι₁ x) = bvar x
@@ -108,23 +120,20 @@ _≈>_ : 𝔸 → Term → Term → Term
 
 -- Syntax shorthands
 
-tup₂ : ∀ {A : Set} → A → A → Fin 2 → A
-tup₂ x y zero        = x
-tup₂ x y (succ zero) = y
+tup₂ : ∀ {A : Set} → A → A → Vector A 2
+tup₂ x y = fromList $ x :: y :: []
 
-tup₃ : ∀ {A : Set} → A → A → A → Fin 3 → A
-tup₃ x y z zero               = x
-tup₃ x y z (succ zero)        = y
-tup₃ x y z (succ (succ zero)) = z
+tup₃ : ∀ {A : Set} → A → A → A → Vector A 3
+tup₃ x y z = fromList $ x :: y :: z :: []
 
 tunit : Type
-tunit = ttup (mkArray 0 λ())
+tunit = ttup {0} λ()
 
-treals : ∀ {n} → (Fin n → Coeff) → Type
-treals cs = ttup (mkArray _ (treal ∘ cs))
+treals : ∀ {n} → Vector Coeff n → Type
+treals cs = ttup $ map treal cs
 
 tpair : Type → Type → Type
-tpair T₁ T₂ = ttup (mkArray _ (tup₂ T₁ T₂))
+tpair T₁ T₂ = ttup $ tup₂ T₁ T₂
 
 abs : Type → Term → Term
 abs T t = op (oabs T , const t)
@@ -132,13 +141,13 @@ abs T t = op (oabs T , const t)
 app : Term → Term → Term
 app t₁ t₂ = op (oapp , tup₂ t₁ t₂)
 
-prim : ∀ {n} → Prim → (Fin n → Term) → Term
-prim ϕ ts = op (oprim _ ϕ , ts)
+prim : (ϕ : Prim) → Vector Term (PrimAr ϕ) → Term
+prim ϕ ts = op (oprim ϕ , ts)
 
 real : ℝ → Term
 real r = op (oreal r , λ ())
 
-tup : ∀ {n} → (Fin n → Term) → Term
+tup : ∀ {n} → Vector Term n → Term
 tup ts = op (otup _ , ts)
 
 proj : ∀ {n} → Fin n → Term → Term
@@ -153,8 +162,8 @@ diff t₁ t₂ = op (odiff , tup₂ t₁ t₂)
 solve : Term → Term → Term → Term
 solve t₁ t₂ t₃ = op (osolve , tup₃ t₁ t₂ t₃)
 
-dist : ∀ {n} → Dist → (Fin n → Term) → Term
-dist D ts = op (odist _ D , ts)
+dist : (D : Dist) → Vector Term (DistAr D) → Term
+dist D ts = op (odist D , ts)
 
 assume : Term → Term
 assume t = op (oassume , const t)
@@ -167,3 +176,6 @@ expect t = op (oexpect , const t)
 
 infer : Term → Term
 infer t = op (oinfer , const t)
+
+unit : Term
+unit = tup {0} λ()
