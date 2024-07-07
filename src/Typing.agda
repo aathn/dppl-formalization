@@ -163,14 +163,14 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
       Γ ⊢ dist D ts :[ e ] tdist T
 
   tassume
-    : ∀ {Γ t e T}
-    → Γ ⊢ t :[ e ] tdist T
+    : ∀ {Γ t T}
+    → Γ ⊢ t :[ rnd ] tdist T
     → -----------------------
       Γ ⊢ assume t :[ rnd ] T
 
   tweight
-    : ∀ {Γ t e}
-    → Γ ⊢ t :[ e ] treal cc
+    : ∀ {Γ t}
+    → Γ ⊢ t :[ rnd ] treal cc
     → ---------------------------
       Γ ⊢ weight t :[ rnd ] tunit
 

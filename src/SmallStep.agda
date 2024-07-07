@@ -41,6 +41,41 @@ data Value : Term → Set where
     → ---------------
       Value (infer v)
 
+-- Evaluation contexts and congruence closure
+
+evaluable : (o : TermOp) → Vector 𝔹 (length (TermAr o))
+evaluable (oabs _) = const false
+evaluable oif      = fromList $ true :: false :: false :: []
+evaluable _        = const true
+
+data EvalCtx : (Term → Term) → Set where
+
+  ectx
+    : ∀ {o n ts}
+    → evaluable o n ≡ true
+    → (∀ i → i <ꟳ n → Value (ts i))
+    → ----------------------------------------------
+      EvalCtx λ t → op (o , updateAt ts n (const t))
+
+
+data CongCls
+  {A B : Set} (_↝_ : A → A → Set) (F : Term → B → A)
+  : A → A → Set
+  where
+
+  estep
+    : ∀ {a b}
+    → a ↝ b
+    → -----------------
+      CongCls _↝_ F a b
+
+  econg
+    : ∀ {E t a t′ b}
+    → EvalCtx E
+    → CongCls _↝_ F (F t a) (F t′ b)
+    → --------------------------------------
+      CongCls _↝_ F (F (E t) a) (F (E t′) b)
+
 
 record EvalAssumptions : Set where
   field
@@ -138,50 +173,39 @@ module Eval (Ass : EvalAssumptions) where
           (app (Infer v) (real p) , w , s)
 
 
--- Evaluation contexts and congruence closure
+  -- Full evaluation relations
 
-evaluable : (o : TermOp) → Vector 𝔹 (length (TermAr o))
-evaluable (oabs _) = const false
-evaluable oif      = fromList $ true :: false :: false :: []
-evaluable _        = const true
+  _→det_ : Term → Term → Set
+  _→det_ = CongCls {B = 𝟙} _→ᵈ_ const
 
-data EvalCtx : (Term → Term) → Set where
-
-  ectx
-    : ∀ {o n ts}
-    → evaluable o n ≡ true
-    → (∀ i → i <ꟳ n → Value (ts i))
-    → ----------------------------------------------
-      EvalCtx λ t → op (o , updateAt ts n (const t))
-
-
-data CongCls (_↝_ : Term → Term → Set) : Term → Term → Set where
-
-  estep
-    : ∀ {t t′}
-    → t ↝ t′
-    → ----------------
-      CongCls _↝_ t t′
-
-  econg
-    : ∀ {E t t′}
-    → EvalCtx E
-    → CongCls _↝_ t t′
-    → ------------------------
-      CongCls _↝_ (E t) (E t′)
+  _→rnd_ : (Term × ℝ × List ℝ) → (Term × ℝ × List ℝ) → Set
+  _→rnd_ = CongCls _→ʳ_ (λ t ws → t , ws)
 
 
 cong-step
+  : ∀ {A B _↝_ F o ts a t′ b} n
+  → evaluable o n ≡ true
+  → (∀ i → i <ꟳ n → Value (ts i))
+  → CongCls {A} {B} _↝_ F (F (ts n) a) (F t′ b)
+  → -------------------------------------------
+    CongCls _↝_ F
+      (F (op (o , ts)) a)
+      (F (op (o , updateAt ts n (const t′))) b)
+cong-step {F = F} {o} {ts} {a} {t′} {b} n Hev Hvs Hstep =
+  subst
+    (λ ts′ → CongCls _ F (F (op (o , ts′)) a)
+                         (F (op (o , updateAt ts n (const t′))) b))
+    (funext $ updateAt-id-local n ts refl)
+    (econg (ectx Hev Hvs) Hstep)
+
+
+cong-step′
   : ∀ {_↝_ o ts t′} n
   → evaluable o n ≡ true
   → (∀ i → i <ꟳ n → Value (ts i))
-  → CongCls _↝_ (ts n) t′
+  → CongCls _↝_ const (ts n) t′
   → -------------------------------------
-    ∑ t ∶ _ , CongCls _↝_ (op (o , ts)) t
-cong-step {_} {o} {ts} {t′} n Hev Hvs Hstep =
-  _ ,
-    subst
-      (λ ts′ → CongCls _ (op (o , ts′))
-                         (op (o , updateAt ts n (const t′))))
-      (funext $ updateAt-id-local n ts refl)
-      (econg (ectx Hev Hvs) Hstep)
+    CongCls _↝_ const
+      (op (o , ts))
+      (op (o , updateAt ts n (const t′)))
+cong-step′ = cong-step {a = tt} {b = tt}
