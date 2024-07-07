@@ -4,12 +4,10 @@ open import Syntax ℝ
 
 open import Lib.Prelude
 open import Lib.BindingSignature
-open import Lib.FunExt
 
 open import Function using (_$_ ; const)
 open import Data.Fin using () renaming (_<_ to _<ꟳ_)
 open import Data.Vec.Functional using (fromList ; updateAt ; map)
-open import Data.Vec.Functional.Properties using (updateAt-id-local)
 
 data Value : Term → Set where
 
@@ -181,31 +179,3 @@ module Eval (Ass : EvalAssumptions) where
   _→rnd_ : (Term × ℝ × List ℝ) → (Term × ℝ × List ℝ) → Set
   _→rnd_ = CongCls _→ʳ_ (λ t ws → t , ws)
 
-
-cong-step
-  : ∀ {A B _↝_ F o ts a t′ b} n
-  → evaluable o n ≡ true
-  → (∀ i → i <ꟳ n → Value (ts i))
-  → CongCls {A} {B} _↝_ F (F (ts n) a) (F t′ b)
-  → -------------------------------------------
-    CongCls _↝_ F
-      (F (op (o , ts)) a)
-      (F (op (o , updateAt ts n (const t′))) b)
-cong-step {F = F} {o} {ts} {a} {t′} {b} n Hev Hvs Hstep =
-  subst
-    (λ ts′ → CongCls _ F (F (op (o , ts′)) a)
-                         (F (op (o , updateAt ts n (const t′))) b))
-    (funext $ updateAt-id-local n ts refl)
-    (econg (ectx Hev Hvs) Hstep)
-
-
-cong-step′
-  : ∀ {_↝_ o ts t′} n
-  → evaluable o n ≡ true
-  → (∀ i → i <ꟳ n → Value (ts i))
-  → CongCls _↝_ const (ts n) t′
-  → -------------------------------------
-    CongCls _↝_ const
-      (op (o , ts))
-      (op (o , updateAt ts n (const t′)))
-cong-step′ = cong-step {a = tt} {b = tt}

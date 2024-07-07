@@ -1,118 +1,24 @@
-module Properties (ℝ : Set) where
+module Properties.Progress (ℝ : Set) where
+
+-- Proofs of progress for the DPPL semantics
 
 open import Syntax ℝ
 open import Typing ℝ
 open import SmallStep ℝ
+open import Properties.SmallStep ℝ
+open import Properties.Util ℝ
 
 open import Lib.Prelude
 open import Lib.FunExt
-open import Lib.BindingSignature
 
-open import Function using (_$_ ; const)
-open import Data.Fin using () renaming (_<_ to _<ꟳ_)
+open import Function using (_$_)
 open import Data.List.Relation.Binary.Sublist.Propositional using ([])
 open import Data.Product using (∃-syntax)
 open import Data.Vec.Functional using (map)
 
 module _ (Ass : EvalAssumptions) where
   open Eval Ass
-
-  -- Utility lemmas
-
-  all-⊎
-    : ∀ {n} {A B : Fin n → Set}
-    → (∀ i → A i ⊎ B i)
-    → -------------------------------------------------------
-      (∀ i → A i) ⊎ ∃[ j ] B j × ∀ (i : Fin n) → i <ꟳ j → A i
-
-  all-⊎ {zero} f = ι₁ λ()
-  all-⊎ {n +1} f =
-    case (f zero) λ
-      { (ι₁ Ha) →
-        case (all-⊎ (f ∘ succ)) λ
-          { (ι₁ Has) → ι₁ $ λ { zero → Ha ; (succ n) → Has n }
-          ; (ι₂ (j , Hb , Has)) → ι₂ $
-            _ , Hb , λ { zero _ → Ha ; (succ n) H≤ → Has n (≤-1 H≤) }
-          }
-      ; (ι₂ Hb) → ι₂ $ _ , Hb , λ _ ()
-      }
-
-  -- Canonical forms
-
-  canonical-⇒
-    : ∀ {Γ t e e′ T T₁ T₂}
-    → Γ ⊢ t :[ e ] T
-    → Value t
-    → T ≡ T₁ ⇒[ e′ ] T₂
-    → -----------------------------
-      ∃[ T′ ] ∃[ t′ ] t ≡ abs T′ t′
-
-  canonical-⇒ (tabs _) _ refl = _ , _ , refl
-  canonical-⇒ (tweaken Htype _ _) Hval Heq =
-    canonical-⇒ Htype Hval Heq
-  canonical-⇒ (tsub Htype _ (sarr _ _ _)) Hval refl =
-    canonical-⇒ Htype Hval refl
-  canonical-⇒ (tpromote {T = _ ⇒[ _ ] _} Htype refl) Hval Heq =
-    canonical-⇒ Htype Hval Heq
-
-  canonical-real
-    : ∀ {Γ t e T c}
-    → Γ ⊢ t :[ e ] T
-    → Value t
-    → T ≡ treal c
-    → -----------------
-      ∃[ r ] t ≡ real r
-
-  canonical-real treal _ _ = _ , refl
-  canonical-real (tweaken Htype _ _) Hval Heq =
-    canonical-real Htype Hval Heq
-  canonical-real (tsub Htype _ (sreal _)) Hval refl =
-    canonical-real Htype Hval refl
-  canonical-real (tpromote {T = treal _} Htype refl) Hval refl =
-    canonical-real Htype Hval refl
-
-  canonical-tup
-    : ∀ {Γ t e T n Ts}
-    → Γ ⊢ t :[ e ] T
-    → Value t
-    → T ≡ ttup {n} Ts
-    → -------------------------------------------
-      ∃[ ts ] t ≡ tup {n} ts × ∀ i → Value (ts i)
-
-  canonical-tup (ttup _) (vtup Hvs) refl = _ , refl , Hvs
-  canonical-tup (tweaken Htype _ _) Hval Heq =
-    canonical-tup Htype Hval Heq
-  canonical-tup (tsub Htype _ (stup _)) Hval refl =
-    canonical-tup Htype Hval refl
-  canonical-tup (tpromote {T = ttup _} Htype refl) Hval refl =
-    canonical-tup Htype Hval refl
-
-  canonical-dist
-    : ∀ {Γ t e T T′}
-    → Γ ⊢ t :[ e ] T
-    → Value t
-    → T ≡ tdist T′
-    → -----------------------------------------
-      (∃[ D ] ∃[ rs ] t ≡ dist D (map real rs))
-    ⊎ (∃[ v ] t ≡ infer v × Value v)
-
-  canonical-dist (tdist {ts = ts} _ Htypes) (vdist Hvs) _ =
-    let Hreals : ∃[ rs ] ts ≡ map real rs
-        Hreals = _ , funext λ i → π₂ $ canonical-real (Htypes i) (Hvs i) refl
-    in
-    case Hreals λ { (_ , refl) → ι₁ $ _ , _ , refl }
-  canonical-dist (tinfer _) Hval refl = ι₂ $ infer-inv Hval refl
-    where
-    infer-inv : ∀ {t t′} → Value t′ → t′ ≡ infer t → ∃[ v ] infer t ≡ infer v × Value v
-    infer-inv (vinfer Hv) Heq = _ , symm Heq , Hv
-  canonical-dist (tweaken Htype _ _) Hval Heq =
-    canonical-dist Htype Hval Heq
-  canonical-dist (tsub Htype _ (sdist _)) Hval refl =
-    canonical-dist Htype Hval refl
-  canonical-dist (tpromote {T = tdist _} Htype refl) Hval Heq =
-    canonical-dist Htype Hval Heq
-
-  -- Progress
+  open Step Ass
 
   progress-det
     : ∀ {t T}
@@ -206,15 +112,6 @@ module _ (Ass : EvalAssumptions) where
   progress-det (tsub Htype 0≤ _)    = progress-det Htype
   progress-det (tpromote {[]} Htype refl) = progress-det Htype
 
-
-  →det⊆→rnd
-    : ∀ {t t′ w s}
-    → t →det t′
-    → -----------------------------
-      (t , w , s) →rnd (t′ , w , s)
-
-  →det⊆→rnd (estep Hstep) = estep (edet Hstep)
-  →det⊆→rnd (econg ctx Hstep) = econg ctx (→det⊆→rnd Hstep)
 
   progress-rnd
     : ∀ {t T w p s}
