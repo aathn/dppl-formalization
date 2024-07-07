@@ -9,7 +9,7 @@ open import Lib.FunExt
 open import Function using (_$_ ; const)
 open import Data.Fin using () renaming (_<_ to _<ꟳ_)
 open import Data.Vec.Functional using (fromList ; updateAt ; map)
-open import Data.Vec.Functional.Properties using (updateAt-updates)
+open import Data.Vec.Functional.Properties using (updateAt-id-local)
 
 data Value : Term → Set where
 
@@ -74,7 +74,7 @@ module Eval (Ass : EvalAssumptions) where
         prim ϕ (map real rs) →ᵈ real (PrimEv ϕ rs)
   
     eproj
-      : ∀ {n i vs}
+      : ∀ {n vs} i
       → (∀ j → Value (vs j))
       → ---------------------------
         proj {n} i (tup vs) →ᵈ vs i
@@ -148,7 +148,7 @@ evaluable _        = const true
 data EvalCtx : (Term → Term) → Set where
 
   ectx
-    : ∀ o n {ts}
+    : ∀ {o n ts}
     → evaluable o n ≡ true
     → (∀ i → i <ꟳ n → Value (ts i))
     → ----------------------------------------------
@@ -171,29 +171,17 @@ data CongCls (_↝_ : Term → Term → Set) : Term → Term → Set where
       CongCls _↝_ (E t) (E t′)
 
 
--- Context shorthands
-
-single-ctx
-  : ∀ {o}
-  → (Hlen : 1 ≡ length (TermAr o))
-  → evaluable o (subst Fin Hlen zero) ≡ true
-  → ----------------------------------------
-    EvalCtx λ t → op (o , const t)
-single-ctx {o} Hlen Hev =
-  subst EvalCtx
-    (funext (ap (op ∘ (o ,_)) ∘ singleUpdate (const unit) Hlen))
-    (ectx o (subst Fin Hlen zero) Hev (nilEq Hlen))
-  where
-  nilEq
-    : ∀ {A : Set} {n m}
-    → (Heq : m +1 ≡ n)
-    → -----------------------------------------
-      (i : Fin n) → i <ꟳ subst Fin Heq zero → A
-  nilEq refl _ ()
-  singleUpdate
-    : ∀ {A : Set} {n}
-    → (as : Vector A n) (Heq : 1 ≡ n)
-    → ----------------------------------------------------------
-      ∀ t → updateAt as (subst Fin Heq zero) (const t) ≡ const t
-  singleUpdate _ refl _ = funext $ λ { zero → refl }
-
+cong-step
+  : ∀ {_↝_ o ts t′} n
+  → evaluable o n ≡ true
+  → (∀ i → i <ꟳ n → Value (ts i))
+  → CongCls _↝_ (ts n) t′
+  → -------------------------------------
+    ∑ t ∶ _ , CongCls _↝_ (op (o , ts)) t
+cong-step {_} {o} {ts} {t′} n Hev Hvs Hstep =
+  _ ,
+    subst
+      (λ ts′ → CongCls _ (op (o , ts′))
+                         (op (o , updateAt ts n (const t′))))
+      (funext $ updateAt-id-local n ts refl)
+      (econg (ectx Hev Hvs) Hstep)

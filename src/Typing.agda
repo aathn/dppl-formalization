@@ -29,23 +29,23 @@ pattern _,_∶_ Γ x T = (x , T) :: Γ
 record PrimType (n : ℕ) : Set where
   constructor _⇒ᵖ_
   field
-    dom   : Vector Type n
+    dom   : Vector Coeff n
     codom : Type
 
 open PrimType
 
 PrimTy : (ϕ : Prim) → PrimType (PrimAr ϕ)
-dom   (PrimTy padd) = const $ treal ca
+dom   (PrimTy padd) = const $ ca
 codom (PrimTy padd) = treal ca
-dom   (PrimTy pmul) = const $ treal ca
+dom   (PrimTy pmul) = const $ ca
 codom (PrimTy pmul) = treal ca
-dom   (PrimTy (pwiener r)) = const $ treal cc
+dom   (PrimTy (pwiener r)) = const $ cc
 codom (PrimTy (pwiener r)) = treal cc
 
 DistTy : (D : Dist) → PrimType (DistAr D)
-dom   (DistTy dnormal) = const $ treal cc
+dom   (DistTy dnormal) = const $ cc
 codom (DistTy dnormal) = treal cc
-dom   (DistTy dbeta)   = const $ treal cc
+dom   (DistTy dbeta)   = const $ cc
 codom (DistTy dbeta)   = treal cc
 dom   (DistTy dwiener) = λ()
 codom (DistTy dwiener) = treal cc ⇒[ det ] treal cc
@@ -108,10 +108,10 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
       Γ ⊢ app t₁ t₂ :[ e ] T₂
 
   tprim
-    : ∀ {ϕ Γ Ts T ts e}
-    → PrimTy ϕ ≡ Ts ⇒ᵖ T
-    → (∀ i → Γ ⊢ ts i :[ e ] Ts i)
-    → ----------------------------
+    : ∀ {ϕ Γ cs T ts e}
+    → PrimTy ϕ ≡ cs ⇒ᵖ T
+    → (∀ i → Γ ⊢ ts i :[ e ] treal (cs i))
+    → ------------------------------------
       Γ ⊢ prim ϕ ts :[ e ] T
 
   treal
@@ -126,7 +126,7 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
       Γ ⊢ tup {n} ts :[ e ] ttup Ts
 
   tproj
-    : ∀ {n Ts Γ i t e}
+    : ∀ {n Ts Γ t e} i
     → Γ ⊢ t :[ e ] ttup Ts
     → ----------------------------
       Γ ⊢ proj {n} i t :[ e ] Ts i
@@ -156,10 +156,10 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
       Γ ⊢ solve t₁ t₂ t₃ :[ e ] treals cs
 
   tdist
-    : ∀ {D Γ Ts T ts e}
-    → DistTy D ≡ Ts ⇒ᵖ T
-    → (∀ i → Γ ⊢ ts i :[ e ] Ts i)
-    → ----------------------------
+    : ∀ {D Γ cs T ts e}
+    → DistTy D ≡ cs ⇒ᵖ T
+    → (∀ i → Γ ⊢ ts i :[ e ] treal (cs i))
+    → ------------------------------------
       Γ ⊢ dist D ts :[ e ] tdist T
 
   tassume
