@@ -4,10 +4,12 @@ open import Syntax ℝ
 
 open import Lib.Prelude
 open import Lib.BindingSignature
+open import Lib.FunExt
 
 open import Function using (_$_ ; const)
 open import Data.Fin using () renaming (_<_ to _<ꟳ_)
 open import Data.Vec.Functional using (fromList ; updateAt ; map)
+open import Data.Vec.Functional.Properties using (updateAt-updates)
 
 data Value : Term → Set where
 
@@ -40,19 +42,23 @@ data Value : Term → Set where
       Value (infer v)
 
 
-module Eval
-  (0ʳ : ℝ)
-  (1ʳ : ℝ)
-  (_*ʳ_ : ℝ → ℝ → ℝ)
-  (_>ʳ_ : ℝ → ℝ → 𝔹)
-  (PrimEv : (ϕ : Prim) → Vector ℝ (PrimAr ϕ) → ℝ)
-  (DistExpect : (D : Dist) → Vector ℝ (DistAr D) → ℝ)
-  (DistAssume : (D : Dist) → Vector ℝ (DistAr D) → ℝ → Term)
-  (Infer : Term → Term)
-  (Expectation : Term → Term)
-  (Diff : Term → Term → Term)
-  (Solve : Term → Term → Term → Term)
-  where
+record EvalAssumptions : Set where
+  field
+    0ʳ : ℝ
+    1ʳ : ℝ
+    _*ʳ_ : ℝ → ℝ → ℝ
+    _>ʳ_ : ℝ → ℝ → 𝔹
+    PrimEv : (ϕ : Prim) → Vector ℝ (PrimAr ϕ) → ℝ
+    DistExpect : (D : Dist) → Vector ℝ (DistAr D) → ℝ
+    DistAssume : (D : Dist) → Vector ℝ (DistAr D) → ℝ → Term
+    Infer : Term → Term
+    Expectation : Term → Term
+    Diff : Term → Term → Term
+    Solve : Term → Term → Term → Term
+
+
+module Eval (Ass : EvalAssumptions) where
+  open EvalAssumptions Ass
 
   data _→ᵈ_ : Term → Term → Set where
  
@@ -132,6 +138,8 @@ module Eval
           (app (Infer v) (real p) , w , s)
 
 
+-- Evaluation contexts and congruence closure
+
 evaluable : (o : TermOp) → Vector 𝔹 (length (TermAr o))
 evaluable (oabs _) = const false
 evaluable oif      = fromList $ true :: false :: false :: []
@@ -139,12 +147,8 @@ evaluable _        = const true
 
 data EvalCtx : (Term → Term) → Set where
 
-  eid
-    : ----------
-      EvalCtx id
-
   ectx
-    : ∀ {o} {n} {ts}
+    : ∀ o n {ts}
     → evaluable o n ≡ true
     → (∀ i → i <ꟳ n → Value (ts i))
     → ----------------------------------------------
@@ -153,9 +157,43 @@ data EvalCtx : (Term → Term) → Set where
 
 data CongCls (_↝_ : Term → Term → Set) : Term → Term → Set where
 
+  estep
+    : ∀ {t t′}
+    → t ↝ t′
+    → ----------------
+      CongCls _↝_ t t′
+
   econg
     : ∀ {E t t′}
     → EvalCtx E
-    → t ↝ t′
+    → CongCls _↝_ t t′
     → ------------------------
       CongCls _↝_ (E t) (E t′)
+
+
+-- Context shorthands
+
+single-ctx
+  : ∀ {o}
+  → (Hlen : 1 ≡ length (TermAr o))
+  → evaluable o (subst Fin Hlen zero) ≡ true
+  → ----------------------------------------
+    EvalCtx λ t → op (o , const t)
+single-ctx {o} Hlen Hev =
+  subst EvalCtx
+    (funext (ap (op ∘ (o ,_)) ∘ singleUpdate (const unit) Hlen))
+    (ectx o (subst Fin Hlen zero) Hev (nilEq Hlen))
+  where
+  nilEq
+    : ∀ {A : Set} {n m}
+    → (Heq : m +1 ≡ n)
+    → -----------------------------------------
+      (i : Fin n) → i <ꟳ subst Fin Heq zero → A
+  nilEq refl _ ()
+  singleUpdate
+    : ∀ {A : Set} {n}
+    → (as : Vector A n) (Heq : 1 ≡ n)
+    → ----------------------------------------------------------
+      ∀ t → updateAt as (subst Fin Heq zero) (const t) ≡ const t
+  singleUpdate _ refl _ = funext $ λ { zero → refl }
+

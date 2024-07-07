@@ -203,7 +203,8 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
       Γ ⊢ t :[ e′ ] T′
 
   tpromote
-    : ∀ {Γ t e c T}
+    : ∀ {Γ Γ′ t e c T}
     → Γ ⊢ t :[ e ] T
-    → -----------------------
-      c ⊙ᴱ Γ ⊢ t :[ e ] c ⊙ T
+    → Γ′ ≡ c ⊙ᴱ Γ
+    → -------------------
+      Γ′ ⊢ t :[ e ] c ⊙ T
