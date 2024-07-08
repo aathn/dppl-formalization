@@ -17,20 +17,22 @@ module _ {Σ : Sig} where
   open Subst {Σ}
 
   subst-open-comm
-    : ∀ {x y u} t
+    : ∀ {x y n u} t
     → y ≠ x
     → 0 ≻ u
     → -----------------------------------------
-      (x => u)((0 ~> y)t) ≡ (0 ~> y)((x => u)t)
-  subst-open-comm {x} {y} {u} (bvar x₁) Hneq Hlc with =
-    case (x₁ ≐ 0) λ
-      { equ      → {!!}
-      ; (neq Hn) → {!!}
-      }
-  subst-open-comm {x} {y} {u} (fvar y₁) Hneq Hlc = {!!}
-  subst-open-comm {x} {y} {u} (op (o , ts)) Hneq Hlc =
-    ap (op ∘ (o ,_)) $ funext λ i →
-      let foo = subst-open-comm {x} {y} (ts i) Hneq Hlc in {!!}
+      (x => u)((n ~> y)t) ≡ (n ~> y)((x => u)t)
+  subst-open-comm {x} {y} {n} (bvar x₁) Hneq Hlc with n ≐ x₁
+  ... | neq _ = refl
+  ... | equ with x ≐ y
+  ...   | neq _ = refl
+  ...   | equ rewrite dec-equ x with () ← Hneq
+  subst-open-comm {x} {y} {n} (fvar y₁) Hneq Hlc with x ≐ y₁
+  ... | neq _ = refl
+  ... | equ rewrite ≻3 {j = n} {y} Hlc 0≤ = refl
+  subst-open-comm (op (o , ts)) Hneq Hlc =
+    ap (op ∘ (o ,_)) $ funext λ i → subst-open-comm (ts i) Hneq Hlc
+
 
 all-⊎
   : ∀ {n} {A B : Fin n → Set}

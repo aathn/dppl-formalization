@@ -92,6 +92,7 @@ record EvalAssumptions : Set where
 
 module Eval (Ass : EvalAssumptions) where
   open EvalAssumptions Ass
+  open Subst {TermSig}
 
   data _→ᵈ_ : Term → Term → Set where
  

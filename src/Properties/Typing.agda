@@ -15,6 +15,7 @@ open import Data.List using (_++_)
 
 open import Syntax ℝ
 open import Typing ℝ
+open import Properties.Util
 
 infixl 5 _&_
 _&_ : TyEnv → TyEnv → TyEnv
@@ -33,6 +34,7 @@ well-typed-lc
     0 ≻ t
 well-typed-lc = {!!}
 
+open Subst {TermSig}
 
 substitution-pres-typing
   : ∀ {Γ′ Γ₀ Γ t T₁ e T₂} x u
@@ -46,7 +48,7 @@ substitution-pres-typing {Γ′} {Γ₀} x u (tabs {t = t} Habs) Hu Heq rewrite 
   let Иi As Hcof = Habs in
   tabs $ Иi ([ x ] ∪ As) λ { y {{∉∪ {{∉x}}}} →
     let Htype = substitution-pres-typing x u (Hcof y) (tsub Hu 0≤ sub-refl) refl
-        Heq   = subst-open-comm {t = t} (∉[]₁ ∉x) (well-typed-lc Hu)
+        Heq   = subst-open-comm t (∉[]₁ ∉x) (well-typed-lc Hu)
     in
     subst (λ x → _ ⊢ x :[ _ ] _) Heq Htype
   }

@@ -6,7 +6,7 @@ open import Syntax ℝ
 open import Typing ℝ
 open import SmallStep ℝ
 open import Properties.SmallStep ℝ
-open import Properties.Util ℝ
+open import Properties.Util
 
 open import Lib.Prelude
 open import Lib.FunExt
