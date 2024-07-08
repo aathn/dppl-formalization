@@ -1,12 +1,36 @@
-module Properties.Util (ℝ : Set) where
+module Properties.Util where
 
--- Utility lemmas
+-- Lemmas regarding substitution and other utility lemmas
 
 open import Lib.Prelude
+open import Lib.Unfinite
+open import Lib.LocalClosedness
+open import Lib.oc-Sets
+open import Lib.FunExt
+open import Lib.BindingSignature
 
 open import Function using (_$_)
 open import Data.Fin using () renaming (_<_ to _<ꟳ_)
 open import Data.Product using (∃-syntax)
+
+module _ {Σ : Sig} where
+  open Subst {Σ}
+
+  subst-open-comm
+    : ∀ {x y u} t
+    → y ≠ x
+    → 0 ≻ u
+    → -----------------------------------------
+      (x => u)((0 ~> y)t) ≡ (0 ~> y)((x => u)t)
+  subst-open-comm {x} {y} {u} (bvar x₁) Hneq Hlc with =
+    case (x₁ ≐ 0) λ
+      { equ      → {!!}
+      ; (neq Hn) → {!!}
+      }
+  subst-open-comm {x} {y} {u} (fvar y₁) Hneq Hlc = {!!}
+  subst-open-comm {x} {y} {u} (op (o , ts)) Hneq Hlc =
+    ap (op ∘ (o ,_)) $ funext λ i →
+      let foo = subst-open-comm {x} {y} (ts i) Hneq Hlc in {!!}
 
 all-⊎
   : ∀ {n} {A B : Fin n → Set}

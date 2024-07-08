@@ -94,30 +94,6 @@ Term = Trm TermSig
 instance
   lnsTerm = lnsTrm
 
--- Substitution
-
--- Bound variable substitution
-_≈>_ : ℕ → Term → Term → Term
-(n ≈> u) t = Subst.substTrm t ρ
-  where
-  ρ : ℕ𝔸 → Term
-  ρ (ι₁ x) = case (n ≐ x) λ
-    { equ     → u
-    ; (neq _) → bvar x
-    }
-  ρ (ι₂ y) = fvar y
-
--- Free variable substitution
-_=>_ : 𝔸 → Term → Term → Term
-(a => u) t = Subst.substTrm t ρ
-  where
-  ρ : ℕ𝔸 → Term
-  ρ (ι₁ x) = bvar x
-  ρ (ι₂ y) = case (a ≐ y) λ
-    { equ     → u
-    ; (neq _) → fvar y
-    }
-
 -- Syntax shorthands
 
 tup₂ : ∀ {A : Set} → A → A → Vector A 2
