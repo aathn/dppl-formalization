@@ -644,10 +644,7 @@ module Subst {Σ : Sig} where
   (n ≈> u) t = substTrm t ρ
     where
     ρ : ℕ𝔸 → Trm Σ
-    ρ (ι₁ x) = case (n ≐ x) λ
-      { equ     → u
-      ; (neq _) → bvar x
-      }
+    ρ (ι₁ x) = if does(n ≐ x) then u else bvar x
     ρ (ι₂ y) = fvar y
 
   -- Free variable substitution
@@ -656,7 +653,4 @@ module Subst {Σ : Sig} where
     where
     ρ : ℕ𝔸 → Trm Σ
     ρ (ι₁ x) = bvar x
-    ρ (ι₂ y) = case (a ≐ y) λ
-      { equ     → u
-      ; (neq _) → fvar y
-      }
+    ρ (ι₂ y) = if does(a ≐ y) then u else fvar y

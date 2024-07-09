@@ -96,6 +96,10 @@ instance
 
 -- Syntax shorthands
 
+pattern 0ꟳ = zero
+pattern 1ꟳ = succ zero
+pattern 2ꟳ = succ (succ zero)
+
 tup₂ : ∀ {A : Set} → A → A → Vector A 2
 tup₂ x y = fromList $ x :: y :: []
 
@@ -114,8 +118,8 @@ tpair T₁ T₂ = ttup $ tup₂ T₁ T₂
 abs : Type → Term → Term
 abs T t = op (oabs T , const t)
 
-app : Term → Term → Term
-app t₁ t₂ = op (oapp , tup₂ t₁ t₂)
+app : Vector Term 2 → Term
+app ts = op (oapp , ts)
 
 prim : (ϕ : Prim) → Vector Term (PrimAr ϕ) → Term
 prim ϕ ts = op (oprim ϕ , ts)
@@ -129,14 +133,14 @@ tup ts = op (otup _ , ts)
 proj : ∀ {n} → Fin n → Term → Term
 proj {n} i t = op (oproj n , const t)
 
-if : Term → Term → Term → Term
-if t₁ t₂ t₃ = op (oif , tup₃ t₁ t₂ t₃)
+if : Vector Term 3 → Term
+if ts = op (oif , ts)
 
-diff : Term → Term → Term
-diff t₁ t₂ = op (odiff , tup₂ t₁ t₂)
+diff : Vector Term 2 → Term
+diff ts = op (odiff , ts)
 
-solve : Term → Term → Term → Term
-solve t₁ t₂ t₃ = op (osolve , tup₃ t₁ t₂ t₃)
+solve : Vector Term 3 → Term
+solve ts = op (osolve , ts)
 
 dist : (D : Dist) → Vector Term (DistAr D) → Term
 dist D ts = op (odist D , ts)

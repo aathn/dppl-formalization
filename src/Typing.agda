@@ -17,38 +17,30 @@ open import Relation.Binary using (Rel)
 TyEnv : Set
 TyEnv = List (𝔸 × Type)
 
+pattern [_∶_]   x T = (x , T) :: []
+pattern _,_∶_ Γ x T = (x , T) :: Γ
+
+dom : TyEnv → Fset 𝔸
+dom [] = Ø
+dom (Γ , x ∶ _) = [ x ] ∪ dom Γ
+
 DistinctName : Rel (𝔸 × Type) _
 DistinctName (x , _) (x₁ , _) = ¬ x ≡ x₁
 
 open import Data.List.Relation.Unary.AllPairs.Core DistinctName
   using () renaming (AllPairs to Distinct)
 
-pattern [_∶_]   x T = (x , T) :: []
-pattern _,_∶_ Γ x T = (x , T) :: Γ
+pattern _⇒ᵖ_ x y = x , y
 
-record PrimType (n : ℕ) : Set where
-  constructor _⇒ᵖ_
-  field
-    dom   : Vector Coeff n
-    codom : Type
+PrimTy : (ϕ : Prim) → Vector Coeff (PrimAr ϕ) × Type
+PrimTy padd        = const ca ⇒ᵖ treal ca
+PrimTy pmul        = const ca ⇒ᵖ treal ca
+PrimTy (pwiener r) = const cc ⇒ᵖ treal cc
 
-open PrimType
-
-PrimTy : (ϕ : Prim) → PrimType (PrimAr ϕ)
-dom   (PrimTy padd) = const $ ca
-codom (PrimTy padd) = treal ca
-dom   (PrimTy pmul) = const $ ca
-codom (PrimTy pmul) = treal ca
-dom   (PrimTy (pwiener r)) = const $ cc
-codom (PrimTy (pwiener r)) = treal cc
-
-DistTy : (D : Dist) → PrimType (DistAr D)
-dom   (DistTy dnormal) = const $ cc
-codom (DistTy dnormal) = treal cc
-dom   (DistTy dbeta)   = const $ cc
-codom (DistTy dbeta)   = treal cc
-dom   (DistTy dwiener) = λ()
-codom (DistTy dwiener) = treal cc ⇒[ det ] treal cc
+DistTy : (D : Dist) → Vector Coeff (DistAr D) × Type
+DistTy dnormal = const cc ⇒ᵖ treal cc
+DistTy dbeta   = const cc ⇒ᵖ treal cc
+DistTy dwiener = (λ()) ⇒ᵖ (treal cc ⇒[ det ] treal cc)
 
 _⊙_ : Coeff → Type → Type
 c ⊙ (treal c′) = treal (c ⊔ c′)
@@ -101,11 +93,11 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
       Γ ⊢ abs T₁ t :[ det ] T₁ ⇒[ e ] T₂
 
   tapp
-    : ∀ {Γ t₁ t₂ e T₁ T₂}
-    → Γ ⊢ t₁ :[ e ] T₁ ⇒[ e ] T₂
-    → Γ ⊢ t₂ :[ e ] T₂
-    → -----------------------
-      Γ ⊢ app t₁ t₂ :[ e ] T₂
+    : ∀ {Γ ts e T₁ T₂}
+    → Γ ⊢ ts 0ꟳ :[ e ] T₁ ⇒[ e ] T₂
+    → Γ ⊢ ts 1ꟳ :[ e ] T₂
+    → --------------------
+      Γ ⊢ app ts :[ e ] T₂
 
   tprim
     : ∀ {ϕ Γ cs T ts e}
@@ -132,28 +124,28 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
       Γ ⊢ proj {n} i t :[ e ] Ts i
 
   tif
-    : ∀ {Γ t₁ t₂ t₃ e T}
-    → Γ ⊢ t₁ :[ e ] treal cb
-    → Γ ⊢ t₂ :[ e ] T
-    → Γ ⊢ t₃ :[ e ] T
-    → ------------------------
-      Γ ⊢ if t₁ t₂ t₃ :[ e ] T
+    : ∀ {Γ ts e T}
+    → Γ ⊢ ts 0ꟳ :[ e ] treal cb
+    → Γ ⊢ ts 1ꟳ :[ e ] T
+    → Γ ⊢ ts 2ꟳ :[ e ] T
+    → ------------------
+      Γ ⊢ if ts :[ e ] T
 
   tdiff
-    : ∀ {Γ t₁ t₂ n m cs ds e}
+    : ∀ {Γ ts n m cs ds e}
     → (∀ i → cs i ≤ cb)
-    → Γ ⊢ t₁ :[ e ] treals {n} cs ⇒[ det ] treals {m} ds
-    → Γ ⊢ t₂ :[ e ] treals cs
-    → --------------------------------------------------------------
-      Γ ⊢ diff t₁ t₂ :[ e ] treals {n} (const ca) ⇒[ det ] treals ds
+    → Γ ⊢ ts 0ꟳ :[ e ] treals {n} cs ⇒[ det ] treals {m} ds
+    → Γ ⊢ ts 1ꟳ :[ e ] treals cs
+    → -----------------------------------------------------------
+      Γ ⊢ diff ts :[ e ] treals {n} (const ca) ⇒[ det ] treals ds
 
   tsolve
-    : ∀ {Γ t₁ t₂ t₃ n c cs e}
-    → Γ ⊢ t₁ :[ e ] tpair (treal c) (treals {n} cs) ⇒[ det ] treals cs
-    → Γ ⊢ t₂ :[ e ] treals cs
-    → Γ ⊢ t₃ :[ e ] treal c
+    : ∀ {Γ ts n c cs e}
+    → Γ ⊢ ts 0ꟳ :[ e ] tpair (treal c) (treals {n} cs) ⇒[ det ] treals cs
+    → Γ ⊢ ts 1ꟳ :[ e ] treals cs
+    → Γ ⊢ ts 2ꟳ :[ e ] treal c
     → -----------------------------------
-      Γ ⊢ solve t₁ t₂ t₃ :[ e ] treals cs
+      Γ ⊢ solve ts :[ e ] treals cs
 
   tdist
     : ∀ {D Γ cs T ts e}

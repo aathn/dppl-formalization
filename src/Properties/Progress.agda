@@ -32,11 +32,11 @@ module _ (Ass : EvalAssumptions) where
     ι₂ $ case (progress-det Htype) λ
       { (ι₁ Hv) → case (progress-det Htype₁) λ
         { (ι₁ Hv₁) → case (canonical-⇒ Htype Hv refl) λ
-          { (_ , t , refl) → _ , estep (eapp Hv₁) }
+          { (_ , t , Heq) → _ , estep (eapp Heq Hv₁) }
         ; (ι₂ (t′ , Hstep)) →
-          _ , cong-step′ (succ zero) refl (λ {zero (+1≤ 0≤) → Hv}) Hstep
+          _ , cong-step′ 1ꟳ refl (λ {0ꟳ (+1≤ 0≤) → Hv}) Hstep
         }
-      ; (ι₂ (t′ , Hstep)) → _ , cong-step′ zero refl (λ _ ()) Hstep
+      ; (ι₂ (t′ , Hstep)) → _ , cong-step′ 0ꟳ refl (λ _ ()) Hstep
       }
   progress-det (tprim {ts = ts} Hϕ Htypes) =
     ι₂ $ case (all-⊎ (progress-det ∘ Htypes)) λ
@@ -56,22 +56,22 @@ module _ (Ass : EvalAssumptions) where
     ι₂ $ case (progress-det Htype) λ
       { (ι₁ Hv) → case (canonical-tup Htype Hv refl) λ
         { (ts , refl , Hvs) → _ , estep (eproj i Hvs) }
-      ; (ι₂ (t′ , Hstep)) → _ , cong-step′ zero refl (λ _ ()) Hstep
+      ; (ι₂ (t′ , Hstep)) → _ , cong-step′ 0ꟳ refl (λ _ ()) Hstep
       }
   progress-det (tif Htype Htype₁ Htype₂) =
     ι₂ $ case (progress-det Htype) λ
       { (ι₁ Hv) → case (canonical-real Htype Hv refl) λ
-        { (r , refl) → _ , estep eif }
-      ; (ι₂ (t′ , Hstep)) → _ , cong-step′ zero refl (λ _ ()) Hstep
+        { (r , Heq) → _ , estep (eif Heq) }
+      ; (ι₂ (t′ , Hstep)) → _ , cong-step′ 0ꟳ refl (λ _ ()) Hstep
       }
   progress-det (tdiff _ Htype Htype₁) =
     ι₂ $ case (progress-det Htype) λ
       { (ι₁ Hv) → case (progress-det Htype₁) λ
         { (ι₁ Hv₁) → _ , estep (ediff Hv Hv₁)
         ; (ι₂ (t′ , Hstep)) →
-          _ , cong-step′ (succ zero) refl (λ {zero (+1≤ 0≤) → Hv}) Hstep
+          _ , cong-step′ 1ꟳ refl (λ {0ꟳ (+1≤ 0≤) → Hv}) Hstep
         }
-      ; (ι₂ (t′ , Hstep)) → _ , cong-step′ zero refl (λ _ ()) Hstep
+      ; (ι₂ (t′ , Hstep)) → _ , cong-step′ 0ꟳ refl (λ _ ()) Hstep
       }
   progress-det (tsolve Htype Htype₁ Htype₂) =
     ι₂ $ case (progress-det Htype) λ
@@ -79,15 +79,15 @@ module _ (Ass : EvalAssumptions) where
         { (ι₁ Hv₁) → case (progress-det Htype₂) λ
           { (ι₁ Hv₂) → _ , estep (esolve Hv Hv₁ Hv₂)
           ; (ι₂ (t′ , Hstep)) →
-            _ , cong-step′ (succ (succ zero)) refl
-              (λ { zero (+1≤ 0≤) → Hv
-                 ; (succ zero) (+1≤ (+1≤ 0≤)) → Hv₁ })
+            _ , cong-step′ 2ꟳ refl
+              (λ { 0ꟳ (+1≤ 0≤) → Hv
+                 ; 1ꟳ (+1≤ (+1≤ 0≤)) → Hv₁ })
               Hstep
           }
         ; (ι₂ (t′ , Hstep)) →
-          _ , cong-step′ (succ zero) refl (λ {zero (+1≤ 0≤) → Hv}) Hstep
+          _ , cong-step′ 1ꟳ refl (λ {0ꟳ (+1≤ 0≤) → Hv}) Hstep
         }
-      ; (ι₂ (t′ , Hstep)) → _ , cong-step′ zero refl (λ _ ()) Hstep
+      ; (ι₂ (t′ , Hstep)) → _ , cong-step′ 0ꟳ refl (λ _ ()) Hstep
       }
   progress-det (tdist _ Htypes) =
     case (all-⊎ (progress-det ∘ Htypes)) λ
@@ -101,12 +101,12 @@ module _ (Ass : EvalAssumptions) where
         { (ι₁ (D , ts , refl)) → _ , estep eexpectdist
         ; (ι₂ (v , refl , Hv)) → _ , estep (eexpectinfer Hv)
         }
-      ; (ι₂ (t′ , Hstep)) → _ , cong-step′ zero refl (λ _ ()) Hstep
+      ; (ι₂ (t′ , Hstep)) → _ , cong-step′ 0ꟳ refl (λ _ ()) Hstep
       }
   progress-det (tinfer Htype) =
     case (progress-det Htype) λ
       { (ι₁ Hv)           → ι₁ $ vinfer Hv
-      ; (ι₂ (t′ , Hstep)) → ι₂ $ _ , cong-step′ zero refl (λ _ ()) Hstep
+      ; (ι₂ (t′ , Hstep)) → ι₂ $ _ , cong-step′ 0ꟳ refl (λ _ ()) Hstep
       }
   progress-det (tweaken Htype [] _) = progress-det Htype
   progress-det (tsub Htype 0≤ _)    = progress-det Htype
@@ -123,11 +123,11 @@ module _ (Ass : EvalAssumptions) where
     ι₂ $ case (progress-rnd Htype) λ
       { (ι₁ Hv) → case (progress-rnd Htype₁) λ
         { (ι₁ Hv₁) → case (canonical-⇒ Htype Hv refl) λ
-          { (_ , t , refl) → _ , estep (edet (eapp Hv₁)) }
+          { (_ , t , Heq) → _ , estep (edet (eapp Heq Hv₁)) }
         ; (ι₂ (_ , Hstep)) →
-          _ , cong-step (succ zero) refl (λ {zero (+1≤ 0≤) → Hv}) Hstep
+          _ , cong-step 1ꟳ refl (λ {0ꟳ (+1≤ 0≤) → Hv}) Hstep -- 
         }
-      ; (ι₂ (_ , Hstep)) → _ , cong-step zero refl (λ _ ()) Hstep
+      ; (ι₂ (_ , Hstep)) → _ , cong-step 0ꟳ refl (λ _ ()) Hstep
       }
   progress-rnd (tprim {ts = ts} Hϕ Htypes) =
     ι₂ $ case (all-⊎ (progress-rnd ∘ Htypes)) λ
@@ -147,22 +147,22 @@ module _ (Ass : EvalAssumptions) where
     ι₂ $ case (progress-rnd Htype) λ
       { (ι₁ Hv) → case (canonical-tup Htype Hv refl) λ
         { (ts , refl , Hvs) → _ , estep (edet (eproj i Hvs)) }
-      ; (ι₂ (_ , Hstep)) → _ , cong-step zero refl (λ _ ()) Hstep
+      ; (ι₂ (_ , Hstep)) → _ , cong-step 0ꟳ refl (λ _ ()) Hstep
       }
   progress-rnd (tif Htype Htype₁ Htype₂) =
     ι₂ $ case (progress-rnd Htype) λ
       { (ι₁ Hv) → case (canonical-real Htype Hv refl) λ
-        { (r , refl) → _ , estep (edet eif) }
-      ; (ι₂ (_ , Hstep)) → _ , cong-step zero refl (λ _ ()) Hstep
+        { (r , Heq) → _ , estep (edet (eif Heq)) }
+      ; (ι₂ (_ , Hstep)) → _ , cong-step 0ꟳ refl (λ _ ()) Hstep
       }
   progress-rnd (tdiff _ Htype Htype₁) =
     ι₂ $ case (progress-rnd Htype) λ
       { (ι₁ Hv) → case (progress-rnd Htype₁) λ
         { (ι₁ Hv₁) → _ , estep (edet (ediff Hv Hv₁))
         ; (ι₂ (_ , Hstep)) →
-          _ , cong-step (succ zero) refl (λ {zero (+1≤ 0≤) → Hv}) Hstep
+          _ , cong-step 1ꟳ refl (λ {0ꟳ (+1≤ 0≤) → Hv}) Hstep
         }
-      ; (ι₂ (_ , Hstep)) → _ , cong-step zero refl (λ _ ()) Hstep
+      ; (ι₂ (_ , Hstep)) → _ , cong-step 0ꟳ refl (λ _ ()) Hstep
       }
   progress-rnd (tsolve Htype Htype₁ Htype₂) =
     ι₂ $ case (progress-rnd Htype) λ
@@ -170,15 +170,15 @@ module _ (Ass : EvalAssumptions) where
         { (ι₁ Hv₁) → case (progress-rnd Htype₂) λ
           { (ι₁ Hv₂) → _ , estep (edet (esolve Hv Hv₁ Hv₂))
           ; (ι₂ (_ , Hstep)) →
-            _ , cong-step (succ (succ zero)) refl
-              (λ { zero (+1≤ 0≤) → Hv
-                 ; (succ zero) (+1≤ (+1≤ 0≤)) → Hv₁ })
+            _ , cong-step 2ꟳ refl
+              (λ { 0ꟳ (+1≤ 0≤) → Hv
+                 ; 1ꟳ (+1≤ (+1≤ 0≤)) → Hv₁ })
               Hstep
           }
         ; (ι₂ (_ , Hstep)) →
-          _ , cong-step (succ zero) refl (λ {zero (+1≤ 0≤) → Hv}) Hstep
+          _ , cong-step 1ꟳ refl (λ {0ꟳ (+1≤ 0≤) → Hv}) Hstep
         }
-      ; (ι₂ (_ , Hstep)) → _ , cong-step zero refl (λ _ ()) Hstep
+      ; (ι₂ (_ , Hstep)) → _ , cong-step 0ꟳ refl (λ _ ()) Hstep
       }
   progress-rnd (tdist _ Htypes) =
     case (all-⊎ (progress-rnd ∘ Htypes)) λ
@@ -192,7 +192,7 @@ module _ (Ass : EvalAssumptions) where
         { (ι₁ (D , ts , refl)) → _ , estep (edet eexpectdist)
         ; (ι₂ (v , refl , Hv)) → _ , estep (edet (eexpectinfer Hv))
         }
-      ; (ι₂ (_ , Hstep)) → _ , cong-step zero refl (λ _ ()) Hstep
+      ; (ι₂ (_ , Hstep)) → _ , cong-step 0ꟳ refl (λ _ ()) Hstep
       }
   progress-rnd (tassume Htype) =
     ι₂ $ case (progress-rnd Htype) λ
@@ -200,18 +200,18 @@ module _ (Ass : EvalAssumptions) where
         { (ι₁ (D , ts , refl)) → _ , estep eassumedist
         ; (ι₂ (v , refl , Hv)) → _ , estep (eassumeinfer Hv)
         }
-      ; (ι₂ (_ , Hstep)) → _ , cong-step zero refl (λ _ ()) Hstep
+      ; (ι₂ (_ , Hstep)) → _ , cong-step 0ꟳ refl (λ _ ()) Hstep
       }
   progress-rnd (tweight Htype) =
     ι₂ $ case (progress-rnd Htype) λ
       { (ι₁ Hv) → case (canonical-real Htype Hv refl) λ
         { (r , refl) → _ , estep eweight }
-      ; (ι₂ (_ , Hstep)) → _ , cong-step zero refl (λ _ ()) Hstep
+      ; (ι₂ (_ , Hstep)) → _ , cong-step 0ꟳ refl (λ _ ()) Hstep
       }
   progress-rnd (tinfer Htype) =
     case (progress-rnd Htype) λ
       { (ι₁ Hv) → ι₁ $ vinfer Hv
-      ; (ι₂ (_ , Hstep)) → ι₂ $ _ , cong-step zero refl (λ _ ()) Hstep
+      ; (ι₂ (_ , Hstep)) → ι₂ $ _ , cong-step 0ꟳ refl (λ _ ()) Hstep
       }
   progress-rnd (tweaken Htype [] _) = progress-rnd Htype
   progress-rnd (tsub Htype 0≤ _) =

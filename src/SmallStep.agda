@@ -97,10 +97,11 @@ module Eval (Ass : EvalAssumptions) where
   data _→ᵈ_ : Term → Term → Set where
  
     eapp
-      : ∀ {T t v}
-      → Value v
-      → -----------------------------
-        app (abs T t) v →ᵈ (0 ≈> v) t
+      : ∀ {ts T t}
+      → ts 0ꟳ ≡ abs T t
+      → Value (ts 1ꟳ)
+      → ------------------------
+        app ts →ᵈ (0 ≈> ts 1ꟳ) t
   
     eprim
       : ∀ {ϕ rs}
@@ -114,21 +115,22 @@ module Eval (Ass : EvalAssumptions) where
         proj {n} i (tup vs) →ᵈ vs i
 
     eif
-      : ∀ {r t₁ t₂}
-      → -------------------------------------------------
-        if (real r) t₁ t₂ →ᵈ (if r >ʳ 0ʳ then t₁ else t₂)
+      : ∀ {ts r}
+      → ts 0ꟳ ≡ real r
+      → -------------------------------------------
+        if ts →ᵈ (if r >ʳ 0ʳ then ts 1ꟳ else ts 2ꟳ)
 
     ediff
-      : ∀ {v₁ v₂}
-      → Value v₁ → Value v₂
-      → ------------------------
-        diff v₁ v₂ →ᵈ Diff v₁ v₂
+      : ∀ {ts}
+      → Value (ts 0ꟳ) → Value (ts 1ꟳ)
+      → -------------------------------
+        diff ts →ᵈ Diff (ts 0ꟳ) (ts 1ꟳ)
 
     esolve
-      : ∀ {v₁ v₂ v₃}
-      → Value v₁ → Value v₂ → Value v₃
-      → --------------------------------
-        solve v₁ v₂ v₃ →ᵈ Solve v₁ v₂ v₃
+      : ∀ {ts}
+      → Value (ts 0ꟳ) → Value (ts 1ꟳ) → Value (ts 2ꟳ)
+      → ---------------------------------------------
+        solve ts →ᵈ Solve (ts 0ꟳ) (ts 1ꟳ) (ts 2ꟳ)
 
     eexpectdist
       : ∀ {D rs}
@@ -169,7 +171,7 @@ module Eval (Ass : EvalAssumptions) where
       → Value v
       → ----------------------------------
         (assume (infer v) , w , p :: s) →ʳ
-          (app (Infer v) (real p) , w , s)
+          (app (tup₂ (Infer v) (real p)) , w , s)
 
 
   -- Full evaluation relations
