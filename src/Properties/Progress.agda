@@ -40,9 +40,9 @@ module _ (Ass : EvalAssumptions) where
   progress-det (tprim {ts = ts} Hϕ Htypes) =
     ι₂ $ case (all-⊎ (progress-det ∘ Htypes)) λ
       { (ι₁ Hvs) →
-        let Hreals : ∃[ rs ] ts ≡ map real rs
-            Hreals = _ , funext λ i → π₂ $ canonical-real (Htypes i) (Hvs i) refl
-        in _ , estep (eprim $ π₂ Hreals)
+        let Hreals : ts ≡ map real _
+            Hreals = funext λ i → π₂ $ canonical-real (Htypes i) (Hvs i) refl
+        in _ , estep (eprim Hreals)
       ; (ι₂ (j , (t′ , Hstep) , Hvs)) → _ , cong-step′ j refl Hvs Hstep
       }
   progress-det (ttup Htypes) =
@@ -127,9 +127,9 @@ module _ (Ass : EvalAssumptions) where
     ι₂ $ case (all-⊎ (progress-rnd ∘ Htypes)) λ
       { (ι₂ (j , (_ , Hstep) , Hvs)) → _ , cong-step j refl Hvs Hstep
       ; (ι₁ Hvs) →
-        let Hreals : ∃[ rs ] ts ≡ map real rs
-            Hreals = _ , funext λ i → π₂ $ canonical-real (Htypes i) (Hvs i) refl
-        in case Hreals λ { (_ , refl) → _ , estep (edet (eprim refl)) }
+        let Hreals : ts ≡ map real _
+            Hreals = funext λ i → π₂ $ canonical-real (Htypes i) (Hvs i) refl
+        in _ , estep (edet (eprim Hreals))
       }
   progress-rnd (ttup Htypes) =
     case (all-⊎ (progress-rnd ∘ Htypes)) λ

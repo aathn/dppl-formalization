@@ -27,21 +27,18 @@ dom (Γ , x ∶ _) = [ x ] ∪ dom Γ
 DistinctName : Rel (𝔸 × Type) _
 DistinctName (x , _) (x₁ , _) = ¬ x ≡ x₁
 
-open import Data.List.Relation.Unary.AllPairs.Core DistinctName
+open import Data.List.Relation.Unary.AllPairs.Core DistinctName public
   using () renaming (AllPairs to Distinct)
 
-_⇒ᵖ_ : ∀ {n} → Vector Coeff n → Type → Vector Coeff n × Type
-_⇒ᵖ_ = _,_
-
-PrimTy : (ϕ : Prim) → Vector Coeff (PrimAr ϕ) × Type
-PrimTy padd        = const ca ⇒ᵖ treal ca
-PrimTy pmul        = const ca ⇒ᵖ treal ca
-PrimTy (pwiener r) = const cc ⇒ᵖ treal cc
+PrimTy : (ϕ : Prim) → Vector Coeff (PrimAr ϕ) × Coeff
+PrimTy padd        = const ca , ca
+PrimTy pmul        = const ca , ca
+PrimTy (pwiener r) = const cc , cc
 
 DistTy : (D : Dist) → Vector Coeff (DistAr D) × Type
-DistTy dnormal = const cc ⇒ᵖ treal cc
-DistTy dbeta   = const cc ⇒ᵖ treal cc
-DistTy dwiener = (λ()) ⇒ᵖ (treal cc ⇒[ det ] treal cc)
+DistTy dnormal = const cc , treal cc
+DistTy dbeta   = const cc , treal cc
+DistTy dwiener = (λ()) , (treal cc ⇒[ det ] treal cc)
 
 _⊙_ : Coeff → Type → Type
 c ⊙ (treal c′) = treal (c ⊔ c′)
@@ -101,11 +98,11 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
       Γ ⊢ app ts :[ e ] T₂
 
   tprim
-    : ∀ {ϕ Γ cs T ts e}
-    → PrimTy ϕ ≡ cs ⇒ᵖ T
+    : ∀ {ϕ Γ cs c ts e}
+    → PrimTy ϕ ≡ (cs , c)
     → (∀ i → Γ ⊢ ts i :[ e ] treal (cs i))
     → ------------------------------------
-      Γ ⊢ prim ϕ ts :[ e ] T
+      Γ ⊢ prim ϕ ts :[ e ] treal c
 
   treal
 
@@ -151,7 +148,7 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
 
   tdist
     : ∀ {D Γ cs T ts e}
-    → DistTy D ≡ cs ⇒ᵖ T
+    → DistTy D ≡ (cs , T)
     → (∀ i → Γ ⊢ ts i :[ e ] treal (cs i))
     → ------------------------------------
       Γ ⊢ dist D ts :[ e ] tdist T

@@ -40,6 +40,31 @@ mul-lower
     Γ ⊢ t :[ e ] T
 mul-lower Htype = {!!}
 
+well-typed-distinct
+  : ∀ {Γ t e T}
+  → Γ ⊢ t :[ e ] T
+  → Distinct Γ
+well-typed-distinct = {!!}
+
+ttup-inv :
+  ∀ {n Γ vs e Ts}
+  → Γ ⊢ tup {n} vs :[ e ] ttup Ts
+  → ∀ i → Γ ⊢ vs i :[ e ] Ts i
+ttup-inv = {!!}
+
+dom-∈ : ∀ {Γ x} → x ∈ dom Γ → ∃[ T ] (x , T) ∈ˡ Γ
+dom-∈ {x :: Γ} (∈∪₁ ∈[]) = _ , here refl
+dom-∈ {x :: Γ} (∈∪₂ x∈Γ) with T , H∈ ← dom-∈ x∈Γ = T , there H∈
+
+∉-dom-fv
+  : ∀ {Γ t e T x}
+  → Γ ⊢ t :[ e ] T
+  → x ∉ dom Γ
+  → ---------
+    x ∉ fv t
+∉-dom-fv = {!!}
+
+
 open LocalClosed
 open Body
 
@@ -84,18 +109,6 @@ well-typed-lc (tinfer Htype)   = lc-at-op λ { ₀ → well-typed-lc Htype }
 well-typed-lc (tweaken Htype _ _) = well-typed-lc Htype
 well-typed-lc (tsub Htype _ _)    = well-typed-lc Htype
 well-typed-lc (tpromote Htype _)  = well-typed-lc Htype
-
-dom-∈ : ∀ {Γ x} → x ∈ dom Γ → ∃[ T ] (x , T) ∈ˡ Γ
-dom-∈ {x :: Γ} (∈∪₁ ∈[]) = _ , here refl
-dom-∈ {x :: Γ} (∈∪₂ x∈Γ) with T , H∈ ← dom-∈ x∈Γ = T , there H∈
-
-∉-dom-fv
-  : ∀ {Γ t e T x}
-  → Γ ⊢ t :[ e ] T
-  → x ∉ dom Γ
-  → ---------
-    x ∉ fv t
-∉-dom-fv = {!!}
 
 open Subst
 

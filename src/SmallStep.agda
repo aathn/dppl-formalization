@@ -82,11 +82,11 @@ record EvalAssumptions : Set where
     _*ʳ_ : ℝ → ℝ → ℝ
     _>ʳ_ : ℝ → ℝ → 𝔹
     PrimEv : (ϕ : Prim) → Vector ℝ (PrimAr ϕ) → ℝ
-    DistExpect : (D : Dist) → Vector ℝ (DistAr D) → ℝ
-    DistAssume : (D : Dist) → Vector ℝ (DistAr D) → ℝ → Term
-    Infer : Term → Term
-    Expectation : Term → Term
-    Diff : Term → Term → Term
+    ExpectDist : (D : Dist) → Vector ℝ (DistAr D) → ℝ
+    AssumeDist : (D : Dist) → Vector ℝ (DistAr D) → ℝ → Term
+    ExpectInfer : Term → ℝ
+    AssumeInfer : Term → ℝ → Term
+    Diff  : Term → Term → Term
     Solve : Term → Term → Term → Term
 
 
@@ -136,13 +136,13 @@ module Eval (Ass : EvalAssumptions) where
       : ∀ {D rs v}
       → v ₀ ≡ dist D (map real rs)
       → ----------------------------------
-        expect v →ᵈ real (DistExpect D rs)
+        expect v →ᵈ real (ExpectDist D rs)
 
     eexpectinfer
       : ∀ {v v′}
       → v ₀ ≡ infer v′ → Value (v′ ₀)
-      → --------------------------------------
-        expect v →ᵈ Expectation (Infer (v′ ₀))
+      → -------------------------------------
+        expect v →ᵈ real (ExpectInfer (v′ ₀))
 
 
   data _→ʳ_ : (Term × ℝ × List ℝ) → (Term × ℝ × List ℝ) → Set where
@@ -166,14 +166,13 @@ module Eval (Ass : EvalAssumptions) where
       : ∀ {v D rs w p s}
       → v ₀ ≡ dist D (map real rs)
       → ------------------------------------------------------
-        (assume v , w , p :: s) →ʳ (DistAssume D rs p , w , s)
+        (assume v , w , p :: s) →ʳ (AssumeDist D rs p , w , s)
 
     eassumeinfer
       : ∀ {v v′ w p s}
       → v ₀ ≡ infer v′ → Value (v′ ₀)
-      → -----------------------------
-        (assume v , w , p :: s) →ʳ
-          (app (λ { ₀ → Infer (v′ ₀) ; ₁ → real p }) , w , s)
+      → ---------------------------------------------------------
+        (assume v , w , p :: s) →ʳ (AssumeInfer (v′ ₀) p , w , s)
 
 
   -- Full evaluation relations
