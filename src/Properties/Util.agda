@@ -17,6 +17,7 @@ open import Data.List using (_++_ ; map)
 open import Data.List.Properties
   using (++-conicalʳ ; ∷-injective ; ∷-injectiveˡ ; ∷-injectiveʳ)
 open import Data.List.Membership.Propositional using () renaming (_∈_ to _∈ˡ_)
+import Data.Vec.Functional as V
 
 module _ {Σ : Sig} where
   open Subst {Σ}
@@ -80,6 +81,7 @@ single-inv
   → {{x :: [] ≡ ys ++ y :: ys′}}
   → ----------------------------
     [] ≡ ys × x ≡ y × [] ≡ ys′
+
 single-inv {ys = []} = refl , ∷-injective it
 single-inv {ys = _ :: ys} with () ← ++-conicalʳ ys _ $ symm (∷-injectiveʳ it) 
 
@@ -89,6 +91,7 @@ map-::-inv
   → -----------------
     ∃[ y ] ∃[ Γ₁′ ]
     y :: Γ₁′ ≡ Γ × x ≡ f y × Γ₁ ≡ map f Γ₁′
+
 map-::-inv {Γ = y :: Γ′} refl = y , Γ′ , refl , refl , refl
 
 map-++-inv
@@ -97,6 +100,7 @@ map-++-inv
   → ------------------
     ∃[ Γ₁′ ] ∃[ Γ₂′ ]
     Γ₁′ ++ Γ₂′ ≡ Γ × Γ₁ ≡ map f Γ₁′ × Γ₂ ≡ map f Γ₂′
+
 map-++-inv {Γ = Γ} {[]} Heq = [] , Γ , refl , refl , Heq
 map-++-inv {Γ = x₁ :: Γ} {x :: Γ₁} Heq =
   let Γ₁′ , Γ₂′ , Heq₀ , Heq₁ , Heq₂ = map-++-inv {Γ = Γ} {Γ₁} (∷-injectiveʳ Heq)
@@ -104,3 +108,13 @@ map-++-inv {Γ = x₁ :: Γ} {x :: Γ₁} Heq =
     , ap (x₁ ::_) Heq₀
     , ap₂ (_::_) (∷-injectiveˡ Heq) Heq₁
     , Heq₂
+
+vmap-injective
+  : ∀ {n} {A B : Set} {xs ys : Vector A n}
+  → (f : A → B)
+  → (∀ {x y} → f x ≡ f y → x ≡ y)
+  → ---------------------------------
+    V.map f xs ≡ V.map f ys → xs ≡ ys
+
+vmap-injective f f-inj Heq =
+  funext λ i → f-inj $ ap (_$ i) Heq
