@@ -50,37 +50,37 @@ well-typed-lc
     lc-at 0 t
 well-typed-lc tvar = lc-at-fvar
 well-typed-lc (tabs {t = t} Habs) with Иi As Hcof ← Habs = lc-at-op λ
-  { 0ꟳ → let Hbody : body t
-             Hbody = Иi As λ x → lc-at→≻ _ _ $ well-typed-lc (Hcof x)
-         in ≻→lc-at _ _ $ body→1≻ _ Hbody
+  { ₀ → let Hbody : body (t ₀)
+            Hbody = Иi As λ x → lc-at→≻ _ _ $ well-typed-lc (Hcof x)
+        in ≻→lc-at _ _ $ body→1≻ _ Hbody
   }
 well-typed-lc (tapp Htype Htype₁) = lc-at-op λ
-  { 0ꟳ → well-typed-lc Htype
-  ; 1ꟳ → well-typed-lc Htype₁
+  { ₀ → well-typed-lc Htype
+  ; ₁ → well-typed-lc Htype₁
   }
 well-typed-lc (tprim _ Htypes) = lc-at-op $ well-typed-lc ∘ Htypes
 well-typed-lc treal            = lc-at-op λ()
 well-typed-lc (ttup Htypes)    = lc-at-op $ well-typed-lc ∘ Htypes
-well-typed-lc (tproj i Htype)  = lc-at-op $ const $ well-typed-lc Htype
+well-typed-lc (tproj i Htype)  = lc-at-op λ { ₀ → well-typed-lc Htype }
 well-typed-lc (tif Htype Htype₁ Htype₂) = lc-at-op λ
-  { 0ꟳ → well-typed-lc Htype
-  ; 1ꟳ → well-typed-lc Htype₁
-  ; 2ꟳ → well-typed-lc Htype₂
+  { ₀ → well-typed-lc Htype
+  ; ₁ → well-typed-lc Htype₁
+  ; ₂ → well-typed-lc Htype₂
   }
 well-typed-lc (tdiff _ Htype Htype₁) = lc-at-op λ
-  { 0ꟳ → well-typed-lc Htype
-  ; 1ꟳ → well-typed-lc Htype₁
+  { ₀ → well-typed-lc Htype
+  ; ₁ → well-typed-lc Htype₁
   }
 well-typed-lc (tsolve Htype Htype₁ Htype₂) = lc-at-op λ
-  { 0ꟳ → well-typed-lc Htype
-  ; 1ꟳ → well-typed-lc Htype₁
-  ; 2ꟳ → well-typed-lc Htype₂
+  { ₀ → well-typed-lc Htype
+  ; ₁ → well-typed-lc Htype₁
+  ; ₂ → well-typed-lc Htype₂
   }
 well-typed-lc (tdist _ Htypes) = lc-at-op $ well-typed-lc ∘ Htypes
-well-typed-lc (tassume Htype)  = lc-at-op $ const $ well-typed-lc Htype
-well-typed-lc (tweight Htype)  = lc-at-op $ const $ well-typed-lc Htype
-well-typed-lc (texpect Htype)  = lc-at-op $ const $ well-typed-lc Htype
-well-typed-lc (tinfer Htype)   = lc-at-op $ const $ well-typed-lc Htype
+well-typed-lc (tassume Htype)  = lc-at-op λ { ₀ → well-typed-lc Htype }
+well-typed-lc (tweight Htype)  = lc-at-op λ { ₀ → well-typed-lc Htype }
+well-typed-lc (texpect Htype)  = lc-at-op λ { ₀ → well-typed-lc Htype }
+well-typed-lc (tinfer Htype)   = lc-at-op λ { ₀ → well-typed-lc Htype }
 well-typed-lc (tweaken Htype _ _) = well-typed-lc Htype
 well-typed-lc (tsub Htype _ _)    = well-typed-lc Htype
 well-typed-lc (tpromote Htype _)  = well-typed-lc Htype
@@ -120,8 +120,8 @@ substitution-pres-typing {Γ′} {Γ} {x} {u} {T₂} Htype Hu = go {{Hu}} Htype
     rewrite dec-equ x = it
   go {Γ′} {{Hu}} {{refl}} (tabs {t = t} Habs) with Иi As Hcof ← Habs =
     tabs $ Иi ([ x ] ∪ As) λ { y {{∉∪ {{∉x}}}} →
-      let Heq : (x => u)((0 ~> y) t) ≡ (0 ~> y)((x => u) t)
-          Heq = subst-open-comm t (symm≠ y x (∉[]₁ ∉x)) (lc-at→≻ _ _ $ well-typed-lc Hu)
+      let Heq : (x => u)((0 ~> y) (t ₀)) ≡ (0 ~> y)((x => u) (t ₀))
+          Heq = subst-open-comm (t ₀) (symm≠ y x (∉[]₁ ∉x)) (lc-at→≻ _ _ $ well-typed-lc Hu)
       in
       subst (λ x → _ ⊢ x :[ _ ] _) Heq $ go {Γ′ , y ∶ _} (Hcof y)
     }

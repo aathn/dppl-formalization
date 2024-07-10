@@ -30,7 +30,8 @@ DistinctName (x , _) (x₁ , _) = ¬ x ≡ x₁
 open import Data.List.Relation.Unary.AllPairs.Core DistinctName
   using () renaming (AllPairs to Distinct)
 
-pattern _⇒ᵖ_ x y = x , y
+_⇒ᵖ_ : ∀ {n} → Vector Coeff n → Type → Vector Coeff n × Type
+_⇒ᵖ_ = _,_
 
 PrimTy : (ϕ : Prim) → Vector Coeff (PrimAr ϕ) × Type
 PrimTy padd        = const ca ⇒ᵖ treal ca
@@ -88,14 +89,14 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
 
   tabs
     : ∀ {Γ T₁ T₂ t e}
-    → И x ∶ 𝔸 , Γ , x ∶ T₁ ⊢ conc t x :[ e ] T₂
-    → -----------------------------------------
+    → И x ∶ 𝔸 , Γ , x ∶ T₁ ⊢ conc (t ₀) x :[ e ] T₂
+    → ---------------------------------------------
       Γ ⊢ abs T₁ t :[ det ] T₁ ⇒[ e ] T₂
 
   tapp
     : ∀ {Γ ts e T₁ T₂}
-    → Γ ⊢ ts 0ꟳ :[ e ] T₁ ⇒[ e ] T₂
-    → Γ ⊢ ts 1ꟳ :[ e ] T₂
+    → Γ ⊢ ts ₀ :[ e ] T₁ ⇒[ e ] T₂
+    → Γ ⊢ ts ₁ :[ e ] T₁
     → --------------------
       Γ ⊢ app ts :[ e ] T₂
 
@@ -107,6 +108,7 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
       Γ ⊢ prim ϕ ts :[ e ] T
 
   treal
+
     : ∀ {r}
     → -----------------------------
       [] ⊢ real r :[ det ] treal cc
@@ -119,32 +121,32 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
 
   tproj
     : ∀ {n Ts Γ t e} i
-    → Γ ⊢ t :[ e ] ttup Ts
+    → Γ ⊢ t ₀ :[ e ] ttup Ts
     → ----------------------------
       Γ ⊢ proj {n} i t :[ e ] Ts i
 
   tif
     : ∀ {Γ ts e T}
-    → Γ ⊢ ts 0ꟳ :[ e ] treal cb
-    → Γ ⊢ ts 1ꟳ :[ e ] T
-    → Γ ⊢ ts 2ꟳ :[ e ] T
+    → Γ ⊢ ts ₀ :[ e ] treal cb
+    → Γ ⊢ ts ₁ :[ e ] T
+    → Γ ⊢ ts ₂ :[ e ] T
     → ------------------
       Γ ⊢ if ts :[ e ] T
 
   tdiff
     : ∀ {Γ ts n m cs ds e}
     → (∀ i → cs i ≤ cb)
-    → Γ ⊢ ts 0ꟳ :[ e ] treals {n} cs ⇒[ det ] treals {m} ds
-    → Γ ⊢ ts 1ꟳ :[ e ] treals cs
+    → Γ ⊢ ts ₀ :[ e ] treals {n} cs ⇒[ det ] treals {m} ds
+    → Γ ⊢ ts ₁ :[ e ] treals cs
     → -----------------------------------------------------------
       Γ ⊢ diff ts :[ e ] treals {n} (const ca) ⇒[ det ] treals ds
 
   tsolve
     : ∀ {Γ ts n c cs e}
-    → Γ ⊢ ts 0ꟳ :[ e ] tpair (treal c) (treals {n} cs) ⇒[ det ] treals cs
-    → Γ ⊢ ts 1ꟳ :[ e ] treals cs
-    → Γ ⊢ ts 2ꟳ :[ e ] treal c
-    → -----------------------------------
+    → Γ ⊢ ts ₀ :[ e ] ttup {2} (λ {₀ → treal c; ₁ → treals {n} cs}) ⇒[ det ] treals cs
+    → Γ ⊢ ts ₁ :[ e ] treals cs
+    → Γ ⊢ ts ₂ :[ e ] treal c
+    → -----------------------------
       Γ ⊢ solve ts :[ e ] treals cs
 
   tdist
@@ -156,26 +158,26 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
 
   tassume
     : ∀ {Γ t T}
-    → Γ ⊢ t :[ rnd ] tdist T
+    → Γ ⊢ t ₀ :[ rnd ] tdist T
     → -----------------------
       Γ ⊢ assume t :[ rnd ] T
 
   tweight
     : ∀ {Γ t}
-    → Γ ⊢ t :[ rnd ] treal cc
+    → Γ ⊢ t ₀ :[ rnd ] treal cc
     → ---------------------------
       Γ ⊢ weight t :[ rnd ] tunit
 
   texpect
     : ∀ {Γ t e}
-    → Γ ⊢ t :[ e ] tdist (treal cc)
+    → Γ ⊢ t ₀ :[ e ] tdist (treal cc)
     → -----------------------------
       Γ ⊢ expect t :[ e ] treal cc
 
   tinfer
     : ∀ {Γ t e T}
-    → Γ ⊢ t :[ e ] tunit ⇒[ rnd ] T
-    → -----------------------------
+    → Γ ⊢ t ₀ :[ e ] tunit ⇒[ rnd ] T
+    → -------------------------------
       Γ ⊢ infer t :[ e ] tdist T
 
   tweaken

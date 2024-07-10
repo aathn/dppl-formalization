@@ -61,7 +61,7 @@ TermSig = mkSig TermOp TermAr
     oprim   : Prim → TermOp
     oreal   : ℝ → TermOp
     otup    : ℕ → TermOp
-    oproj   : ℕ → TermOp
+    oproj   : (n : ℕ) → Fin n → TermOp
     oif     : TermOp
     odiff   : TermOp
     osolve  : TermOp
@@ -76,7 +76,7 @@ TermSig = mkSig TermOp TermAr
   length (TermAr (oprim ϕ)) = PrimAr ϕ
   length (TermAr (oreal _)) = 0
   length (TermAr (otup n))  = n
-  length (TermAr (oproj _)) = 1
+  length (TermAr (oproj _ _)) = 1
   length (TermAr oif)       = 3
   length (TermAr odiff)     = 2
   length (TermAr osolve)    = 3
@@ -96,15 +96,9 @@ instance
 
 -- Syntax shorthands
 
-pattern 0ꟳ = zero
-pattern 1ꟳ = succ zero
-pattern 2ꟳ = succ (succ zero)
-
-tup₂ : ∀ {A : Set} → A → A → Vector A 2
-tup₂ x y = fromList $ x :: y :: []
-
-tup₃ : ∀ {A : Set} → A → A → A → Vector A 3
-tup₃ x y z = fromList $ x :: y :: z :: []
+pattern ₀ = zero
+pattern ₁ = succ zero
+pattern ₂ = succ (succ zero)
 
 tunit : Type
 tunit = ttup {0} λ()
@@ -112,11 +106,8 @@ tunit = ttup {0} λ()
 treals : ∀ {n} → Vector Coeff n → Type
 treals cs = ttup $ map treal cs
 
-tpair : Type → Type → Type
-tpair T₁ T₂ = ttup $ tup₂ T₁ T₂
-
-abs : Type → Term → Term
-abs T t = op (oabs T , const t)
+abs : Type → Vector Term 1 → Term
+abs T t = op (oabs T , t)
 
 app : Vector Term 2 → Term
 app ts = op (oapp , ts)
@@ -130,8 +121,8 @@ real r = op (oreal r , λ ())
 tup : ∀ {n} → Vector Term n → Term
 tup ts = op (otup _ , ts)
 
-proj : ∀ {n} → Fin n → Term → Term
-proj {n} i t = op (oproj n , const t)
+proj : ∀ {n} → Fin n → Vector Term 1 → Term
+proj {n} i t = op (oproj n i , t)
 
 if : Vector Term 3 → Term
 if ts = op (oif , ts)
@@ -145,17 +136,17 @@ solve ts = op (osolve , ts)
 dist : (D : Dist) → Vector Term (DistAr D) → Term
 dist D ts = op (odist D , ts)
 
-assume : Term → Term
-assume t = op (oassume , const t)
+assume : Vector Term 1 → Term
+assume t = op (oassume , t)
 
-weight : Term → Term
-weight t = op (oweight , const t)
+weight : Vector Term 1 → Term
+weight t = op (oweight , t)
 
-expect : Term → Term
-expect t = op (oexpect , const t)
+expect : Vector Term 1 → Term
+expect t = op (oexpect , t)
 
-infer : Term → Term
-infer t = op (oinfer , const t)
+infer : Vector Term 1 → Term
+infer t = op (oinfer , t)
 
 unit : Term
 unit = tup {0} λ()

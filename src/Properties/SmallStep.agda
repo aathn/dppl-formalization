@@ -105,17 +105,14 @@ canonical-dist
   → T ≡ tdist T′
   → -----------------------------------------
     (∃[ D ] ∃[ rs ] t ≡ dist D (map real rs))
-  ⊎ (∃[ v ] t ≡ infer v × Value v)
+  ⊎ (∃[ v ] t ≡ infer v × Value (v ₀))
 
 canonical-dist (tdist {ts = ts} _ Htypes) (vdist Hvs) _ =
   let Hreals : ∃[ rs ] ts ≡ map real rs
       Hreals = _ , funext λ i → π₂ $ canonical-real (Htypes i) (Hvs i) refl
   in
   case Hreals λ { (_ , refl) → ι₁ $ _ , _ , refl }
-canonical-dist (tinfer _) Hval refl = ι₂ $ infer-inv Hval refl
-  where
-  infer-inv : ∀ {t t′} → Value t′ → t′ ≡ infer t → ∃[ v ] infer t ≡ infer v × Value v
-  infer-inv (vinfer Hv) Heq = _ , symm Heq , Hv
+canonical-dist (tinfer _) (vinfer Hv) refl = ι₂ $ _ , refl , Hv
 canonical-dist (tweaken Htype _ _) Hval Heq =
   canonical-dist Htype Hval Heq
 canonical-dist (tsub Htype _ (sdist _)) Hval refl =

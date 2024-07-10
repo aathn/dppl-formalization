@@ -35,7 +35,7 @@ data Value : Term → Set where
 
   vinfer
     : ∀ {v}
-    → Value v
+    → Value (v ₀)
     → ---------------
       Value (infer v)
 
@@ -98,50 +98,51 @@ module Eval (Ass : EvalAssumptions) where
  
     eapp
       : ∀ {ts T t}
-      → ts 0ꟳ ≡ abs T t
-      → Value (ts 1ꟳ)
-      → ------------------------
-        app ts →ᵈ (0 ≈> ts 1ꟳ) t
+      → ts ₀ ≡ abs T t → Value (ts ₁)
+      → -----------------------------
+        app ts →ᵈ (0 ≈> ts ₁) (t ₀)
   
     eprim
-      : ∀ {ϕ rs}
-      → ------------------------------------------ 
-        prim ϕ (map real rs) →ᵈ real (PrimEv ϕ rs)
+      : ∀ {ϕ vs rs}
+      → vs ≡ map real rs
+      → -------------------------------
+        prim ϕ vs →ᵈ real (PrimEv ϕ rs)
   
     eproj
-      : ∀ {n vs} i
-      → (∀ j → Value (vs j))
-      → ---------------------------
-        proj {n} i (tup vs) →ᵈ vs i
+      : ∀ {n v vs} i
+      → v ₀ ≡ tup vs → (∀ j → Value (vs j))
+      → -----------------------------------
+        proj {n} i v →ᵈ vs i
 
     eif
-      : ∀ {ts r}
-      → ts 0ꟳ ≡ real r
+      : ∀ {r ts}
+      → ts ₀ ≡ real r
       → -------------------------------------------
-        if ts →ᵈ (if r >ʳ 0ʳ then ts 1ꟳ else ts 2ꟳ)
+        if ts →ᵈ (if r >ʳ 0ʳ then ts ₁ else ts ₂)
 
     ediff
       : ∀ {ts}
-      → Value (ts 0ꟳ) → Value (ts 1ꟳ)
-      → -------------------------------
-        diff ts →ᵈ Diff (ts 0ꟳ) (ts 1ꟳ)
+      → Value (ts ₀) → Value (ts ₁)
+      → -----------------------------
+        diff ts →ᵈ Diff (ts ₀) (ts ₁)
 
     esolve
       : ∀ {ts}
-      → Value (ts 0ꟳ) → Value (ts 1ꟳ) → Value (ts 2ꟳ)
-      → ---------------------------------------------
-        solve ts →ᵈ Solve (ts 0ꟳ) (ts 1ꟳ) (ts 2ꟳ)
+      → Value (ts ₀) → Value (ts ₁) → Value (ts ₂)
+      → ------------------------------------------
+        solve ts →ᵈ Solve (ts ₀) (ts ₁) (ts ₂)
 
     eexpectdist
-      : ∀ {D rs}
-      → -------------------------------------------------------
-        expect (dist D (map real rs)) →ᵈ real (DistExpect D rs)
+      : ∀ {D rs v}
+      → v ₀ ≡ dist D (map real rs)
+      → ----------------------------------
+        expect v →ᵈ real (DistExpect D rs)
 
     eexpectinfer
-      : ∀ {v}
-      → Value v
-      → -----------------------------------------
-        expect (infer v) →ᵈ Expectation (Infer v)
+      : ∀ {v v′}
+      → v ₀ ≡ infer v′ → Value (v′ ₀)
+      → --------------------------------------
+        expect v →ᵈ Expectation (Infer (v′ ₀))
 
 
   data _→ʳ_ : (Term × ℝ × List ℝ) → (Term × ℝ × List ℝ) → Set where
@@ -152,26 +153,27 @@ module Eval (Ass : EvalAssumptions) where
       → (t₁ , w , s) →ʳ (t₂ , w , s)
 
     eweight
-      : ∀ {r w s}
-      → ------------------------------------------------------
-        (weight (real r) , w , s) →ʳ
+      : ∀ {v r w s}
+      → v ₀ ≡ real r
+      → ---------------------
+        (weight v , w , s) →ʳ
           ( unit
           , (if r >ʳ 0ʳ and not (r >ʳ 1ʳ) then r *ʳ w else 0ʳ)
           , s
           )
 
     eassumedist
-      : ∀ {D rs w p s}
-      → -----------------------------------------------
-        (assume (dist D (map real rs)) , w , p :: s) →ʳ
-          (DistAssume D rs p , w , s)
+      : ∀ {v D rs w p s}
+      → v ₀ ≡ dist D (map real rs)
+      → ------------------------------------------------------
+        (assume v , w , p :: s) →ʳ (DistAssume D rs p , w , s)
 
     eassumeinfer
-      : ∀ {v w p s}
-      → Value v
-      → ----------------------------------
-        (assume (infer v) , w , p :: s) →ʳ
-          (app (tup₂ (Infer v) (real p)) , w , s)
+      : ∀ {v v′ w p s}
+      → v ₀ ≡ infer v′ → Value (v′ ₀)
+      → -----------------------------
+        (assume v , w , p :: s) →ʳ
+          (app (λ { ₀ → Infer (v′ ₀) ; ₁ → real p }) , w , s)
 
 
   -- Full evaluation relations
