@@ -17,6 +17,7 @@ open import Data.List using (_++_ ; map)
 open import Data.List.Properties
   using (++-conicalʳ ; ∷-injective ; ∷-injectiveˡ ; ∷-injectiveʳ)
 open import Data.List.Membership.Propositional using () renaming (_∈_ to _∈ˡ_)
+open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_ ; [] ; _∷ʳ_)
 import Data.Vec.Functional as V
 
 module _ {Σ : Sig} where
@@ -37,6 +38,20 @@ module _ {Σ : Sig} where
   subst-open-comm (op (o , ts)) Hneq Hlc =
     ap (op ∘ (o ,_)) $ funext λ i → subst-open-comm (ts i) Hneq Hlc
 
+  subst-intro
+    : ∀ {x n u} t
+    → x ∉ fv t
+    → -------------------------------
+      (n ≈> u)t ≡ (x => u)((n ~> x)t)
+  subst-intro {x} {n} (bvar x₁) H∉ with n ≐ x₁
+  ... | neq _ = refl
+  ... | equ rewrite dec-equ x = refl
+  subst-intro {x} (fvar y) H∉ with x ≐ y | H∉
+  ... | neq _ | _         = refl
+  ... | equ   | ∉[] {{p}} = 𝟘e (¬≠ x p)
+  subst-intro {x} {n} {u} (op (o , ts)) H∉ =
+    ap (op ∘ (o ,_)) $ funext λ i → subst-intro (ts i) (∉⋃ _ i {{H∉}})
+
   subst-fresh
     : ∀ {x} u t
     → x ∉ fv t
@@ -46,6 +61,15 @@ module _ {Σ : Sig} where
   subst-fresh u (fvar y) (∉[] {{p}}) rewrite p = refl
   subst-fresh u (op (o , ts)) H∉ =
     ap (op ∘ (o ,_)) $ funext λ i → subst-fresh u (ts i) (∉⋃ _ i {{H∉}})
+
+  open-notin
+    : ∀ {x y n} t
+    → x ∉ fv {Σ} ((n ~> y) t)
+    → x ∉ fv t
+  open-notin (bvar x) H∉ = ∉Ø
+  open-notin (fvar y) H∉ = H∉
+  open-notin (op (o , ts)) H∉ =
+    ∉⋃′ (fv ∘ ts) λ i → open-notin (ts i) (∉⋃ _ i {{H∉}})
 
 _∈?_ : {A : Set} {{_ : hasDecEq A}} → (x : A) (xs : Fset A) → Dec (x ∈ xs)
 x ∈? Ø = no ∉→¬∈
@@ -118,3 +142,11 @@ vmap-injective
 
 vmap-injective f f-inj Heq =
   funext λ i → f-inj $ ap (_$ i) Heq
+
+[]-⊆
+  : ∀ {A : Set} {l : List A}
+  → ------
+    [] ⊆ l
+
+[]-⊆ {l = []} = []
+[]-⊆ {l = x :: l} = x ∷ʳ []-⊆

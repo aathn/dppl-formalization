@@ -11,6 +11,7 @@ open import Lib.BindingSignature
 open import Function using (_∘_ ; _$_ ; const)
 open import Data.List using (map)
 open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_)
+open import Data.List.Relation.Unary.All using (All)
 open import Data.Nat using (_⊔_)
 open import Relation.Binary using (Rel)
 
@@ -45,8 +46,14 @@ c ⊙ (treal c′) = treal (c ⊔ c′)
 c ⊙ (ttup Ts)  = ttup $ c ⊙_ ∘ Ts
 c ⊙ T          = T
 
-_⊙ᴱ_ : Coeff → TyEnv → TyEnv
-c ⊙ᴱ Γ = map (λ (x , T) → x , c ⊙ T) Γ
+_≤ᶜ_ : Coeff → Type → Set
+c ≤ᶜ treal d = c ≤ d
+c ≤ᶜ ttup Ts = ∀ i → c ≤ᶜ Ts i
+c ≤ᶜ T = 𝟙
+
+_≤ᴱ_ : Coeff → TyEnv → Set
+c ≤ᴱ Γ = All (c ≤ᶜ_ ∘ π₂) Γ
+
 
 infix 5 _<:_
 data _<:_ : Type → Type → Set where
@@ -101,11 +108,11 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
     : ∀ {ϕ Γ cs c ts e}
     → PrimTy ϕ ≡ (cs , c)
     → (∀ i → Γ ⊢ ts i :[ e ] treal (cs i))
+    → Distinct Γ
     → ------------------------------------
       Γ ⊢ prim ϕ ts :[ e ] treal c
 
   treal
-
     : ∀ {r}
     → -----------------------------
       [] ⊢ real r :[ det ] treal cc
@@ -113,6 +120,7 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
   ttup
     : ∀ {n Γ Ts ts e}
     → (∀ i → Γ ⊢ ts i :[ e ] Ts i)
+    → Distinct Γ
     → -----------------------------
       Γ ⊢ tup {n} ts :[ e ] ttup Ts
 
@@ -150,6 +158,7 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
     : ∀ {D Γ cs T ts e}
     → DistTy D ≡ (cs , T)
     → (∀ i → Γ ⊢ ts i :[ e ] treal (cs i))
+    → Distinct Γ
     → ------------------------------------
       Γ ⊢ dist D ts :[ e ] tdist T
 
@@ -179,11 +188,11 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
 
   tweaken
     : ∀ {Γ Γ′ t e T}
-    → Γ ⊢ t :[ e ] T
-    → Γ ⊆ Γ′
-    → Distinct Γ′
-    → ---------------
-      Γ′ ⊢ t :[ e ] T
+    → Γ′ ⊢ t :[ e ] T
+    → Γ′ ⊆ Γ
+    → Distinct Γ
+    → --------------
+      Γ ⊢ t :[ e ] T
 
   tsub
     : ∀ {Γ t e e′ T T′}
@@ -194,8 +203,8 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
       Γ ⊢ t :[ e′ ] T′
 
   tpromote
-    : ∀ {Γ Γ′ t e c T}
+    : ∀ {Γ t e c T}
     → Γ ⊢ t :[ e ] T
-    → Γ′ ≡ c ⊙ᴱ Γ
-    → -------------------
-      Γ′ ⊢ t :[ e ] c ⊙ T
+    → c ≤ᴱ Γ
+    → ------------------
+      Γ ⊢ t :[ e ] c ⊙ T

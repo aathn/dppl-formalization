@@ -639,14 +639,6 @@ module Subst {Σ : Sig} where
   substTrm : Trm Σ → Subst
   substTrm = UniversalProperty.rec var-subst alg-subst
 
-  -- Bound variable substitution
-  _≈>_ : ℕ → Trm Σ → Trm Σ → Trm Σ
-  (n ≈> u) t = substTrm t ρ
-    where
-    ρ : ℕ𝔸 → Trm Σ
-    ρ (ι₁ x) = if does(n ≐ x) then u else bvar x
-    ρ (ι₂ y) = fvar y
-
   -- Free variable substitution
   _=>_ : 𝔸 → Trm Σ → Trm Σ → Trm Σ
   (a => u) t = substTrm t ρ
@@ -654,3 +646,9 @@ module Subst {Σ : Sig} where
     ρ : ℕ𝔸 → Trm Σ
     ρ (ι₁ x) = bvar x
     ρ (ι₂ y) = if does(a ≐ y) then u else fvar y
+
+  -- Bound variable substitution
+  _≈>_ : ℕ → Trm Σ → Trm Σ → Trm Σ
+  (n ≈> u) (bvar x) = if does(n ≐ x) then u else bvar x
+  (n ≈> u) (fvar y) = fvar y
+  (n ≈> u) (op (o , ts)) = op (o , λ k → ((n + index (ar Σ o) k) ≈> u) (ts k))

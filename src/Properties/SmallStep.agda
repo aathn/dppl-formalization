@@ -63,7 +63,7 @@ canonical-⇒ (tweaken Htype _ _) Hval Heq =
   canonical-⇒ Htype Hval Heq
 canonical-⇒ (tsub Htype _ (sarr _ _ _)) Hval refl =
   canonical-⇒ Htype Hval refl
-canonical-⇒ (tpromote {T = _ ⇒[ _ ] _} Htype refl) Hval Heq =
+canonical-⇒ (tpromote {T = _ ⇒[ _ ] _} Htype H≤) Hval Heq =
   canonical-⇒ Htype Hval Heq
 
 canonical-real
@@ -79,7 +79,7 @@ canonical-real (tweaken Htype _ _) Hval Heq =
   canonical-real Htype Hval Heq
 canonical-real (tsub Htype _ (sreal _)) Hval refl =
   canonical-real Htype Hval refl
-canonical-real (tpromote {T = treal _} Htype refl) Hval refl =
+canonical-real (tpromote {T = treal _} Htype H≤) Hval refl =
   canonical-real Htype Hval refl
 
 canonical-tup
@@ -90,12 +90,12 @@ canonical-tup
   → -------------------------------------------
     ∃[ ts ] t ≡ tup {n} ts × ∀ i → Value (ts i)
 
-canonical-tup (ttup _) (vtup Hvs) refl = _ , refl , Hvs
+canonical-tup (ttup _ _) (vtup Hvs) refl = _ , refl , Hvs
 canonical-tup (tweaken Htype _ _) Hval Heq =
   canonical-tup Htype Hval Heq
 canonical-tup (tsub Htype _ (stup _)) Hval refl =
   canonical-tup Htype Hval refl
-canonical-tup (tpromote {T = ttup _} Htype refl) Hval refl =
+canonical-tup (tpromote {T = ttup _} Htype H≤) Hval refl =
   canonical-tup Htype Hval refl
 
 canonical-dist
@@ -107,7 +107,7 @@ canonical-dist
     (∃[ D ] ∃[ rs ] t ≡ dist D (map real rs))
   ⊎ (∃[ v ] t ≡ infer v × Value (v ₀))
 
-canonical-dist (tdist {ts = ts} _ Htypes) (vdist Hvs) _ =
+canonical-dist (tdist {ts = ts} _ Htypes _) (vdist Hvs) _ =
   let Hreals : ∃[ rs ] ts ≡ map real rs
       Hreals = _ , funext λ i → π₂ $ canonical-real (Htypes i) (Hvs i) refl
   in
@@ -117,8 +117,26 @@ canonical-dist (tweaken Htype _ _) Hval Heq =
   canonical-dist Htype Hval Heq
 canonical-dist (tsub Htype _ (sdist _)) Hval refl =
   canonical-dist Htype Hval refl
-canonical-dist (tpromote {T = tdist _} Htype refl) Hval Heq =
+canonical-dist (tpromote {T = tdist _} Htype H≤) Hval Heq =
   canonical-dist Htype Hval Heq
+
+val-type-det
+  : ∀ {Γ t e T}
+  → Γ ⊢ t :[ e ] T
+  → Value t
+  → ----------------
+    Γ ⊢ t :[ det ] T
+val-type-det (tabs Htype) _ = tabs Htype
+val-type-det treal _ = treal
+val-type-det (ttup Htypes Hd) (vtup Hvs) =
+  ttup (λ i → val-type-det (Htypes i) (Hvs i)) Hd
+val-type-det (tdist HD Htypes Hd) (vdist Hvs) =
+  tdist HD (λ i → val-type-det (Htypes i) (Hvs i)) Hd
+val-type-det (tinfer Htype) (vinfer Hval) = tinfer (val-type-det Htype Hval)
+val-type-det (tweaken Htype H⊆ Hd) Hval = tweaken (val-type-det Htype Hval) H⊆ Hd
+val-type-det (tsub Htype He Hsub) Hval = tsub (val-type-det Htype Hval) 0≤ Hsub
+val-type-det (tpromote Htype H≤) Hval = tpromote (val-type-det Htype Hval) H≤
+
 
 module Step (Ass : EvalAssumptions) where
   open Eval Ass
