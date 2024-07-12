@@ -7,6 +7,7 @@ open import Lib.BindingSignature
 open import Function using (const)
 open import Data.Vec.Functional using (map)
 open import Data.List.Relation.Unary.AllPairs using ([])
+open import Data.List.Relation.Binary.Sublist.Propositional using ([])
 
 open import Syntax ℝ
 open import Typing ℝ
@@ -63,11 +64,11 @@ module _ (Ass : EvalAssumptions) where
     open PresAssumptions PAss
 
     preservation-det-step
-      : ∀ {Γ t t′ e T}
-      → Γ ⊢ t :[ e ] T
+      : ∀ {t t′ e T}
+      → [] ⊢ t :[ e ] T
       → t →ᵈ t′
       → ---------------
-        Γ ⊢ t′ :[ e ] T
+        [] ⊢ t′ :[ e ] T
 
     preservation-det-step (tapp {ts = ts} Htype Htype₁) (eapp {t = t} Heq Hv)
       rewrite Heq with Иi As Hcof ← tabs-inv Htype refl
@@ -89,19 +90,19 @@ module _ (Ass : EvalAssumptions) where
       tweaken (tsub treal 0≤ sub-refl) []-⊆ (well-typed-distinct Htype)
     preservation-det-step (texpect Htype) (eexpectinfer Heq Hv) =
       tweaken (tsub treal 0≤ sub-refl) []-⊆ (well-typed-distinct Htype)
-    preservation-det-step (tweaken Htype H⊆ Hd) Hstep =
-      tweaken (preservation-det-step Htype Hstep) H⊆ Hd
+    preservation-det-step (tweaken Htype [] Hd) Hstep =
+      tweaken (preservation-det-step Htype Hstep) [] Hd
     preservation-det-step (tsub Htype H≤ Hsub) Hstep =
       tsub (preservation-det-step Htype Hstep) H≤ Hsub
     preservation-det-step (tpromote Htype Heq) Hstep =
       tpromote (preservation-det-step Htype Hstep) Heq
 
     preservation-rnd-step
-      : ∀ {Γ t w s t′ w′ s′ e T}
-      → Γ ⊢ t :[ e ] T
+      : ∀ {t w s t′ w′ s′ e T}
+      → [] ⊢ t :[ e ] T
       → (t , w , s) →ʳ (t′ , w′ , s′)
       → -----------------------------
-        Γ ⊢ t′ :[ e ] T
+        [] ⊢ t′ :[ e ] T
     preservation-rnd-step Htype (edet Hstep) = preservation-det-step Htype Hstep
     preservation-rnd-step (tassume Htype) (eassumedist Heq) rewrite Heq
       with texpect-inv Htype refl
@@ -111,8 +112,8 @@ module _ (Ass : EvalAssumptions) where
       AssumeInferPres (tinfer-inv Htype refl)
     preservation-rnd-step (tweight Htype) (eweight Heq) =
       tweaken (ttup (λ()) []) []-⊆ (well-typed-distinct Htype)
-    preservation-rnd-step (tweaken Htype H⊆ Hd) Hstep =
-      tweaken (preservation-rnd-step Htype Hstep) H⊆ Hd
+    preservation-rnd-step (tweaken Htype [] Hd) Hstep =
+      tweaken (preservation-rnd-step Htype Hstep) [] Hd
     preservation-rnd-step (tsub Htype H≤ Hsub) Hstep =
       tsub (preservation-rnd-step Htype Hstep) H≤ Hsub
     preservation-rnd-step (tpromote Htype Heq) Hstep =

@@ -1,3 +1,13 @@
+--------------------------------------------------------------
+-- This file was adapted from the code accompanying the paper
+--
+-- Andrew M. Pitts, "Locally Nameless Sets", POPL 2023
+--
+-- (© 2023 Andrew Pitts, University of Cambridge)
+--
+-- https://amp12.github.io/LocallyNamelessSets/
+--------------------------------------------------------------
+
 module Lib.Shift where
 
 open import Lib.Prelude
