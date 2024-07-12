@@ -78,7 +78,6 @@ data CongCls
 record EvalAssumptions : Set where
   field
     0ʳ : ℝ
-    1ʳ : ℝ
     _*ʳ_ : ℝ → ℝ → ℝ
     _>ʳ_ : ℝ → ℝ → 𝔹
     PrimEv : (ϕ : Prim) → Vector ℝ (PrimAr ϕ) → ℝ
@@ -155,12 +154,8 @@ module Eval (Ass : EvalAssumptions) where
     eweight
       : ∀ {v r w s}
       → v ₀ ≡ real r
-      → ---------------------
-        (weight v , w , s) →ʳ
-          ( unit
-          , (if r >ʳ 0ʳ and not (r >ʳ 1ʳ) then r *ʳ w else 0ʳ)
-          , s
-          )
+      → --------------------------------------------------------------------
+        (weight v , w , s) →ʳ ( unit , (if r >ʳ 0ʳ then r *ʳ w else 0ʳ) , s)
 
     eassumedist
       : ∀ {v D rs w p s}

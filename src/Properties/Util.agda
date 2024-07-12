@@ -47,8 +47,8 @@ module _ {Σ : Sig} where
   ... | neq _ = refl
   ... | equ rewrite dec-equ x = refl
   subst-intro {x} (fvar y) H∉ with x ≐ y | H∉
-  ... | neq _ | _         = refl
-  ... | equ   | ∉[] {{p}} = 𝟘e (¬≠ x p)
+  ... | neq _ | _   = refl
+  ... | equ   | ∉[] = 𝟘e (¬≠ x it)
   subst-intro {x} {n} {u} (op (o , ts)) H∉ =
     ap (op ∘ (o ,_)) $ funext λ i → subst-intro (ts i) (∉⋃ _ i {{H∉}})
 
