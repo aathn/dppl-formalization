@@ -14,11 +14,12 @@ open import Lib.BindingSignature
 open import Function using (_$_ ; const ; flip)
 open import Data.List using (_++_ ; map)
 open import Data.List.Properties using (map-++ ; ++-conicalʳ)
-open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_ ; [] ; _∷_ ; _∷ʳ_ ; ⊆-reflexive ; to∈)
+open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_ ; [] ; _∷_ ; _∷ʳ_ ; ⊆-reflexive ; lookup)
 open import Data.List.Relation.Binary.Sublist.Propositional.Properties using (++⁺ ; All-resp-⊆)
 open import Data.List.Relation.Binary.Pointwise using (Pointwise ; [] ; _∷_)
 open import Data.List.Relation.Unary.Any using (here ; there)
-open import Data.List.Relation.Unary.All using (All ; [] ; _∷_ ; lookup)
+open import Data.List.Relation.Unary.Any.Properties using (++⁺ʳ)
+open import Data.List.Relation.Unary.All as All using (All ; [] ; _∷_)
 open import Data.List.Relation.Unary.AllPairs using ([] ; _∷_)
 open import Data.List.Membership.Propositional using () renaming (_∈_ to _∈ˡ_)
 open import Data.List.Membership.Propositional.Properties using (∈-∃++)
@@ -173,6 +174,10 @@ dom-∈ : ∀ {Γ x} → x ∈ dom Γ → ∃[ T ] (x , T) ∈ˡ Γ
 dom-∈ {x :: Γ} (∈∪₁ ∈[]) = _ , here refl
 dom-∈ {x :: Γ} (∈∪₂ x∈Γ) with T , H∈ ← dom-∈ x∈Γ = T , there H∈
 
+∈-dom : ∀ {Γ x T} → (x , T) ∈ˡ Γ → x ∈ dom Γ
+∈-dom {x :: Γ} (here refl) = ∈∪₁ ∈[]
+∈-dom {x :: Γ} (there H∈)  = ∈∪₂ (∈-dom H∈)
+
 ∉-dom-⊆
   : ∀ {Δ Γ x}
   → x ∉ dom Γ
@@ -242,7 +247,7 @@ distinct-weaken {x :: Γ′} (x₁ ∷ Hd) = all-weaken x₁ ∷ distinct-weaken
   → -------------------
     Γ ⊆ Γ₁ & Γ₂
 ⊆-strengthen {[]} H∉ (.(_ , _) ∷ʳ H⊆) = H⊆
-⊆-strengthen {[]} {x = x} (∉∪ {{∉[]}}) (refl ∷ H⊆) = 𝟘e (¬≠ x it)
+⊆-strengthen {[]} {x = x} (∉∪ {{∉[]}}) (refl ∷ H⊆) with () ← ¬≠ x it
 ⊆-strengthen {x :: Γ₂} H∉ (.x ∷ʳ H⊆) = x ∷ʳ (⊆-strengthen H∉ H⊆)
 ⊆-strengthen {x :: Γ₂} ∉∪ (x₁ ∷ H⊆) = x₁ ∷ (⊆-strengthen it H⊆)
 
@@ -257,20 +262,40 @@ distinct-weaken {x :: Γ′} (x₁ ∷ Hd) = all-weaken x₁ ∷ distinct-weaken
 ⊆-distinct {x :: Δ} (Hall ∷ Hd) (refl ∷ H⊆) = All-resp-⊆ H⊆ Hall ∷ ⊆-distinct Hd H⊆
 
 ⊆-split
-  : ∀ {Δ₂ T′ Δ₁ Γ₂ x T Γ₁}
-  → Distinct (Γ₁ , x ∶ T & Γ₂)
-  → Δ₁ , x ∶ T′ & Δ₂ ⊆ Γ₁ , x ∶ T & Γ₂
+  : ∀ {Γ₂ Γ₁ Δ x T}
+  → x ∉ dom Γ₁ ∪ dom Γ₂
+  → x ∈ dom Δ
+  → Δ ⊆ Γ₁ , x ∶ T & Γ₂
   → -----------------------------------
-    Δ₁ ⊆ Γ₁ × Δ₂ ⊆ Γ₂ × T ≡ T′
-⊆-split {Δ₂ = []} {Γ₂ = []} (Hall ∷ Hd) (.(_ , _) ∷ʳ Hsub)
-  with H∈ ← to∈ Hsub with ¬x≡x ← lookup Hall H∈ = 𝟘e $ ¬x≡x refl
-⊆-split {Δ₂ = []} {Γ₂ = []} (x₁ ∷ Hd) (refl ∷ Hsub) = Hsub , [] , refl
-⊆-split {Δ₂ = x :: Δ₂} {Γ₂ = []} Hd (.(_ , _) ∷ʳ Hsub) = {!!}
-⊆-split {Δ₂ = x :: Δ₂} {Γ₂ = []} Hd (refl ∷ Hsub) = {!!}
-⊆-split {Δ₂ = []} {Γ₂ = z :: Γ₂} (x ∷ Hd) (.z ∷ʳ Hsub) = {!!}
-⊆-split {Δ₂ = []} {Γ₂ = z :: Γ₂} (x₁ ∷ Hd) (refl ∷ Hsub) = {!!}
-⊆-split {Δ₂ = x :: Δ₂} {Γ₂ = z :: Γ₂} (x₁ ∷ Hd) (.z ∷ʳ Hsub) = {!!}
-⊆-split {Δ₂ = x :: Δ₂} {Γ₂ = z :: Γ₂} (x₁ ∷ Hd) (x₂ ∷ Hsub) = {!!}
+    ∃[ Δ₁ ] ∃[ Δ₂ ]
+    Δ₁ ⊆ Γ₁ × Δ₂ ⊆ Γ₂ × Δ ≡ Δ₁ , x ∶ T & Δ₂
+
+⊆-split {[]} ∉∪ H∈ (.(_ , _) ∷ʳ Hsub) with _ , H∈′ ← dom-∈ H∈
+  with () ← ∉→¬∈ (∈-dom $ lookup Hsub H∈′)
+⊆-split {[]} ∉∪ H∈ (refl ∷ Hsub) = _ , _ , Hsub , [] , refl
+⊆-split {x :: Γ₂} (∉∪ {{q = ∉∪}}) H∈ (.x ∷ʳ Hsub)
+  with  Δ₁ , Δ₂ , Hsub1 , Hsub2 , Heq ← ⊆-split ∉∪ H∈ Hsub =
+  Δ₁ , Δ₂ , Hsub1 , x ∷ʳ Hsub2 , Heq
+⊆-split {x :: Γ₂} (∉∪ {{ q = ∉∪ }}) (∈∪₂ H∈) (refl ∷ Hsub)
+  with Δ₁ , Δ₂ , Hsub1 , Hsub2 , refl ← ⊆-split ∉∪ H∈ Hsub =
+  Δ₁ , x :: Δ₂ , Hsub1 , refl ∷ Hsub2 , refl
+⊆-split {Γ₂ , x ∶ _} (∉∪ {{ q = ∉∪ {{ p = ∉[] }} }}) (∈∪₁ ∈[]) (refl ∷ Hsub)
+  with () ← ¬≠ x it
+
+distinct-∉
+  : ∀ {Γ₂ Γ₁ x T}
+  → Distinct (Γ₁ , x ∶ T & Γ₂)
+  → --------------------------
+    x ∉ dom Γ₁ ∪ dom Γ₂
+distinct-∉ {[]} {Γ₁} {x} (Hall ∷ _) = it
+  where instance
+  H∉ : x ∉ dom Γ₁
+  H∉ = ¬∈→∉ λ H∈ → case (dom-∈ H∈) λ { (_ , H∈′) → All.lookup Hall H∈′ refl }
+distinct-∉ {(y , _) :: _} {_} {x} (Hall ∷ Hd) with ∉∪ ← distinct-∉ Hd = it
+  where instance
+  H≠ : x ≠ y
+  H≠ = symm≠ y x $ dec-neq _ _ $ All.lookup Hall (++⁺ʳ _ $ here refl)
+
 
 open LocalClosed
 open Body
@@ -360,8 +385,7 @@ substitution-pres-typing {Γ′} {x} {u} {T₂} Htype Hu = go Htype
   go (texpect Htype) = texpect $ go Htype
   go (tinfer Htype)  = tinfer  $ go Htype
   go {{refl}} (tweaken {Γ′ = Γ₂} {t = t} Htype H⊆ Hd) with x ∈? dom Γ₂
-  ... | yes H∈ with T , H∈′ ← dom-∈ H∈ with Δ₁ , Δ₂ , refl ← ∈-∃++ H∈′
-               with [] , H⊆₁ , refl ← ⊆-split Hd H⊆ =
+  ... | yes H∈ with Δ₁ , Δ₂ , [] , H⊆₁ , refl ← ⊆-split (distinct-∉ Hd) H∈ H⊆ =
     tweaken (go Htype) (++⁺ H⊆₁ []) (distinct-weaken Hd)
   ... | no H∉ rewrite subst-fresh u t (∉-dom-fv Htype (¬∈→∉ H∉)) =
     tweaken Htype (⊆-strengthen (¬∈→∉ H∉) H⊆) (distinct-weaken Hd)
