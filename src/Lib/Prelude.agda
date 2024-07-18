@@ -39,9 +39,8 @@ open import Relation.Nullary public using (¬_)
 -- Unit type
 ----------------------------------------------------------------------
 
-open import Data.Unit.Polymorphic public using (⊤ ; tt)
-𝟙 : {ℓ : Level} → Set ℓ
-𝟙 = ⊤
+open import Data.Unit.Polymorphic public using (tt)
+  renaming (⊤ to 𝟙)
 
 ----------------------------------------------------------------------
 -- Booleans
@@ -438,6 +437,14 @@ data Fset {l : Level}(A : Set l) : Set l where
   Ø   : Fset A
   [_] : A → Fset A
   _∪_ : Fset A → Fset A → Fset A
+
+∪inj₁ :
+  {l : Level}
+  {A : Set l}
+  {xs xs' ys ys' : Fset A}
+  → -----------------------------
+  (xs ∪ xs' ≡ ys ∪ ys') → xs ≡ ys
+∪inj₁ refl = refl
 
 ∪inj₂ :
   {l : Level}

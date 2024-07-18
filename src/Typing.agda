@@ -11,9 +11,9 @@ open import Lib.BindingSignature
 open import Function using (_∘_ ; _$_ ; const)
 open import Data.List using (map)
 open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_)
+open import Data.List.Relation.Binary.Pointwise using (Pointwise)
 open import Data.List.Relation.Unary.All using (All)
 open import Data.Nat using (_⊔_)
-open import Relation.Binary using (Rel)
 
 TyEnv : Set
 TyEnv = List (𝔸 × Type)
@@ -25,11 +25,9 @@ dom : TyEnv → Fset 𝔸
 dom [] = Ø
 dom (Γ , x ∶ _) = [ x ] ∪ dom Γ
 
-DistinctName : Rel (𝔸 × Type) _
-DistinctName (x , _) (x₁ , _) = ¬ x ≡ x₁
-
-open import Data.List.Relation.Unary.AllPairs.Core DistinctName public
-  using () renaming (AllPairs to Distinct)
+data Distinct : TyEnv → Set where
+  []  : Distinct []
+  _∷_ : ∀ {x T Γ} → x ∉ dom Γ → Distinct Γ → Distinct (Γ , x ∶ T)
 
 PrimTy : (ϕ : Prim) → Vector Coeff (PrimAr ϕ) × Coeff
 PrimTy padd        = const ca , ca
@@ -81,6 +79,10 @@ data _<:_ : Type → Type → Set where
     → T <: T′
     → -------------------
       tdist T <: tdist T′
+
+
+_<:ᴱ_ : TyEnv → TyEnv → Set
+_<:ᴱ_ = Pointwise (λ (x₁ , T₁) (x₂ , T₂) → x₁ ≡ x₂ × T₁ <: T₂)
 
 
 infix 4 _⊢_:[_]_

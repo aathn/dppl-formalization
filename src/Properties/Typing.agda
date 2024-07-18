@@ -16,10 +16,10 @@ open import Data.List using (_++_ ; map)
 open import Data.List.Properties using (map-++ ; ++-conicalʳ)
 open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_ ; [] ; _∷_ ; _∷ʳ_ ; ⊆-reflexive ; lookup)
 open import Data.List.Relation.Binary.Sublist.Propositional.Properties using (++⁺ ; All-resp-⊆)
-open import Data.List.Relation.Binary.Pointwise using (Pointwise ; [] ; _∷_)
+open import Data.List.Relation.Binary.Pointwise as P using (Pointwise ; [] ; _∷_)
 open import Data.List.Relation.Unary.Any using (here ; there)
 open import Data.List.Relation.Unary.Any.Properties using (++⁺ʳ)
-open import Data.List.Relation.Unary.All as All using (All ; [] ; _∷_)
+open import Data.List.Relation.Unary.All as A using (All ; [] ; _∷_)
 open import Data.List.Relation.Unary.AllPairs using ([] ; _∷_)
 open import Data.List.Membership.Propositional using () renaming (_∈_ to _∈ˡ_)
 open import Data.List.Membership.Propositional.Properties using (∈-∃++)
@@ -48,23 +48,92 @@ sub-trans (sarr Hsub1 Hsub4 H≤) (sarr Hsub2 Hsub3 H≤′) =
   sarr (sub-trans Hsub2 Hsub1) (sub-trans Hsub4 Hsub3) (≤trans H≤ H≤′)
 sub-trans (sdist Hsub1) (sdist Hsub2) = sdist (sub-trans Hsub1 Hsub2)
 
-sub-mul
-  : ∀ {T c}
-  → ----------
-    c ⊙ T <: T
-sub-mul {treal x} = sreal ≤max₂
-sub-mul {T ⇒[ x ] T₁} = sub-refl
-sub-mul {ttup ts} = stup (λ i → sub-mul)
-sub-mul {tdist T} = sub-refl
+sub-⊆
+  : ∀ {Γ₁ Γ₂ Γ₁′}
+  → Γ₂ <:ᴱ Γ₁
+  → Γ₁′ ⊆ Γ₁
+  → -------------------------------
+    ∃[ Γ₂′ ] Γ₂′ <:ᴱ Γ₁′ × Γ₂′ ⊆ Γ₂
+sub-⊆ [] [] = [] , [] , []
+sub-⊆ (Hsub ∷ Hsubs) (y ∷ʳ H⊆) =
+  let Γ₂′ , Hsub′ , H⊆′ = sub-⊆ Hsubs H⊆
+  in  Γ₂′ , Hsub′ , _ ∷ʳ H⊆′
+sub-⊆ (Hsub ∷ Hsubs) (refl ∷ H⊆) =
+  let Γ₂′ , Hsub′ , H⊆′ = sub-⊆ Hsubs H⊆
+  in  _ :: Γ₂′ , Hsub ∷ Hsub′ , refl ∷ H⊆′
 
-mul-idempotent
-  : ∀ {T c}
-  → --------------------
-    c ⊙ (c ⊙ T) ≡ c ⊙ T
-mul-idempotent {treal x} {c} rewrite m≤n⇒m⊔n≡n {c} {max c x} ≤max₁ = refl
-mul-idempotent {T ⇒[ e ] T₁} = refl
-mul-idempotent {ttup Ts} = ap ttup $ funext λ i → mul-idempotent {Ts i}
-mul-idempotent {tdist T} = refl
+sub-dom
+  : ∀ {Γ₁ Γ₂}
+  → Γ₁ <:ᴱ Γ₂
+  → ---------------
+    dom Γ₁ ≡ dom Γ₂
+sub-dom [] = refl
+sub-dom (x≡y ∷ Hsub) = ap₂ _∪_ (ap [_] $ π₁ x≡y) (sub-dom Hsub)
+
+dom-distinct
+  : ∀ {Γ₁ Γ₂}
+  → dom Γ₁ ≡ dom Γ₂
+  → -------------------------
+    Distinct Γ₁ → Distinct Γ₂
+dom-distinct {Γ₂ = []} Hdom [] = []
+dom-distinct {Γ₂ = (y , T) :: Γ₂} Hdom (H∉ ∷ Hd) with refl ← ∪inj₁ Hdom =
+  subst (y ∉_) (∪inj₂ Hdom) H∉ ∷ dom-distinct (∪inj₂ Hdom) Hd
+
+≤ᶜ-<:-trans
+  : ∀ {c T₁ T₂}
+  → c ≤ᶜ T₁
+  → T₂ <: T₁
+  → --------
+    c ≤ᶜ T₂
+≤ᶜ-<:-trans H≤ (sreal H≤′) = ≤trans H≤ H≤′
+≤ᶜ-<:-trans H≤ (stup Hsubs) i = ≤ᶜ-<:-trans (H≤ i) (Hsubs i)
+≤ᶜ-<:-trans H≤ (sarr _ _ _) = tt
+≤ᶜ-<:-trans H≤ (sdist _) = tt
+
+≤ᴱ-<:ᴱ-trans
+  : ∀ {c Γ₁ Γ₂}
+  → c ≤ᴱ Γ₁
+  → Γ₂ <:ᴱ Γ₁
+  → ---------
+    c ≤ᴱ Γ₂
+≤ᴱ-<:ᴱ-trans [] [] = []
+≤ᴱ-<:ᴱ-trans (H≤ ∷ H≤′) ((_ , Hsub) ∷ Hsub′) =
+  ≤ᶜ-<:-trans H≤ Hsub ∷ ≤ᴱ-<:ᴱ-trans H≤′ Hsub′
+
+sub-env
+  : ∀ {Γ₁ Γ₂ t e T}
+  → Γ₁ ⊢ t :[ e ] T
+  → Γ₂ <:ᴱ Γ₁
+  → ---------------
+    Γ₂ ⊢ t :[ e ] T
+sub-env tvar ((refl , Hsub) ∷ []) = tsub tvar ≤refl Hsub
+sub-env (tabs (Иi As Hcof)) Hsub =
+  tabs $ Иi As λ y → sub-env (Hcof y) ((refl , sub-refl) ∷ Hsub)
+sub-env (tapp Htype Htype₁) Hsub =
+  tapp (sub-env Htype Hsub) (sub-env Htype₁ Hsub)
+sub-env (tprim Hϕ Htypes Hd) Hsub =
+  tprim Hϕ (λ i → sub-env (Htypes i) Hsub) (dom-distinct (symm $ sub-dom Hsub) Hd)
+sub-env treal [] = treal
+sub-env (ttup Htypes Hd) Hsub =
+  ttup (λ i → sub-env (Htypes i) Hsub) (dom-distinct (symm $ sub-dom Hsub) Hd)
+sub-env (tproj i Htype) Hsub = tproj i (sub-env Htype Hsub)
+sub-env (tif Htype Htype₁ Htype₂) Hsub =
+  tif (sub-env Htype Hsub) (sub-env Htype₁ Hsub) (sub-env Htype₂ Hsub)
+sub-env (tdiff Hc Htype Htype₁) Hsub =
+  tdiff Hc (sub-env Htype Hsub) (sub-env Htype₁ Hsub)
+sub-env (tsolve Htype Htype₁ Htype₂) Hsub =
+  tsolve (sub-env Htype Hsub) (sub-env Htype₁ Hsub) (sub-env Htype₂ Hsub)
+sub-env (tdist HD Htypes Hd) Hsub =
+  tdist HD (λ i → sub-env (Htypes i) Hsub) (dom-distinct (symm $ sub-dom Hsub) Hd)
+sub-env (tassume Htype) Hsub = tassume (sub-env Htype Hsub)
+sub-env (tweight Htype) Hsub = tweight (sub-env Htype Hsub)
+sub-env (texpect Htype) Hsub = texpect (sub-env Htype Hsub)
+sub-env (tinfer Htype) Hsub  = tinfer (sub-env Htype Hsub)
+sub-env (tweaken Htype H⊆ Hd) Hsub =
+  let Γ₂′ , Hsub′ , H⊆′ = sub-⊆ Hsub H⊆
+  in  tweaken (sub-env Htype Hsub′) H⊆′ (dom-distinct (symm $ sub-dom Hsub) Hd)
+sub-env (tsub Htype H≤ Hsub′) Hsub = tsub (sub-env Htype Hsub) H≤ Hsub′
+sub-env (tpromote Htype H≤) Hsub = tpromote (sub-env Htype Hsub) (≤ᴱ-<:ᴱ-trans H≤ Hsub)
 
 well-typed-distinct
   : ∀ {Γ t e T}
@@ -72,7 +141,7 @@ well-typed-distinct
   → --------------
     Distinct Γ
 
-well-typed-distinct tvar = [] ∷ []
+well-typed-distinct tvar = ∉Ø ∷ []
 well-typed-distinct (tabs (Иi As Hcof))
   with x , x∉As ← fresh As
   with _ ∷ Hd ← well-typed-distinct (Hcof x {{x∉As}}) = Hd
@@ -93,23 +162,6 @@ well-typed-distinct (tweaken _ _ Hd) = Hd
 well-typed-distinct (tsub Htype _ _) = well-typed-distinct Htype
 well-typed-distinct (tpromote Htype _) = well-typed-distinct Htype
 
-∉-dom-distinct
-  : ∀ {Γ x T}
-  → x ∉ dom Γ
-  → ----------------------------
-    All (DistinctName (x , T)) Γ
-∉-dom-distinct {[]} ∉Ø = []
-∉-dom-distinct {(y , T′) :: Γ} {T = T} (∉∪ {{∉[]}}) =
-  ≠→¬≡ it ∷ ∉-dom-distinct {T = T} it
-
-sub-var
-  : ∀ {Γ x T₁ T₂ t e T}
-  → Γ , x ∶ T₂ ⊢ t :[ e ] T
-  → T₁ <: T₂
-  → --------------------------------------
-    Γ , x ∶ T₁ ⊢ t :[ e ] T
-sub-var Htype Hsub = {!!}
-
 tabs-inv :
   ∀ {Γ T₀ t e T e′ T₁ T₂}
   → Γ ⊢ abs T₀ t :[ e ] T
@@ -119,12 +171,10 @@ tabs-inv :
 tabs-inv (tabs Habs) refl = Habs
 tabs-inv {Γ} {T₀} (tweaken Htype H⊆ Hd) Heq
   with Иi As Hcof ← tabs-inv Htype Heq =
- Иi (dom Γ ∪ As) λ { x {{∉∪}} →
-    tweaken (Hcof x) (refl ∷ H⊆) (∉-dom-distinct {T = T₀} it ∷ Hd)
-  }
+  Иi (dom Γ ∪ As) λ { x {{∉∪}} → tweaken (Hcof x) (refl ∷ H⊆) (it ∷ Hd) }
 tabs-inv (tsub Htype H≤ (sarr Hsub₀ Hsub₁ He)) refl
   with Иi As Hcof ← tabs-inv Htype refl =
-  Иi As λ x → sub-var (tsub (Hcof x) He Hsub₁) Hsub₀
+  Иi As λ x → sub-env (tsub (Hcof x) He Hsub₁) ((refl , Hsub₀) ∷ P.refl (refl , sub-refl))
 tabs-inv (tpromote {T = _ ⇒[ _ ] _} Htype H≤) refl =
   tabs-inv Htype refl
 
@@ -224,13 +274,14 @@ dom-∈ {x :: Γ} (∈∪₂ x∈Γ) with T , H∈ ← dom-∈ x∈Γ = T , ther
 ∉-dom-fv (tsub Htype _ _) H∉ = ∉-dom-fv Htype H∉
 ∉-dom-fv (tpromote Htype _) H∉ = ∉-dom-fv Htype H∉
 
-all-weaken
-  : ∀ {A : Set} {P : A → Set} {l₁ l₂ x}
-  → All P (l₁ ++ x :: l₂)
-  → ---------------------
-    All P (l₁ ++ l₂)
-all-weaken {l₁ = []} (px ∷ Hall) = Hall
-all-weaken {l₁ = x :: l₁} (px ∷ Hall) = px ∷ all-weaken Hall
+++-dom : ∀ {Γ x} Γ′ → x ∉ dom (Γ′ ++ Γ) → x ∉ dom Γ′ ∪ dom Γ
+++-dom [] H∉ = ∉∪ {{q = H∉}}
+++-dom ((y , T) :: Γ′) (∉∪ {{p = H∉₁}} {{H∉₂}}) with ∉∪ ← ++-dom Γ′ H∉₂ =
+  ∉∪ {{p = ∉∪ {{p = H∉₁}}}}
+
+dom-++ : ∀ {Γ′ Γ x} → x ∉ dom Γ′ ∪ dom Γ → x ∉ dom (Γ′ ++ Γ)
+dom-++ {[]} ∉∪ = it
+dom-++ {_ :: Γ′} {Γ} {x} (∉∪ {{∉∪ {{p = H∉}}}}) = ∉∪ {{p = H∉}} {{dom-++ it}}
 
 distinct-weaken
   : ∀ {Γ′ Γ x T}
@@ -238,7 +289,9 @@ distinct-weaken
   → -------------------------
     Distinct (Γ & Γ′)
 distinct-weaken {[]} (x ∷ Hd) = Hd
-distinct-weaken {x :: Γ′} (x₁ ∷ Hd) = all-weaken x₁ ∷ distinct-weaken Hd
+distinct-weaken {Γ′ , x′ ∶ T′} {Γ} {x} {T} (H∉ ∷ Hd)
+  with ∉∪ {{q = ∉∪}} ← ++-dom Γ′ H∉ =
+  dom-++ it ∷ distinct-weaken Hd
 
 ⊆-strengthen
   : ∀ {Γ₂ Γ₁ Γ x T}
@@ -251,6 +304,17 @@ distinct-weaken {x :: Γ′} (x₁ ∷ Hd) = all-weaken x₁ ∷ distinct-weaken
 ⊆-strengthen {x :: Γ₂} H∉ (.x ∷ʳ H⊆) = x ∷ʳ (⊆-strengthen H∉ H⊆)
 ⊆-strengthen {x :: Γ₂} ∉∪ (x₁ ∷ H⊆) = x₁ ∷ (⊆-strengthen it H⊆)
 
+⊆-dom
+  : ∀ {Δ Γ x}
+  → Γ ⊆ Δ
+  → x ∉ dom Δ
+  → ---------
+    x ∉ dom Γ
+⊆-dom [] ∉Ø = ∉Ø
+⊆-dom {Δ , y ∶ _} (_ ∷ʳ Hsub) ∉∪ = ⊆-dom Hsub it
+⊆-dom {Δ , _ ∶ _} {Γ , _ ∶ _} {x} (refl ∷ Hsub) (∉∪ {{H∉}}) =
+  ∉∪ {{p = H∉}} {{⊆-dom Hsub it}}
+
 ⊆-distinct
   : ∀ {Δ Γ}
   → Distinct Γ
@@ -259,14 +323,15 @@ distinct-weaken {x :: Γ′} (x₁ ∷ Hd) = all-weaken x₁ ∷ distinct-weaken
     Distinct Δ
 ⊆-distinct {[]} Hd H⊆ = []
 ⊆-distinct {_ :: Δ} (_ ∷ Hd) (_ ∷ʳ H⊆) = ⊆-distinct Hd H⊆
-⊆-distinct {x :: Δ} (Hall ∷ Hd) (refl ∷ H⊆) = All-resp-⊆ H⊆ Hall ∷ ⊆-distinct Hd H⊆
+⊆-distinct {x :: Δ} (H∉ ∷ Hd) (refl ∷ H⊆) =
+  ⊆-dom H⊆ H∉ ∷ ⊆-distinct Hd H⊆
 
 ⊆-split
   : ∀ {Γ₂ Γ₁ Δ x T}
   → x ∉ dom Γ₁ ∪ dom Γ₂
   → x ∈ dom Δ
   → Δ ⊆ Γ₁ , x ∶ T & Γ₂
-  → -----------------------------------
+  → -------------------
     ∃[ Δ₁ ] ∃[ Δ₂ ]
     Δ₁ ⊆ Γ₁ × Δ₂ ⊆ Γ₂ × Δ ≡ Δ₁ , x ∶ T & Δ₂
 
@@ -287,15 +352,20 @@ distinct-∉
   → Distinct (Γ₁ , x ∶ T & Γ₂)
   → --------------------------
     x ∉ dom Γ₁ ∪ dom Γ₂
-distinct-∉ {[]} {Γ₁} {x} (Hall ∷ _) = it
+distinct-∉ {[]} {Γ₁} {x} (H∉ ∷ _) = ∉∪ {{p = H∉}}
+distinct-∉ {(y , _) :: Γ₂} {Γ₁} {x} {T} (H∉ ∷ Hd)
+  with ∉∪ {{q = ∉∪ {{∉[]}}}} ← ++-dom Γ₂ H∉ | ∉∪ ← distinct-∉ Hd = it
   where instance
-  H∉ : x ∉ dom Γ₁
-  H∉ = ¬∈→∉ λ H∈ → case (dom-∈ H∈) λ { (_ , H∈′) → All.lookup Hall H∈′ refl }
-distinct-∉ {(y , _) :: _} {_} {x} (Hall ∷ Hd) with ∉∪ ← distinct-∉ Hd = it
-  where instance
-  H≠ : x ≠ y
-  H≠ = symm≠ y x $ dec-neq _ _ $ All.lookup Hall (++⁺ʳ _ $ here refl)
+  _ : x ≠ y
+  _ = symm≠ y x it
 
+all-weaken
+  : ∀ {A : Set} {P : A → Set} {l₁ l₂ x}
+  → All P (l₁ ++ x :: l₂)
+  → ---------------------
+    All P (l₁ ++ l₂)
+all-weaken {l₁ = []} (px ∷ Hall) = Hall
+all-weaken {l₁ = x :: l₁} (px ∷ Hall) = px ∷ all-weaken Hall
 
 open LocalClosed
 open Body

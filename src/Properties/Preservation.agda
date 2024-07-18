@@ -76,7 +76,7 @@ module _ (Ass : EvalAssumptions) where
       rewrite subst-intro {x = x} {0} {ts ₁} (t ₀) it =
       substitution-pres-typing (Hcof x) (val-type-det Htype₁ Hv)
     preservation-det-step (tprim Hϕ Htypes Hd) (eprim Heq) =
-      tweaken (tsub treal 0≤ (sreal (PrimCoeffBound Hϕ))) []-⊆ Hd
+      tsub treal 0≤ (sreal (PrimCoeffBound Hϕ))
     preservation-det-step (tproj i Htype) (eproj .i Heq Hvs) rewrite Heq =
       ttup-inv Htype refl i
     preservation-det-step (tif Htype Htype₁ Htype₂) (eif {r} _) with r >ʳ 0ʳ
@@ -87,11 +87,11 @@ module _ (Ass : EvalAssumptions) where
     preservation-det-step (tsolve Htype Htype₁ Htype₂) (esolve Hv Hv₁ Hv₂) =
       SolvePres Htype refl refl Htype₁ Htype₂ Hv Hv₁ Hv₂
     preservation-det-step (texpect Htype) (eexpectdist Heq) =
-      tweaken (tsub treal 0≤ sub-refl) []-⊆ (well-typed-distinct Htype)
+      tsub treal 0≤ sub-refl
     preservation-det-step (texpect Htype) (eexpectinfer Heq Hv) =
-      tweaken (tsub treal 0≤ sub-refl) []-⊆ (well-typed-distinct Htype)
+      tsub treal 0≤ sub-refl
     preservation-det-step (tweaken Htype [] Hd) Hstep =
-      tweaken (preservation-det-step Htype Hstep) [] Hd
+      preservation-det-step Htype Hstep
     preservation-det-step (tsub Htype H≤ Hsub) Hstep =
       tsub (preservation-det-step Htype Hstep) H≤ Hsub
     preservation-det-step (tpromote Htype Heq) Hstep =
@@ -107,13 +107,13 @@ module _ (Ass : EvalAssumptions) where
     preservation-rnd-step (tassume Htype) (eassumedist Heq) rewrite Heq
       with texpect-inv Htype refl
     ... | _ , _ , Heq , Hsub =
-      tweaken (tsub (AssumeDistPres Heq) 0≤ Hsub) []-⊆ (well-typed-distinct Htype)
+      tsub (AssumeDistPres Heq) 0≤ Hsub
     preservation-rnd-step (tassume Htype) (eassumeinfer Heq Hv) rewrite Heq =
       AssumeInferPres (tinfer-inv Htype refl)
     preservation-rnd-step (tweight Htype) (eweight Heq) =
-      tweaken (ttup (λ()) []) []-⊆ (well-typed-distinct Htype)
+      ttup (λ()) []
     preservation-rnd-step (tweaken Htype [] Hd) Hstep =
-      tweaken (preservation-rnd-step Htype Hstep) [] Hd
+      preservation-rnd-step Htype Hstep
     preservation-rnd-step (tsub Htype H≤ Hsub) Hstep =
       tsub (preservation-rnd-step Htype Hstep) H≤ Hsub
     preservation-rnd-step (tpromote Htype Heq) Hstep =
