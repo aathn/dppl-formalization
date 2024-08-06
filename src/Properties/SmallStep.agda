@@ -10,10 +10,27 @@ open import Lib.EvalCtx
 open import Function using (_$_)
 open import Data.Product using (∃-syntax ; map₁)
 open import Data.Vec.Functional using (map)
+open import Relation.Nullary using (Irrelevant)
 
 open import Syntax ℝ
 open import Typing ℝ
 open import SmallStep ℝ 𝕀
+
+-- Value t is irrelevant
+
+value-irrelevant
+  : ∀ {t}
+  → --------------------
+    Irrelevant (Value t)
+
+value-irrelevant vabs vabs = refl
+value-irrelevant vreal vreal = refl
+value-irrelevant (vtup vs) (vtup vs′) =
+  ap vtup (funext λ i → value-irrelevant (vs i) (vs′ i))
+value-irrelevant (vdist vs) (vdist vs′) =
+  ap vdist (funext λ i → value-irrelevant (vs i) (vs′ i))
+value-irrelevant (vinfer v) (vinfer v′) =
+  ap vinfer (value-irrelevant v v′)
 
 -- Canonical forms
 
