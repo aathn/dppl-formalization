@@ -42,7 +42,7 @@ module _ (Ass : EvalAssumptions) where
         → Γ ⊢ v₀ :[ e ] ttup {2} Ts ⇒[ det ] treals cs
         → Ts ₀ ≡ treal c → Ts ₁ ≡ treals {n} cs
         → Γ ⊢ v₁ :[ e ] treals cs
-        → Γ ⊢ v₂ :[ e ] treal c
+        → Γ ⊢ v₂ :[ e ] treal cb
         → Value v₀ → Value v₁ → Value v₂
         → -----------------------------------
           Γ ⊢ Solve v₀ v₁ v₂ :[ e ] treals cs

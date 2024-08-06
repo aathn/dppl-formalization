@@ -64,9 +64,9 @@ data _<:_ : Type → Type → Set where
 
   stup
     : ∀ {n Ts Ts′}
-    → (∀ (i : Fin n) → Ts i <: Ts′ i)
-    → -------------------------------
-      ttup Ts <: ttup Ts′
+    → (∀ i → Ts i <: Ts′ i)
+    → -----------------------
+      ttup {n} Ts <: ttup Ts′
 
   sarr
     : ∀ {T₁ T₁′ T₂ T₂′ e e′}
@@ -152,7 +152,7 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
     : ∀ {Γ ts n c cs e}
     → Γ ⊢ ts ₀ :[ e ] ttup {2} (λ {₀ → treal c; ₁ → treals {n} cs}) ⇒[ det ] treals cs
     → Γ ⊢ ts ₁ :[ e ] treals cs
-    → Γ ⊢ ts ₂ :[ e ] treal c
+    → Γ ⊢ ts ₂ :[ e ] treal cb
     → -----------------------------
       Γ ⊢ solve ts :[ e ] treals cs
 
