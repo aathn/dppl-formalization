@@ -12,6 +12,7 @@ open import Data.Vec.Functional.Properties using (updateAt-id-local)
 open import Relation.Unary using (Pred)
 open import Relation.Binary using (Rel)
 open import Relation.Binary.PropositionalEquality using (subst₂)
+open import Relation.Binary.Rewriting using (Deterministic)
 
 -- Evaluation orders, evaluation contexts and congruence closure
 
@@ -40,11 +41,11 @@ data CongCls {A : Set} (_↝_ : Rel A _) (Ctx : Pred (A → A) _) : Rel A ℓ₀
       CongCls _↝_ Ctx a b
 
   econg
-    : ∀ {E t t′}
+    : ∀ {E a b}
     → Ctx E
-    → CongCls _↝_ Ctx t t′
+    → CongCls _↝_ Ctx a b
     → ----------------------------
-      CongCls _↝_ Ctx (E t) (E t′)
+      CongCls _↝_ Ctx (E a) (E b)
 
 
 -- Congruence with respect to evaluation contexts
@@ -52,7 +53,7 @@ data CongCls {A : Set} (_↝_ : Rel A _) (Ctx : Pred (A → A) _) : Rel A ℓ₀
 module CongStep
   {Σ : Sig} {A : Set} {ord : EvalOrder Σ} {Val : Pred (Trm Σ) _}
   (_↝_ : Rel A _) (Ctx : Pred (A → A) _) (Lift : (Trm Σ → Trm Σ) → (A → A))
-  (HLift : ∀ {E E′} → Lift E ∘ Lift E′ ≗ Lift (E ∘ E′))
+  (HLift : ∀ {E E′} → Lift E ∘ Lift E′ ≡ Lift (E ∘ E′))
   (HCtx : ∀ {E} → EvalCtx ord Val E → Ctx (Lift E))
   where
 
@@ -76,10 +77,27 @@ module CongStep
 
     _ : Lift _ (put (ts (f n)) a) ≡ put (op (o , ts)) a
     _ =
-      HLift _ ；
+      ap (_$ _) HLift ；
         ap (λ ts → put (op (o , ts)) a)
            (funext $ updateAt-id-local (f n) ts refl)
 
     _ : Lift _ (put t′ b) ≡ put (op (o , updateAt ts (f n) (const t′))) b
-    _ = HLift _
+    _ = ap (_$ _) HLift
     
+CongCls-deterministic
+  : ∀ {A : Set} {_↝_ : Rel A _} {Ctx : Pred (A → A) _}
+  → Deterministic _≡_ _↝_
+  → (∀ {E E′ a b} → Ctx E → Ctx E′ → E a ≡ E′ b → E ≡ E′ × a ≡ b)
+  → (∀ {E a b} → Ctx E → ¬(E a ↝ b))
+  → -----------------------------------
+    Deterministic _≡_ (CongCls _↝_ Ctx)
+
+CongCls-deterministic Hdet Huniq Hnstep (estep Hstep₁) (estep Hstep₂) =
+  Hdet Hstep₁ Hstep₂
+CongCls-deterministic Hdet Huniq Hnstep (estep Hstep₁) (econg Hctx _)
+  with () ← Hnstep Hctx Hstep₁
+CongCls-deterministic Hdet Huniq Hnstep (econg {E} {a} {b} Hctx Hstep₁) Hstep₂
+  with Ea ← E a in HEa | Hstep₂
+... | estep Hstep₂′ with refl ← HEa with () ← Hnstep Hctx Hstep₂′
+... | econg {E′} Hctx′ Hstep₂′ with refl , refl ← Huniq Hctx Hctx′ HEa =
+  ap E $ CongCls-deterministic Hdet Huniq Hnstep Hstep₁ Hstep₂′

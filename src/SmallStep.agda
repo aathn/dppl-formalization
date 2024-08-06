@@ -51,7 +51,7 @@ DetCtx : Pred (Term → Term) _
 DetCtx = EvalCtx eval-order Value
 
 RndCtx : Pred (Term × ℝ × List 𝕀 → Term × ℝ × List 𝕀) _
-RndCtx E = ∃[ E′ ] DetCtx E′ × E ≗ map₁ E′
+RndCtx E = ∃[ E′ ] DetCtx E′ × E ≡ map₁ E′
 
 record EvalAssumptions : Set where
   field

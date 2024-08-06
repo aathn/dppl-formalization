@@ -132,11 +132,11 @@ module Step (Ass : EvalAssumptions) where
       (t , w , s) →rnd (t′ , w , s)
 
   →det⊆→rnd (estep Hstep) = estep (edet Hstep)
-  →det⊆→rnd (econg ctx Hstep) = econg (_ , ctx , λ _ → refl) (→det⊆→rnd Hstep)
+  →det⊆→rnd (econg ctx Hstep) = econg (_ , ctx , refl) (→det⊆→rnd Hstep)
 
   private
-    module C1 = CongStep _→ᵈ_ DetCtx id (λ _ → refl) id
-    module C2 = CongStep _→ʳ_ RndCtx map₁ (λ _ → refl) (λ ctx → _ , ctx , λ _ → refl)
+    module C1 = CongStep _→ᵈ_ DetCtx id refl id
+    module C2 = CongStep _→ʳ_ RndCtx map₁ refl (λ ctx → _ , ctx , refl)
 
   cong-stepᵈ = C1.cong-step {unit} {unit}
 
