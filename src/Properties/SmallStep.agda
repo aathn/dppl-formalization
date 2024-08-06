@@ -1,4 +1,4 @@
-module Properties.SmallStep (ℝ : Set) where
+module Properties.SmallStep (ℝ 𝕀 : Set) where
 
 -- Minor lemmas about the step relations (and typing)
 
@@ -13,7 +13,7 @@ open import Data.Vec.Functional using (map)
 
 open import Syntax ℝ
 open import Typing ℝ
-open import SmallStep ℝ
+open import SmallStep ℝ 𝕀
 
 -- Canonical forms
 

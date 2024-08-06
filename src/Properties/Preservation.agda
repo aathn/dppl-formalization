@@ -1,4 +1,4 @@
-module Properties.Preservation (ℝ : Set) where
+module Properties.Preservation (ℝ 𝕀 : Set) where
 
 open import Lib.Prelude
 open import Lib.Unfinite
@@ -11,9 +11,9 @@ open import Data.List.Relation.Binary.Sublist.Propositional using ([])
 
 open import Syntax ℝ
 open import Typing ℝ
-open import SmallStep ℝ
+open import SmallStep ℝ 𝕀
 open import Properties.Typing ℝ
-open import Properties.SmallStep ℝ
+open import Properties.SmallStep ℝ 𝕀
 open import Properties.Util
 
 module _ (Ass : EvalAssumptions) where
@@ -29,35 +29,36 @@ module _ (Ass : EvalAssumptions) where
           c ≤ cc
 
       DiffPres
-        : ∀ {Γ v₀ v₁ n m cs ds e}
+        : ∀ {Γ t₀ t₁ n m cs ds e}
         → (∀ i → cs i ≤ cb)
-        → Γ ⊢ v₀ :[ e ] treals {n} cs ⇒[ det ] treals {m} ds
-        → Γ ⊢ v₁ :[ e ] treals cs
-        → Value v₀ → Value v₁
-        → --------------------------------------------------------------
-          Γ ⊢ Diff v₀ v₁ :[ e ] treals {n} (const ca) ⇒[ det ] treals ds
+        → Γ ⊢ t₀ :[ e ] treals {n} cs ⇒[ det ] treals {m} ds
+        → Γ ⊢ t₁ :[ e ] treals cs
+        → (v₀ : Value t₀) (v₁ : Value t₁)
+        → --------------------------------------------------------------------------
+          Γ ⊢ Diff (_ , v₀) (_ , v₁) :[ e ] treals {n} (const ca) ⇒[ det ] treals ds
 
       SolvePres
-        : ∀ {Γ v₀ v₁ v₂ Ts n c cs e}
-        → Γ ⊢ v₀ :[ e ] ttup {2} Ts ⇒[ det ] treals cs
+        : ∀ {Γ t₀ t₁ t₂ Ts n c cs e}
+        → Γ ⊢ t₀ :[ e ] ttup {2} Ts ⇒[ det ] treals cs
         → Ts ₀ ≡ treal c → Ts ₁ ≡ treals {n} cs
-        → Γ ⊢ v₁ :[ e ] treals cs
-        → Γ ⊢ v₂ :[ e ] treal cb
-        → Value v₀ → Value v₁ → Value v₂
-        → -----------------------------------
-          Γ ⊢ Solve v₀ v₁ v₂ :[ e ] treals cs
+        → Γ ⊢ t₁ :[ e ] treals cs
+        → Γ ⊢ t₂ :[ e ] treal cb
+        → (v₀ : Value t₀) (v₁ : Value t₁) (v₂ : Value t₂)
+        → -----------------------------------------------------
+          Γ ⊢ Solve (_ , v₀) (_ , v₁) (_ , v₂) :[ e ] treals cs
 
-      AssumeDistPres
+      SamplePres
         : ∀ {D cs T rs p}
         → DistTy D ≡ (cs , T)
         → ---------------------------------
-          [] ⊢ AssumeDist D rs p :[ det ] T
+          [] ⊢ Sample D rs p .π₁ :[ det ] T
 
-      AssumeInferPres
+      InferPres
         : ∀ {Γ t e T p}
         → Γ ⊢ t :[ e ] tunit ⇒[ rnd ] T
-        → -----------------------------
-          Γ ⊢ AssumeInfer t p :[ e ] T
+        → (v : Value t)
+        → --------------------------------
+          Γ ⊢ Infer (_ , v) p .π₁ :[ e ] T
 
 
   module _ (PAss : PresAssumptions) where
@@ -107,9 +108,9 @@ module _ (Ass : EvalAssumptions) where
     preservation-rnd-step (tassume Htype) (eassumedist Heq) rewrite Heq
       with texpect-inv Htype refl
     ... | _ , _ , Heq , Hsub =
-      tsub (AssumeDistPres Heq) 0≤ Hsub
+      tsub (SamplePres Heq) 0≤ Hsub
     preservation-rnd-step (tassume Htype) (eassumeinfer Heq Hv) rewrite Heq =
-      AssumeInferPres (tinfer-inv Htype refl)
+      InferPres (tinfer-inv Htype refl) Hv
     preservation-rnd-step (tweight Htype) (eweight Heq) =
       ttup (λ()) []
     preservation-rnd-step (tweaken Htype [] Hd) Hstep =
@@ -118,3 +119,5 @@ module _ (Ass : EvalAssumptions) where
       tsub (preservation-rnd-step Htype Hstep) H≤ Hsub
     preservation-rnd-step (tpromote Htype Heq) Hstep =
       tpromote (preservation-rnd-step Htype Hstep) Heq
+
+-- CongCls-preservation

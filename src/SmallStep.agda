@@ -1,4 +1,4 @@
-module SmallStep (ℝ : Set) where
+module SmallStep (ℝ 𝕀 : Set) where
 
 open import Syntax ℝ
 
@@ -7,7 +7,7 @@ open import Lib.BindingSignature
 open import Lib.EvalCtx
 
 open import Data.Vec.Functional using (map)
-open import Data.Product using (∃ ; ∃-syntax ; -,_ ; map₁)
+open import Data.Product using (∃ ; ∃-syntax ; map₁)
 open import Relation.Unary using (Pred)
 open import Relation.Binary using (Rel)
 
@@ -50,7 +50,7 @@ data Value : Pred Term ℓ₀ where
 DetCtx : Pred (Term → Term) _
 DetCtx = EvalCtx eval-order Value
 
-RndCtx : Pred (Term × ℝ × List ℝ → Term × ℝ × List ℝ) _
+RndCtx : Pred (Term × ℝ × List 𝕀 → Term × ℝ × List 𝕀) _
 RndCtx E = ∃[ E′ ] DetCtx E′ × E ≗ map₁ E′
 
 record EvalAssumptions : Set where
@@ -59,12 +59,11 @@ record EvalAssumptions : Set where
     _*ʳ_ : ℝ → ℝ → ℝ
     _>ʳ_ : ℝ → ℝ → 𝔹
     PrimEv : (ϕ : Prim) → Vector ℝ (PrimAr ϕ) → ℝ
-    ExpectDist : (D : Dist) → Vector ℝ (DistAr D) → ℝ
-    AssumeDist : (D : Dist) → Vector ℝ (DistAr D) → ℝ → Term
-    ExpectInfer : Term → ℝ
-    AssumeInfer : Term → ℝ → Term
-    Diff  : Term → Term → Term
-    Solve : Term → Term → Term → Term
+    Sample : (D : Dist) → Vector ℝ (DistAr D) → 𝕀 → ∃ Value
+    Infer  : ∃ Value → 𝕀 → ∃ Value
+    Expect : (𝕀 → ∃ Value) → ℝ
+    Diff  : ∃ Value → ∃ Value → Term
+    Solve : ∃ Value → ∃ Value → ∃ Value → Term
 
 
 module Eval (Ass : EvalAssumptions) where
@@ -86,10 +85,10 @@ module Eval (Ass : EvalAssumptions) where
         prim ϕ vs →ᵈ real (PrimEv ϕ rs)
   
     eproj
-      : ∀ {n v vs} i
-      → v ₀ ≡ tup vs → (∀ j → Value (vs j))
+      : ∀ {n t ts} i
+      → t ₀ ≡ tup ts → (∀ j → Value (ts j))
       → -----------------------------------
-        proj {n} i v →ᵈ vs i
+        proj {n} i t →ᵈ ts i
 
     eif
       : ∀ {r ts}
@@ -99,30 +98,30 @@ module Eval (Ass : EvalAssumptions) where
 
     ediff
       : ∀ {ts}
-      → Value (ts ₀) → Value (ts ₁)
-      → -----------------------------
-        diff ts →ᵈ Diff (ts ₀) (ts ₁)
+      → (v₀ : Value (ts ₀)) (v₁ : Value (ts ₁))
+      → ---------------------------------------
+        diff ts →ᵈ Diff (_ , v₀) (_ , v₁)
 
     esolve
       : ∀ {ts}
-      → Value (ts ₀) → Value (ts ₁) → Value (ts ₂)
-      → ------------------------------------------
-        solve ts →ᵈ Solve (ts ₀) (ts ₁) (ts ₂)
+      → (v₀ : Value (ts ₀)) (v₁ : Value (ts ₁)) (v₂ : Value (ts ₂))
+      → -----------------------------------------------------------
+        solve ts →ᵈ Solve (_ , v₀) (_ , v₁) (_ , v₂)
 
     eexpectdist
-      : ∀ {D rs v}
-      → v ₀ ≡ dist D (map real rs)
-      → ----------------------------------
-        expect v →ᵈ real (ExpectDist D rs)
+      : ∀ {D rs t}
+      → t ₀ ≡ dist D (map real rs)
+      → ---------------------------------------
+        expect t →ᵈ real (Expect (Sample D rs))
 
     eexpectinfer
-      : ∀ {v v′}
-      → v ₀ ≡ infer v′ → Value (v′ ₀)
-      → -------------------------------------
-        expect v →ᵈ real (ExpectInfer (v′ ₀))
+      : ∀ {t t′}
+      → t ₀ ≡ infer t′ → (v : Value (t′ ₀))
+      → -----------------------------------------
+        expect t →ᵈ real (Expect (Infer (_ , v)))
 
 
-  data _→ʳ_ : Rel (Term × ℝ × List ℝ) ℓ₀ where
+  data _→ʳ_ : Rel (Term × ℝ × List 𝕀) ℓ₀ where
 
     edet
       : ∀ {t₁ t₂ w s}
@@ -130,22 +129,22 @@ module Eval (Ass : EvalAssumptions) where
       → (t₁ , w , s) →ʳ (t₂ , w , s)
 
     eweight
-      : ∀ {v r w s}
-      → v ₀ ≡ real r
+      : ∀ {t r w s}
+      → t ₀ ≡ real r
       → -------------------------------------------------------------------
-        (weight v , w , s) →ʳ (unit , (if r >ʳ 0ʳ then r *ʳ w else 0ʳ) , s)
+        (weight t , w , s) →ʳ (unit , (if r >ʳ 0ʳ then r *ʳ w else 0ʳ) , s)
 
     eassumedist
-      : ∀ {v D rs w p s}
-      → v ₀ ≡ dist D (map real rs)
+      : ∀ {t D rs w p s}
+      → t ₀ ≡ dist D (map real rs)
       → ------------------------------------------------------
-        (assume v , w , p :: s) →ʳ (AssumeDist D rs p , w , s)
+        (assume t , w , p :: s) →ʳ (Sample D rs p .π₁ , w , s)
 
     eassumeinfer
-      : ∀ {v v′ w p s}
-      → v ₀ ≡ infer v′ → Value (v′ ₀)
+      : ∀ {t t′ w p s}
+      → t ₀ ≡ infer t′ → (v : Value (t′ ₀))
       → ---------------------------------------------------------
-        (assume v , w , p :: s) →ʳ (AssumeInfer (v′ ₀) p , w , s)
+        (assume t , w , p :: s) →ʳ (Infer (_ , v) p .π₁ , w , s)
 
 
   -- Full evaluation relations
@@ -153,6 +152,6 @@ module Eval (Ass : EvalAssumptions) where
   _→det_ : Rel Term _
   _→det_ = CongCls _→ᵈ_ DetCtx
 
-  _→rnd_ : Rel (Term × ℝ × List ℝ) _
+  _→rnd_ : Rel (Term × ℝ × List 𝕀) _
   _→rnd_ = CongCls _→ʳ_ RndCtx
 
