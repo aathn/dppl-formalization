@@ -5,48 +5,15 @@ module Properties.SmallStep (ℝ : Set) where
 open import Lib.Prelude
 open import Lib.FunExt
 open import Lib.BindingSignature
+open import Lib.EvalCtx
 
-open import Function using (_$_ ; const)
-open import Data.Fin using () renaming (_<_ to _<ꟳ_)
-open import Data.Product using (∃-syntax)
-open import Data.Vec.Functional using (map ; updateAt)
-open import Data.Vec.Functional.Properties using (updateAt-id-local)
+open import Function using (_$_)
+open import Data.Product using (∃-syntax ; map₁)
+open import Data.Vec.Functional using (map)
 
 open import Syntax ℝ
 open import Typing ℝ
 open import SmallStep ℝ
-
--- Congruence
-
-cong-step
-  : ∀ {A B _↝_ F o ts a t′ b} n
-  → evaluable o n ≡ true
-  → (∀ i → i <ꟳ n → Value (ts i))
-  → CongCls {A} {B} _↝_ F (F (ts n) a) (F t′ b)
-  → -------------------------------------------
-    CongCls _↝_ F
-      (F (op (o , ts)) a)
-      (F (op (o , updateAt ts n (const t′))) b)
-
-cong-step {F = F} {o} {ts} {a} {t′} {b} n Hev Hvs Hstep =
-  subst
-    (λ ts′ → CongCls _ F (F (op (o , ts′)) a)
-                         (F (op (o , updateAt ts n (const t′))) b))
-    (funext $ updateAt-id-local n ts refl)
-    (econg (ectx Hev Hvs) Hstep)
-
-cong-step′
-  : ∀ {_↝_ o ts t′} n
-  → evaluable o n ≡ true
-  → (∀ i → i <ꟳ n → Value (ts i))
-  → CongCls _↝_ const (ts n) t′
-  → -------------------------------------
-    CongCls _↝_ const
-      (op (o , ts))
-      (op (o , updateAt ts n (const t′)))
-
-cong-step′ = cong-step {a = tt} {b = tt}
-
 
 -- Canonical forms
 
@@ -148,4 +115,13 @@ module Step (Ass : EvalAssumptions) where
       (t , w , s) →rnd (t′ , w , s)
 
   →det⊆→rnd (estep Hstep) = estep (edet Hstep)
-  →det⊆→rnd (econg ctx Hstep) = econg ctx (→det⊆→rnd Hstep)
+  →det⊆→rnd (econg ctx Hstep) = econg (_ , ctx , λ _ → refl) (→det⊆→rnd Hstep)
+
+  private
+    module C1 = CongStep _→ᵈ_ DetCtx id (λ _ → refl) id
+    module C2 = CongStep _→ʳ_ RndCtx map₁ (λ _ → refl) (λ ctx → _ , ctx , λ _ → refl)
+
+  cong-stepᵈ = C1.cong-step {unit} {unit}
+
+  cong-stepʳ = λ {ws ws′ o ts t′ f n} →
+    C2.cong-step {unit , ws} {unit , ws′} {o} {ts} {t′} {f} {n}

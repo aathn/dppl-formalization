@@ -1,10 +1,8 @@
 module Properties.Determinism (ℝ : Set) where
 
 open import Lib.Prelude
-open import Lib.FunExt
 
 open import Function using (_$_)
-open import Data.Vec.Functional using (map)
 
 open import Syntax ℝ
 open import SmallStep ℝ
@@ -70,3 +68,5 @@ module _ (Ass : EvalAssumptions) where
     rewrite Heq with () ← Heq′
   →ʳ-deterministic (eassumeinfer Heq _) (eassumedist Heq′)
     rewrite Heq with () ← Heq′
+
+-- CongCls-deterministic

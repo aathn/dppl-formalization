@@ -13,7 +13,7 @@ module Lib.Prelude where
 ------------------------------------------------------------------------
 -- Universe levels
 ------------------------------------------------------------------------
-open import Agda.Primitive public using (Level)
+open import Agda.Primitive public using (Level) renaming (lzero to ℓ₀)
 open import Agda.Primitive using (_⊔_)
 
 ----------------------------------------------------------------------
@@ -54,7 +54,7 @@ open import Data.Bool public using (true ; false ; if_then_else_ ; not)
 ----------------------------------------------------------------------
 
 open import Relation.Binary.PropositionalEquality public
-  using (_≡_ ; refl ; subst)
+  using (_≡_ ; refl ; subst ; _≗_)
   renaming ( cong to ap ; cong₂ to ap₂ ; trans to _；_ ; sym to symm
            ; ≢-sym to symm¬≡)
 

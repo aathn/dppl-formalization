@@ -4,12 +4,19 @@ open import Syntax ℝ
 
 open import Lib.Prelude
 open import Lib.BindingSignature
+open import Lib.EvalCtx
 
-open import Function using (_$_ ; const)
-open import Data.Fin using () renaming (_<_ to _<ꟳ_)
-open import Data.Vec.Functional using (fromList ; updateAt ; map)
+open import Data.Vec.Functional using (map)
+open import Data.Product using (∃ ; ∃-syntax ; -,_ ; map₁)
+open import Relation.Unary using (Pred)
+open import Relation.Binary using (Rel)
 
-data Value : Term → Set where
+eval-order : EvalOrder TermSig
+eval-order (oabs _) = 0 , λ()
+eval-order oif      = 1 , λ { ₀ → ₀ }
+eval-order o        = length (TermAr o) , id
+
+data Value : Pred Term ℓ₀ where
 
   vabs
     : ∀ {T t}
@@ -39,41 +46,12 @@ data Value : Term → Set where
     → ---------------
       Value (infer v)
 
--- Evaluation contexts and congruence closure
 
-evaluable : (o : TermOp) → Vector 𝔹 (length (TermAr o))
-evaluable (oabs _) = const false
-evaluable oif      = fromList $ true :: false :: false :: []
-evaluable _        = const true
+DetCtx : Pred (Term → Term) _
+DetCtx = EvalCtx eval-order Value
 
-data EvalCtx : (Term → Term) → Set where
-
-  ectx
-    : ∀ {o n ts}
-    → evaluable o n ≡ true
-    → (∀ i → i <ꟳ n → Value (ts i))
-    → ----------------------------------------------
-      EvalCtx λ t → op (o , updateAt ts n (const t))
-
-
-data CongCls
-  {A B : Set} (_↝_ : A → A → Set) (F : Term → B → A)
-  : A → A → Set
-  where
-
-  estep
-    : ∀ {a b}
-    → a ↝ b
-    → -----------------
-      CongCls _↝_ F a b
-
-  econg
-    : ∀ {E t a t′ b}
-    → EvalCtx E
-    → CongCls _↝_ F (F t a) (F t′ b)
-    → --------------------------------------
-      CongCls _↝_ F (F (E t) a) (F (E t′) b)
-
+RndCtx : Pred (Term × ℝ × List ℝ → Term × ℝ × List ℝ) _
+RndCtx E = ∃[ E′ ] DetCtx E′ × E ≗ map₁ E′
 
 record EvalAssumptions : Set where
   field
@@ -91,9 +69,9 @@ record EvalAssumptions : Set where
 
 module Eval (Ass : EvalAssumptions) where
   open EvalAssumptions Ass
-  open Subst {TermSig}
+  open Subst
 
-  data _→ᵈ_ : Term → Term → Set where
+  data _→ᵈ_ : Rel Term ℓ₀ where
  
     eapp
       : ∀ {ts T t}
@@ -144,8 +122,8 @@ module Eval (Ass : EvalAssumptions) where
         expect v →ᵈ real (ExpectInfer (v′ ₀))
 
 
-  data _→ʳ_ : (Term × ℝ × List ℝ) → (Term × ℝ × List ℝ) → Set where
-    
+  data _→ʳ_ : Rel (Term × ℝ × List ℝ) ℓ₀ where
+
     edet
       : ∀ {t₁ t₂ w s}
       → t₁ →ᵈ t₂
@@ -154,8 +132,8 @@ module Eval (Ass : EvalAssumptions) where
     eweight
       : ∀ {v r w s}
       → v ₀ ≡ real r
-      → --------------------------------------------------------------------
-        (weight v , w , s) →ʳ ( unit , (if r >ʳ 0ʳ then r *ʳ w else 0ʳ) , s)
+      → -------------------------------------------------------------------
+        (weight v , w , s) →ʳ (unit , (if r >ʳ 0ʳ then r *ʳ w else 0ʳ) , s)
 
     eassumedist
       : ∀ {v D rs w p s}
@@ -172,9 +150,9 @@ module Eval (Ass : EvalAssumptions) where
 
   -- Full evaluation relations
 
-  _→det_ : Term → Term → Set
-  _→det_ = CongCls {B = 𝟙} _→ᵈ_ const
+  _→det_ : Rel Term _
+  _→det_ = CongCls _→ᵈ_ DetCtx
 
-  _→rnd_ : (Term × ℝ × List ℝ) → (Term × ℝ × List ℝ) → Set
-  _→rnd_ = CongCls _→ʳ_ (λ t ws → t , ws)
+  _→rnd_ : Rel (Term × ℝ × List ℝ) _
+  _→rnd_ = CongCls _→ʳ_ RndCtx
 
