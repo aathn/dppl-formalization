@@ -7,6 +7,7 @@ open import Lib.EvalCtx
 
 open import Function using (const)
 open import Data.Vec.Functional using (map)
+open import Data.Vec.Functional.Properties using (updateAt-updates)
 open import Data.List.Relation.Unary.AllPairs using ([])
 open import Data.List.Relation.Binary.Sublist.Propositional using ([])
 
@@ -18,12 +19,40 @@ open import Properties.SmallStep ℝ 𝕀
 open import Properties.Util
 
 ctx-type-inv
-  : ∀ {E Γ t e T}
+  : ∀ {E t Et Γ e T}
   → DetCtx E
-  → Γ ⊢ E t :[ e ] T
+  → Γ ⊢ Et :[ e ] T
+  → Et ≡ E t
   → -------------------------------------------
     ∑ (e′ , T′) ∶ Eff × Type , Γ ⊢ t :[ e′ ] T′
-ctx-type-inv = {!!}
+
+ctx-type-inv (ectx {j = ()} refl Hvs) (tabs Habs) refl
+ctx-type-inv (ectx {j = ₀} refl Hvs) (tapp Htype Htype₁) refl = _ , Htype
+ctx-type-inv (ectx {j = ₁} refl Hvs) (tapp Htype Htype₁) refl = _ , Htype₁
+ctx-type-inv (ectx {j = j} refl Hvs) (tprim Hϕ Htypes _) refl =
+  _ , subst (λ t → _ ⊢ t :[ _ ] _) (updateAt-updates j _) (Htypes j)
+ctx-type-inv (ectx {j = j} refl Hvs) treal Heq = {!!}
+ctx-type-inv (ectx {j = j} refl Hvs) (ttup Htypes _) refl =
+  _ , subst (λ t → _ ⊢ t :[ _ ] _) (updateAt-updates j _) (Htypes j)
+ctx-type-inv (ectx {j = ₀} refl Hvs) (tproj i Htype) refl = _ , Htype
+ctx-type-inv (ectx {j = ₀} refl Hvs) (tif Htype _ _) refl = _ , Htype
+ctx-type-inv (ectx {j = ₀} refl Hvs) (tdiff _ Htype Htype₁) refl = _ , Htype
+ctx-type-inv (ectx {j = ₁} refl Hvs) (tdiff _ Htype Htype₁) refl = _ , Htype₁
+ctx-type-inv (ectx {j = ₀} refl Hvs) (tsolve Htype Htype₁ Htype₂) refl = _ , Htype
+ctx-type-inv (ectx {j = ₁} refl Hvs) (tsolve Htype Htype₁ Htype₂) refl = _ , Htype₁
+ctx-type-inv (ectx {j = ₂} refl Hvs) (tsolve Htype Htype₁ Htype₂) refl = _ , Htype₂
+ctx-type-inv (ectx {j = j} refl Hvs) (tdist HD Htypes _) refl =
+  _ , subst (λ t → _ ⊢ t :[ _ ] _) (updateAt-updates j _) (Htypes j)
+ctx-type-inv (ectx {j = ₀} refl Hvs) (tassume Htype) refl = _ , Htype
+ctx-type-inv (ectx {j = ₀} refl Hvs) (tweight Htype) refl = _ , Htype
+ctx-type-inv (ectx {j = ₀} refl Hvs) (texpect Htype) refl = _ , Htype
+ctx-type-inv (ectx {j = ₀} refl Hvs) (tinfer Htype)  refl = _ , Htype
+ctx-type-inv ctx (tweaken Htype H⊆ Hd) Heq =
+  _ , tweaken (ctx-type-inv ctx Htype Heq .π₂) H⊆ Hd
+ctx-type-inv ctx (tsub Htype _ _) Heq =
+  _ , ctx-type-inv ctx Htype Heq .π₂
+ctx-type-inv ctx (tpromote Htype H≤) Heq =
+  _ , tpromote (ctx-type-inv ctx Htype Heq .π₂) H≤
 
 preservation-ctx
   : ∀ {E Γ t₁ t₂ e T e′ T′}
@@ -127,7 +156,7 @@ module _ (Ass : EvalAssumptions) where
 
     preservation-det Htype (estep Hstep) = preservation-det-step Htype Hstep
     preservation-det Htype (econg Hctx Hstep) =
-      let _ , Htype′ = ctx-type-inv Hctx Htype in
+      let _ , Htype′ = ctx-type-inv Hctx Htype refl in
       preservation-ctx Hctx Htype′ (preservation-det Htype′ Hstep) Htype
 
 
@@ -162,5 +191,5 @@ module _ (Ass : EvalAssumptions) where
 
     preservation-rnd Htype (estep Hstep) = preservation-rnd-step Htype Hstep
     preservation-rnd Htype (econg (E , Hctx , refl) Hstep) =
-      let _ , Htype′ = ctx-type-inv Hctx Htype in
+      let _ , Htype′ = ctx-type-inv Hctx Htype refl in
       preservation-ctx Hctx Htype′ (preservation-rnd Htype′ Hstep) Htype
