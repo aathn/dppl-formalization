@@ -28,7 +28,7 @@ module _ (Ass : EvalAssumptions) where
 
 
   →ᵈ-deterministic : Deterministic _≡_ _→ᵈ_
-   
+
   →ᵈ-deterministic (eapp Heq Hv) (eapp Heq′ Hv′)
     rewrite Heq with refl ← Heq′ = refl
   →ᵈ-deterministic (eprim {ϕ} Heq) (eprim Heq′) rewrite Heq =
