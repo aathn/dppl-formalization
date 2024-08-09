@@ -7,6 +7,7 @@ open import Lib.FunExt
 open import Lib.BindingSignature
 open import Lib.EvalCtx
 
+import Data.List as L
 open import Data.Product using (∃-syntax ; map₁)
 open import Data.Vec.Functional using (map ; updateAt)
 open import Data.Vec.Functional.Properties using (updateAt-updates)
@@ -175,3 +176,25 @@ module Step (Ass : EvalAssumptions) where
   value-cannot-step-rnd Hv (estep Hstep) with vabs ← Hv | edet () ← Hstep
   value-cannot-step-rnd Hv (econg (_ , Hctx , refl) Hstep) =
     value-cannot-step-rnd (ctx-value-inv Hctx Hv) Hstep
+
+  trace-length-step
+    : ∀ {tws tws′ p s}
+    → tws →ʳ tws′
+    → tws .π₂ .π₂ ≡ p :: s
+    → ------------------------------------
+      L.length (tws′ .π₂ .π₂) ≥ L.length s
+
+  trace-length-step (edet _) refl = ≤+1 ≤refl
+  trace-length-step (eweight _) refl = ≤+1 ≤refl
+  trace-length-step (eassumedist _) refl = ≤refl
+  trace-length-step (eassumeinfer _ _) refl = ≤refl
+
+  trace-length
+    : ∀ {tws tws′ p s}
+    → tws →rnd tws′
+    → tws .π₂ .π₂ ≡ p :: s
+    → ------------------------------------
+      L.length (tws′ .π₂ .π₂) ≥ L.length s
+
+  trace-length (estep Hstep) Heq = trace-length-step Hstep Heq
+  trace-length (econg (E , Hctx , refl) Hstep) Heq = trace-length Hstep Heq

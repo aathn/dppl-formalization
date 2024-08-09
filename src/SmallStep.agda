@@ -11,6 +11,7 @@ open import Data.Vec.Functional using (map)
 open import Data.Product using (∃ ; ∃-syntax ; map₁)
 open import Relation.Unary using (Pred)
 open import Relation.Binary using (Rel)
+open import Relation.Binary.Construct.Closure.ReflexiveTransitive using (Star)
 
 instance
   eval-order : EvalOrder TermSig
@@ -159,3 +160,10 @@ module Eval (Ass : EvalAssumptions) where
   _→rnd_ : Rel (Term × ℝ × List 𝕀) _
   _→rnd_ = CongCls _→ʳ_ RndCtx
 
+  -- Multi-step relations
+
+  _→det*_ : Rel Term _
+  _→det*_ = Star _→det_
+
+  _→rnd*_ : Rel (Term × ℝ × List 𝕀) _
+  _→rnd*_ = Star _→rnd_
