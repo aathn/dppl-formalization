@@ -6,7 +6,6 @@ open import Lib.oc-Sets
 open import Lib.Support
 open import Lib.BindingSignature
 
-open import Function using (_∘_ ; _$_ ; const)
 open import Data.Vec.Functional using (map ; fromList)
 
 Coeff : Set

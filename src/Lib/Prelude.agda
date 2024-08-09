@@ -23,7 +23,8 @@ open import Agda.Primitive using (_⊔_)
 -- Composition
 ----------------------------------------------------------------------
 
-open import Function public using (id ; it ; _∘_)
+open import Function public
+  using (id ; it ; _∘_ ; _$_ ; const)
   renaming (case_of_ to case) 
 
 ----------------------------------------------------------------------

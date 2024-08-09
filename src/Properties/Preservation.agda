@@ -6,7 +6,6 @@ open import Lib.FunExt
 open import Lib.BindingSignature
 open import Lib.EvalCtx
 
-open import Function using (_$_ ; const)
 open import Data.Fin.Instances using (Fin-≡-isDecEquivalence)
 open import Data.List.Relation.Unary.AllPairs using ([])
 open import Data.List.Relation.Binary.Sublist.Propositional using ([])
@@ -27,7 +26,7 @@ ctx-type-inv
   → -------------------------------------------
     ∑ (e′ , T′) ∶ Eff × Type , Γ ⊢ t :[ e′ ] T′
 
-ctx-type-inv (ectx {o} {j = j} refl _) Htype =
+ctx-type-inv (ectx {o} {j = j} _) Htype =
   let (e , T) , Htype′ = go j Htype
   in  _ ,
         subst (λ t → _ ⊢ t :[ e ] T)
@@ -78,7 +77,7 @@ preservation-ctx
     [] ⊢ E t₂ :[ e ] T
 
 preservation-ctx
-  {t₁ = t₁} {t₂} (ectx {o} {j = j} {ts} refl _) Ht₁₂ Htype =
+  {t₁ = t₁} {t₂} (ectx {o} {j = j} {ts} _) Ht₁₂ Htype =
     let i = eval-order o .π₂ j
 
         H₁ : ∀ {e T}

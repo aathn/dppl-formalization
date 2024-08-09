@@ -2,6 +2,10 @@ module Properties.Typing (ℝ : Set) where
 
 -- Lemmas purely about typing
 
+open import Syntax ℝ
+open import Typing ℝ
+open import Properties.Util
+
 open import Lib.Prelude
 open import Lib.Unfinite
 open import Lib.oc-Sets
@@ -10,8 +14,8 @@ open import Lib.Freshness
 open import Lib.FunExt
 open import Lib.AbstractionConcretion hiding (abs)
 open import Lib.BindingSignature
+open import Lib.Substitution
 
-open import Function using (_$_ ; const ; flip)
 open import Data.List using (_++_ ; map)
 open import Data.List.Properties using (map-++ ; ++-conicalʳ)
 open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_ ; [] ; _∷_ ; _∷ʳ_ ; ⊆-reflexive ; lookup)
@@ -27,13 +31,9 @@ open import Data.Nat.Properties using (m≤n⇒m⊔n≡n)
 open import Data.Product using (∃-syntax)
 import Relation.Binary.PropositionalEquality as ≡
 
-open import Syntax ℝ
-open import Typing ℝ
-open import Properties.Util
-
 infixl 5 _&_
 _&_ : TyEnv → TyEnv → TyEnv
-_&_ = flip _++_
+Γ & Γ′ = Γ′ ++ Γ
 
 sub-refl : ∀ {T} → T <: T
 sub-refl {treal c} = sreal ≤refl
@@ -411,8 +411,6 @@ well-typed-lc (tinfer Htype)   = lc-at-op λ { ₀ → well-typed-lc Htype }
 well-typed-lc (tweaken Htype _ _) = well-typed-lc Htype
 well-typed-lc (tsub Htype _ _)    = well-typed-lc Htype
 well-typed-lc (tpromote Htype _)  = well-typed-lc Htype
-
-open Subst
 
 substitution-pres-typing
   : ∀ {Γ′ x u T₂ t e T₁}

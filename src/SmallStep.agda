@@ -5,16 +5,21 @@ open import Syntax ℝ
 open import Lib.Prelude
 open import Lib.BindingSignature
 open import Lib.EvalCtx
+open import Lib.Substitution
 
 open import Data.Vec.Functional using (map)
 open import Data.Product using (∃ ; ∃-syntax ; map₁)
 open import Relation.Unary using (Pred)
 open import Relation.Binary using (Rel)
 
-eval-order : EvalOrder TermSig
-eval-order (oabs _) = 0 , λ()
-eval-order oif      = 1 , λ { ₀ → ₀ }
-eval-order o        = length (TermAr o) , id
+instance
+  eval-order : EvalOrder TermSig
+  eval-order {oabs _} =
+    record {len = 0 ; ord = λ() ; inj = λ where {()} }
+  eval-order {oif} =
+    record {len = 1 ; ord = λ {₀ → ₀} ; inj = λ where {₀} {₀} _ → refl}
+  eval-order {o} =
+    record {len = length (TermAr o) ; ord = id ; inj = id}
 
 data Value : Pred Term ℓ₀ where
 
@@ -48,7 +53,7 @@ data Value : Pred Term ℓ₀ where
 
 
 DetCtx : Pred (Term → Term) _
-DetCtx = EvalCtx eval-order Value
+DetCtx = EvalCtx Value
 
 RndCtx : Pred (Term × ℝ × List 𝕀 → Term × ℝ × List 𝕀) _
 RndCtx E = ∃[ E′ ] DetCtx E′ × E ≡ map₁ E′
@@ -68,7 +73,6 @@ record EvalAssumptions : Set where
 
 module Eval (Ass : EvalAssumptions) where
   open EvalAssumptions Ass
-  open Subst
 
   data _→ᵈ_ : Rel Term ℓ₀ where
  

@@ -8,7 +8,6 @@ open import Lib.oc-Sets
 open import Lib.AbstractionConcretion hiding (abs)
 open import Lib.BindingSignature
 
-open import Function using (_∘_ ; _$_ ; const)
 open import Data.List using (map)
 open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_)
 open import Data.List.Relation.Binary.Pointwise using (Pointwise)

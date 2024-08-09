@@ -167,6 +167,16 @@ data Trm (Σ : Sig) : Set where
 pattern bvar i = var (ι₁ i)
 pattern fvar a = var (ι₂ a)
 
+op-injective :
+  {Σ : Sig}
+  {c c' : Op Σ}
+  {ts  : Fin (length (ar Σ c))  → Trm Σ}
+  {ts' : Fin (length (ar Σ c')) → Trm Σ}
+  (_ : op(c , ts) ≡ op(c' , ts'))
+  → ------------------------------------
+  ∑ H≡ ∶ c ≡ c' , subst _ H≡ ts ≡ ts'
+op-injective refl = refl , refl
+
 op-inj :
   {Σ : Sig}
   {c : Op Σ}
@@ -632,33 +642,3 @@ module DenotationsViaInitiality
   infix 6 ⟦_⟧
   ⟦_⟧ : Trm (ΛSig) → CD
   ⟦_⟧ = UniversalProperty.rec vrCD alg
-
-----------------------------------------------------------------------
--- Example 4.5
-----------------------------------------------------------------------
-module Subst {Σ : Sig} where
-  Subst : Set
-  Subst = (ℕ𝔸 → Trm Σ) → Trm Σ
-
-  var-subst : ℕ𝔸 → Subst
-  var-subst na ρ = ρ na
-
-  alg-subst : Σ ∙ Subst → Subst
-  alg-subst (o , f) ρ = op (o , λ k → f k ρ)
-
-  substTrm : Trm Σ → Subst
-  substTrm = UniversalProperty.rec var-subst alg-subst
-
-  -- Free variable substitution
-  _=>_ : 𝔸 → Trm Σ → Trm Σ → Trm Σ
-  (a => u) t = substTrm t ρ
-    where
-    ρ : ℕ𝔸 → Trm Σ
-    ρ (ι₁ x) = bvar x
-    ρ (ι₂ y) = if does(a ≐ y) then u else fvar y
-
-  -- Bound variable substitution
-  _≈>_ : ℕ → Trm Σ → Trm Σ → Trm Σ
-  (n ≈> u) (bvar x) = if does(n ≐ x) then u else bvar x
-  (n ≈> u) (fvar y) = fvar y
-  (n ≈> u) (op (o , ts)) = op (o , λ k → ((n + index (ar Σ o) k) ≈> u) (ts k))

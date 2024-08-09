@@ -7,9 +7,9 @@ open import Lib.FunExt
 open import Lib.BindingSignature
 open import Lib.EvalCtx
 
-open import Function using (_$_)
 open import Data.Product using (∃-syntax ; map₁)
-open import Data.Vec.Functional using (map)
+open import Data.Vec.Functional using (map ; updateAt)
+open import Data.Vec.Functional.Properties using (updateAt-updates)
 open import Relation.Nullary using (Irrelevant)
 
 open import Syntax ℝ
@@ -140,5 +140,28 @@ module Step (Ass : EvalAssumptions) where
 
   cong-stepᵈ = C1.cong-step {unit} {unit}
 
-  cong-stepʳ = λ {ws ws′ o ts t′ f n} →
-    C2.cong-step {unit , ws} {unit , ws′} {o} {ts} {t′} {f} {n}
+  cong-stepʳ = λ {ws ws′ o ts t′ n} →
+    C2.cong-step {unit , ws} {unit , ws′} {o} {ts} {t′} {n}
+
+  ctx-value-inv
+    : ∀ {E t}
+    → DetCtx E
+    → Value (E t)
+    → -----------
+      Value t
+
+  ctx-value-inv {E} {t} (ectx {o} {j} {ts} _) Hv
+    with ts' ← updateAt ts (ord {{eval-order {o}}} j) (const t) in HEt | Hv | HEt
+  ... | vtup  Hvs | refl = subst Value (updateAt-updates j ts) (Hvs j)
+  ... | vdist Hvs | refl = subst Value (updateAt-updates j ts) (Hvs j)
+  ... | vinfer Hv₀ | refl with ₀ ← j = Hv₀
+
+  value-cannot-step-det
+    : ∀ {t t′}
+    → Value t
+    → ------------
+      ¬ t →det t′
+
+  value-cannot-step-det Hv (estep Hstep) with vabs ← Hv | () ← Hstep
+  value-cannot-step-det Hv (econg Hctx Hstep) =
+    value-cannot-step-det (ctx-value-inv Hctx Hv) Hstep
