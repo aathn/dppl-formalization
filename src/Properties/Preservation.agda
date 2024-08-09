@@ -2,15 +2,16 @@ module Properties.Preservation (ℝ 𝕀 : Set) where
 
 open import Lib.Prelude
 open import Lib.Unfinite
+open import Lib.FunExt
 open import Lib.BindingSignature
 open import Lib.EvalCtx
 
-open import Function using (const)
+open import Function using (_$_ ; const)
 open import Data.Fin.Instances using (Fin-≡-isDecEquivalence)
 open import Data.List.Relation.Unary.AllPairs using ([])
 open import Data.List.Relation.Binary.Sublist.Propositional using ([])
 open import Data.Vec.Functional using (map ; updateAt)
-open import Data.Vec.Functional.Properties using (updateAt-updates ; updateAt-minimal)
+open import Data.Vec.Functional.Properties using (updateAt-updates ; updateAt-minimal ; updateAt-updateAt)
 
 open import Syntax ℝ
 open import Typing ℝ
@@ -69,22 +70,36 @@ updateAt-type {ts = ts} {t} j Htypes Htype i with (i ≐ j)
 ... | neq H≢ rewrite updateAt-minimal _ _ {const t} ts H≢ = Htypes i
 
 preservation-ctx
-  : ∀ {E Γ t₁ t₂ e T}
+  : ∀ {E t₁ t₂ e T}
   → DetCtx E
-  → (∀ {e T} → Γ ⊢ t₁ :[ e ] T → Γ ⊢ t₂ :[ e ] T)
-  → Γ ⊢ E t₁ :[ e ] T
+  → (∀ {e T} → [] ⊢ t₁ :[ e ] T → [] ⊢ t₂ :[ e ] T)
+  → [] ⊢ E t₁ :[ e ] T
   → ------------------
-    Γ ⊢ E t₂ :[ e ] T
+    [] ⊢ E t₂ :[ e ] T
 
 preservation-ctx
-  {Γ = Γ} {t₁} {t₂} (ectx {o} {j = j} {ts} refl _) Ht₁₂ Htype = {!!}
+  {t₁ = t₁} {t₂} (ectx {o} {j = j} {ts} refl _) Ht₁₂ Htype =
+    let i = eval-order o .π₂ j
+
+        H₁ : ∀ {e T}
+           → [] ⊢ updateAt ts i (const t₁) i :[ e ] T
+           → [] ⊢ t₂ :[ e ] T
+        H₁ = Ht₁₂ ∘ subst (λ t → _ ⊢ t :[ _ ] _) (updateAt-updates i ts)
+    
+        H₂ : [] ⊢ op (o , updateAt (updateAt ts i (const t₁)) i (const t₂)) :[ _ ] _
+        H₂ = go j Htype H₁
+
+        H₃ : [] ⊢ op (o , updateAt ts i (const t₂)) :[ _ ] _
+        H₃ = subst (λ ts → _ ⊢ op (o , ts) :[ _ ] _) (funext $ updateAt-updateAt i ts) H₂
+
+    in H₃
   where
   go
-    : ∀ {Γ o ts e T t} j
-    → Γ ⊢ op (o , ts) :[ e ] T
-    → (∀ {e T} → Γ ⊢ ts (eval-order o .π₂ j) :[ e ] T → Γ ⊢ t :[ e ] T)
-    → -----------------------------------------------------------------
-      Γ ⊢ op (o , updateAt ts (eval-order o .π₂ j) (const t)) :[ e ] T
+    : ∀ {o ts e T t} j
+    → [] ⊢ op (o , ts) :[ e ] T
+    → (∀ {e T} → [] ⊢ ts (eval-order o .π₂ j) :[ e ] T → [] ⊢ t :[ e ] T)
+    → -------------------------------------------------------------------
+      [] ⊢ op (o , updateAt ts (eval-order o .π₂ j) (const t)) :[ e ] T
 
   go ₀ (tapp Htype Htype₁) Ht = tapp (Ht Htype) Htype₁
   go ₁ (tapp Htype Htype₁) Ht = tapp Htype (Ht Htype₁)
@@ -105,9 +120,9 @@ preservation-ctx
   go ₀ (tweight Htype) Ht = tweight (Ht Htype)
   go ₀ (texpect Htype) Ht = texpect (Ht Htype)
   go ₀ (tinfer  Htype) Ht = tinfer  (Ht Htype)
-  go j (tweaken Htype H⊆ Hd) Ht = {!!}
-  go j (tsub Htype H≤ Hsub) Ht = {!!}
-  go j (tpromote Htype H≤) Ht = {!!}
+  go j (tweaken Htype [] Hd) Ht = tweaken (go j Htype Ht) [] Hd
+  go j (tsub Htype H≤ Hsub) Ht = tsub (go j Htype Ht) H≤ Hsub
+  go j (tpromote Htype H≤) Ht = tpromote (go j Htype Ht) H≤
 
 
 module _ (Ass : EvalAssumptions) where
