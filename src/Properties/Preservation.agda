@@ -5,6 +5,7 @@ open import Lib.Unfinite
 open import Lib.FunExt
 open import Lib.BindingSignature
 open import Lib.EvalCtx
+open import Lib.Substitution
 
 open import Data.Fin.Instances using (Fin-≡-isDecEquivalence)
 open import Data.List.Relation.Unary.AllPairs using ([])
@@ -30,13 +31,13 @@ ctx-type-inv (ectx {o} {j = j} _) Htype =
   let (e , T) , Htype′ = go j Htype
   in  _ ,
         subst (λ t → _ ⊢ t :[ e ] T)
-              (updateAt-updates (eval-order o .π₂ j) _) Htype′
+              (updateAt-updates (ord {o = o} j) _) Htype′
   where
   go
-    : ∀ {Γ o ts e T} j
+    : ∀ {Γ o ts e T} (j : Fin (len {o = o}))
     → Γ ⊢ op (o , ts) :[ e ] T
-    → -----------------------------------------------------------------
-      ∑ (e′ , T′) ∶ Eff × Type , Γ ⊢ ts (eval-order o .π₂ j) :[ e′ ] T′
+    → ------------------------------------------------------------
+      ∑ (e′ , T′) ∶ Eff × Type , Γ ⊢ ts (ord {o = o} j) :[ e′ ] T′
 
   go ₀ (tapp Htype Htype₁) = _ , Htype
   go ₁ (tapp Htype Htype₁) = _ , Htype₁
@@ -78,7 +79,7 @@ preservation-ctx
 
 preservation-ctx
   {t₁ = t₁} {t₂} (ectx {o} {j = j} {ts} _) Ht₁₂ Htype =
-    let i = eval-order o .π₂ j
+    let i = ord {o = o} j
 
         H₁ : ∀ {e T}
            → [] ⊢ updateAt ts i (const t₁) i :[ e ] T
@@ -94,11 +95,11 @@ preservation-ctx
     in H₃
   where
   go
-    : ∀ {o ts e T t} j
+    : ∀ {o ts e T t} (j : Fin (len {o = o}))
     → [] ⊢ op (o , ts) :[ e ] T
-    → (∀ {e T} → [] ⊢ ts (eval-order o .π₂ j) :[ e ] T → [] ⊢ t :[ e ] T)
-    → -------------------------------------------------------------------
-      [] ⊢ op (o , updateAt ts (eval-order o .π₂ j) (const t)) :[ e ] T
+    → (∀ {e T} → [] ⊢ ts (ord {o = o} j) :[ e ] T → [] ⊢ t :[ e ] T)
+    → --------------------------------------------------------------
+      [] ⊢ op (o , updateAt ts (ord {o = o} j) (const t)) :[ e ] T
 
   go ₀ (tapp Htype Htype₁) Ht = tapp (Ht Htype) Htype₁
   go ₁ (tapp Htype Htype₁) Ht = tapp Htype (Ht Htype₁)
@@ -169,7 +170,7 @@ module _ (Ass : EvalAssumptions) where
           Γ ⊢ Infer (_ , v) p .π₁ :[ e ] T
 
 
-  module _ (PAss : PresAssumptions) where
+  module Preservation (PAss : PresAssumptions) where
     open PresAssumptions PAss
 
     preservation-det-step
@@ -210,7 +211,7 @@ module _ (Ass : EvalAssumptions) where
       : ∀ {t t′ e T}
       → [] ⊢ t :[ e ] T
       → t →det t′
-      → ---------------
+      → ----------------
         [] ⊢ t′ :[ e ] T
 
     preservation-det Htype (estep Hstep) = preservation-det-step Htype Hstep

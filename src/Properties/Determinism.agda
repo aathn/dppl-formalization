@@ -50,11 +50,11 @@ module _ (Ass : EvalAssumptions) where
     rewrite Heq with () ← Heq′
 
   DetCtx-unique
-    : ∀ {E E′ t t′ u u′}
+    : ∀ {E E′ t u}
     → DetCtx E
     → DetCtx E′
-    → t →det t′
-    → u →det u′
+    → ¬ Value t
+    → ¬ Value u
     → E t ≡ E′ u
     → --------------
       E ≡ E′ × t ≡ u
@@ -62,7 +62,7 @@ module _ (Ass : EvalAssumptions) where
   DetCtx-unique {t = t} {u = u} (ectx {o} {i} {ts} Hvs) (ectx {j = j} {ts′} Hvs′) Ht Hu Heq
     with refl , Heq′ ← op-injective Heq with <-cmp i j
   ... | tri< H< H≢ _ =
-        𝟘e $ value-cannot-step-det (subst Value Heqt (Hvs′ i H<)) Ht
+        𝟘e $ Ht (subst Value Heqt (Hvs′ i H<))
     where
     H≢′ : ¬ ord {o = o} i ≡ ord {o = o} j
     H≢′ = H≢ ∘ inj {o = o}
@@ -72,7 +72,7 @@ module _ (Ass : EvalAssumptions) where
            ≡[ updateAt-updates _ ts ]               t
            qed
   ... | tri> _ H≢ H> =
-        𝟘e $ value-cannot-step-det (subst Value Heqt (Hvs j H>)) Hu
+        𝟘e $ Hu (subst Value Heqt (Hvs j H>))
     where
     H≢′ : ¬ ord {o = o} j ≡ ord {o = o} i
     H≢′ = H≢ ∘ inj {o = o} ∘ symm
@@ -96,44 +96,43 @@ module _ (Ass : EvalAssumptions) where
            qed
 
   DetCtx-cannot-step
-    : ∀ {E t t′ u}
+    : ∀ {E t u}
     → DetCtx E
-    → t →det t′
+    → ¬ Value t
     → ----------
       ¬ E t →ᵈ u
 
-  DetCtx-cannot-step (ectx {j = ₀} _) Ht (eapp refl _) =
-    value-cannot-step-det vabs Ht
-  DetCtx-cannot-step (ectx {j = ₁} _) Ht (eapp _ Hv) =
-    value-cannot-step-det Hv Ht
+  DetCtx-cannot-step (ectx {j = ₀} _) Ht (eapp refl _) = Ht vabs
+  DetCtx-cannot-step (ectx {j = ₁} _) Ht (eapp _ Hv) = Ht Hv
   DetCtx-cannot-step {t = t} (ectx {j = j} {ts} _) Ht (eprim {rs = rs} Heq) =
-    value-cannot-step-det (vreal {rs j}) (subst (_→det _) Heq′ Ht)
-    where Heq′ = proof                             t
-                 ≡[ symm $ updateAt-updates j ts ] updateAt ts j (const t) j
-                 ≡[ ap (_$ j) Heq ]                real (rs j)
+    Ht (subst Value Heq′ (vreal {rs j}))
+    where Heq′ = proof                      real (rs j)
+                 ≡[ symm $ ap (_$ j) Heq ]  updateAt ts j (const t) j
+                 ≡[ updateAt-updates j ts ] t
                  qed
-  DetCtx-cannot-step (ectx {j = ₀} _) Ht (eproj i refl Hvs) =
-    value-cannot-step-det (vtup Hvs) Ht
-  DetCtx-cannot-step (ectx {j = ₀} _) Ht (eif refl) =
-    value-cannot-step-det vreal Ht
-  DetCtx-cannot-step (ectx {j = ₀} _) Ht (ediff v₀ v₁) =
-    value-cannot-step-det v₀ Ht
-  DetCtx-cannot-step (ectx {j = ₁} _) Ht (ediff v₀ v₁) =
-    value-cannot-step-det v₁ Ht
-  DetCtx-cannot-step (ectx {j = ₀} _) Ht (esolve v₀ v₁ v₂) =
-    value-cannot-step-det v₀ Ht
-  DetCtx-cannot-step (ectx {j = ₁} _) Ht (esolve v₀ v₁ v₂) =
-    value-cannot-step-det v₁ Ht
-  DetCtx-cannot-step (ectx {j = ₂} _) Ht (esolve v₀ v₁ v₂) =
-    value-cannot-step-det v₂ Ht
+  DetCtx-cannot-step (ectx {j = ₀} _) Ht (eproj i refl Hvs) = Ht (vtup Hvs)
+  DetCtx-cannot-step (ectx {j = ₀} _) Ht (eif refl) = Ht vreal
+  DetCtx-cannot-step (ectx {j = ₀} _) Ht (ediff v₀ v₁) = Ht v₀
+  DetCtx-cannot-step (ectx {j = ₁} _) Ht (ediff v₀ v₁) = Ht v₁
+  DetCtx-cannot-step (ectx {j = ₀} _) Ht (esolve v₀ v₁ v₂) = Ht v₀
+  DetCtx-cannot-step (ectx {j = ₁} _) Ht (esolve v₀ v₁ v₂) = Ht v₁
+  DetCtx-cannot-step (ectx {j = ₂} _) Ht (esolve v₀ v₁ v₂) = Ht v₂
   DetCtx-cannot-step (ectx {j = ₀} _) Ht (eexpectdist refl) =
-    value-cannot-step-det (vdist (λ _ → vreal)) Ht
+    Ht (vdist (λ _ → vreal))
   DetCtx-cannot-step (ectx {j = ₀} _) Ht (eexpectinfer refl v) =
-    value-cannot-step-det (vinfer v) Ht
+    Ht (vinfer v)
 
   →det-deterministic : Deterministic _≡_ _→det_
   →det-deterministic =
-    CongCls-deterministic →ᵈ-deterministic DetCtx-unique DetCtx-cannot-step
+    CongCls-deterministic →ᵈ-deterministic
+      (λ Hctx1 Hctx2 Ht Hu Heq →
+        DetCtx-unique Hctx1 Hctx2
+          (λ Hv → value-cannot-step-det Hv Ht)
+          (λ Hv → value-cannot-step-det Hv Hu)
+          Heq)
+      (λ Hctx Ht →
+        DetCtx-cannot-step Hctx
+          (λ Hv → value-cannot-step-det Hv Ht))
 
 
   →ʳ-deterministic : Deterministic _≡_ _→ʳ_
@@ -152,36 +151,43 @@ module _ (Ass : EvalAssumptions) where
   →ʳ-deterministic (eassumeinfer Heq _) (eassumedist Heq′)
     rewrite Heq with () ← Heq′
 
-  -- RndCtx-unique
-  --   : ∀ {E E′ t t′ u u′}
-  --   → RndCtx E
-  --   → RndCtx E′
-  --   → t →rnd t′
-  --   → u →rnd u′
-  --   → E t ≡ E′ u
-  --   → --------------
-  --     E ≡ E′ × t ≡ u
+  RndCtx-unique
+    : ∀ {E E′ t u}
+    → RndCtx E
+    → RndCtx E′
+    → ¬ Value (t .π₁)
+    → ¬ Value (u .π₁)
+    → E t ≡ E′ u
+    → --------------
+      E ≡ E′ × t ≡ u
 
-  -- RndCtx-unique (E , Hctx , refl) (E′ , Hctx′ , refl) Ht Hu Heq
-  --   with Heq′ , refl ← ,-injective Heq
-  --   with refl , refl ← DetCtx-unique Hctx Hctx′ {!!} {!!} Heq′ = refl , refl
+  RndCtx-unique (E , Hctx , refl) (E′ , Hctx′ , refl) Ht Hu Heq
+    with Heq′ , refl ← ,-injective Heq
+    with refl , refl ← DetCtx-unique Hctx Hctx′ Ht Hu Heq′ = refl , refl
 
-  -- RndCtx-cannot-step
-  --   : ∀ {E t u}
-  --   → RndCtx E
-  --   → ----------
-  --     ¬ E t →ʳ u
+  RndCtx-cannot-step
+    : ∀ {E t u}
+    → RndCtx E
+    → ¬ Value (t .π₁)
+    → ---------------
+      ¬ E t →ʳ u
 
-  -- RndCtx-cannot-step {E₀} {t} (E , Hctx , Heq) Hstep
-  --   with Et ← E₀ t in HEt | Hstep
-  -- ... | edet Hstep′
-  --   with refl ← Heq | refl ← HEt
-  --   with () ← DetCtx-cannot-step Hctx Hstep′
-  -- ... | eweight Heq′ rewrite Heq′
-  --   with refl ← Heq = {!!}
-  -- ... | eassumedist x = {!!}
-  -- ... | eassumeinfer x v = {!!}
+  RndCtx-cannot-step (_ , ectx Hvs , refl) Ht (edet Hstep) =
+    DetCtx-cannot-step (ectx Hvs) Ht Hstep
+  RndCtx-cannot-step (_ , ectx {j = ₀} _ , refl) Ht (eweight refl) = Ht vreal
+  RndCtx-cannot-step (_ , ectx {j = ₀} _ , refl) Ht (eassumedist refl) =
+    Ht (vdist (λ _ → vreal))
+  RndCtx-cannot-step (_ , ectx {j = ₀} _ , refl) Ht (eassumeinfer refl v) =
+    Ht (vinfer v)
 
-  -- →rnd-deterministic : Deterministic _≡_ _→rnd_
-  -- →rnd-deterministic =
-  --   CongCls-deterministic →ʳ-deterministic RndCtx-unique RndCtx-cannot-step
+  →rnd-deterministic : Deterministic _≡_ _→rnd_
+  →rnd-deterministic =
+    CongCls-deterministic →ʳ-deterministic
+      (λ Hctx1 Hctx2 Ht Hu Heq →
+        RndCtx-unique Hctx1 Hctx2
+          (λ Hv → value-cannot-step-rnd Hv Ht)
+          (λ Hv → value-cannot-step-rnd Hv Hu)
+          Heq)
+      (λ Hctx Ht →
+        RndCtx-cannot-step Hctx
+          (λ Hv → value-cannot-step-rnd Hv Ht))

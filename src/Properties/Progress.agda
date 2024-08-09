@@ -16,7 +16,7 @@ open import Data.List.Relation.Binary.Sublist.Propositional using ([])
 open import Data.Product using (∃-syntax)
 open import Data.Vec.Functional using (map)
 
-module _ (Ass : EvalAssumptions) where
+module Progress (Ass : EvalAssumptions) where
   open Eval Ass
   open Step Ass
 

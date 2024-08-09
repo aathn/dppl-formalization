@@ -165,3 +165,13 @@ module Step (Ass : EvalAssumptions) where
   value-cannot-step-det Hv (estep Hstep) with vabs ← Hv | () ← Hstep
   value-cannot-step-det Hv (econg Hctx Hstep) =
     value-cannot-step-det (ctx-value-inv Hctx Hv) Hstep
+
+  value-cannot-step-rnd
+    : ∀ {t t′}
+    → Value (t .π₁)
+    → -------------
+      ¬ t →rnd t′
+
+  value-cannot-step-rnd Hv (estep Hstep) with vabs ← Hv | edet () ← Hstep
+  value-cannot-step-rnd Hv (econg (_ , Hctx , refl) Hstep) =
+    value-cannot-step-rnd (ctx-value-inv Hctx Hv) Hstep
