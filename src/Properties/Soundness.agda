@@ -7,16 +7,13 @@ open Interval R
 
 open import Lib.Prelude
 
-import Data.List as L
-open import Relation.Binary using (Rel)
-open import Relation.Binary.Construct.Closure.ReflexiveTransitive using (Star ; ε ; _◅_)
+open import Relation.Binary.Construct.Closure.ReflexiveTransitive using (ε ; _◅_)
 
 open import Syntax R
 open import Typing R
 open import SmallStep R
 open import Properties.Preservation R
 open import Properties.Progress R
-open import Properties.SmallStep R
 
 module Soundness (Ass : EvalAssumptions) (PAss : PresAssumptions Ass) where
   open Eval Ass

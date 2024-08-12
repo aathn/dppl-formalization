@@ -9,20 +9,20 @@ open import Level using (_⊔_ ; suc)
 open import Relation.Unary using (Pred)
 open import Relation.Binary using (Rel ; Decidable)
 
-upper-bound : {a ℓ ℓ′ : Level} {A : Set a} (S : Pred A ℓ) (_≲_ : Rel A ℓ′) → Pred A _
-upper-bound S _≲_ r = ∀ s → S s → s ≲ r
+upper-bound : {a ℓ ℓ′ : Level} {A : Set a} (_≲_ : Rel A ℓ′) (S : Pred A ℓ) → Pred A _
+upper-bound _≲_ S r = ∀ s → S s → s ≲ r
 
-least-upper-bound : {a ℓ ℓ′ : Level} {A : Set a} (S : Pred A ℓ) (_≲_ : Rel A ℓ′) → Pred A _
-least-upper-bound S _≲_ r = upper-bound S _≲_ r × ∀ s → upper-bound S _≲_ r → r ≲ s
+least-upper-bound : {a ℓ ℓ′ : Level} {A : Set a} (_≲_ : Rel A ℓ′) (S : Pred A ℓ) → Pred A _
+least-upper-bound _≲_ S r = upper-bound _≲_ S r × ∀ s → upper-bound _≲_ S r → r ≲ s
 
 record IsReals
   {a ℓ ℓ′} {A : Set a} (ℓ″ : Level) (_≈_ : Rel A ℓ) (_≲_ : Rel A ℓ′)
-  (+ * : Op₂ A) (- : Op₁ A) (0# 1# : A)
+  (+ * : Op₂ A) (- : Op₁ A) (0ᴿ 1ᴿ : A)
   : Set (suc (a ⊔ ℓ ⊔ ℓ′ ⊔ ℓ″))
   where
   field
-    isOrderedField : IsOrderedField _≈_ _≲_ + * - 0# 1#
-    hasLubProperty : ∀ (S : Pred A ℓ″) → ∃ S → ∃ (least-upper-bound S _≲_)
+    isOrderedField : IsOrderedField _≈_ _≲_ + * - 0ᴿ 1ᴿ
+    hasLubProperty : ∀ (S : Pred A ℓ″) → ∃ S → ∃ (least-upper-bound _≲_ S)
 
   open IsOrderedField isOrderedField public
 

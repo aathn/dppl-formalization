@@ -1,6 +1,6 @@
 open import Lib.Reals
 
-module Properties.Determinism (R : Reals) where
+module Properties.Determinism (R : Reals₀) where
 
 open import Lib.Prelude
 open import Lib.FunExt
