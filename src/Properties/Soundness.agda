@@ -20,7 +20,22 @@ module Soundness (Ass : EvalAssumptions) (PAss : PresAssumptions Ass) where
   open Progress Ass
   open Preservation Ass PAss
 
-  type-system-sound
+  type-system-sound-det
+    : ∀ {t t′ T}
+    → [] ⊢ t :[ det ] T
+    → t →det* t′
+    → (∀ {z} → ¬ t′ →det z)
+    → ---------------------
+      Value t′
+
+  type-system-sound-det Htype ε Hirred =
+    case (progress-det Htype) λ where
+      (ι₁ Hv) → Hv
+      (ι₂ (_ , Hstep)) → 𝟘e $ Hirred Hstep
+  type-system-sound-det Htype (Hstep ◅ Hsteps) Hirred =
+    type-system-sound-det (preservation-det Htype Hstep) Hsteps Hirred
+
+  type-system-sound-rnd
     : ∀ {t ws t′ ws′ T}
     → [] ⊢ t :[ rnd ] T
     → (t , ws) →rnd* (t′ , ws′)
@@ -28,9 +43,10 @@ module Soundness (Ass : EvalAssumptions) (PAss : PresAssumptions Ass) where
     → -------------------------------
       Value t′
 
-  type-system-sound {ws = w , s} Htype ε Hirred =
+  type-system-sound-rnd {ws = w , s} Htype ε Hirred =
     case (progress-rnd {w = w} {0ᴵ} {s} Htype) λ where
       (ι₁ Hv) → Hv
       (ι₂ (_ , Hstep)) → 𝟘e $ Hirred Hstep
-  type-system-sound Htype (Hstep ◅ Hsteps) Hirred =
-    type-system-sound (preservation-rnd Htype Hstep) Hsteps Hirred
+  type-system-sound-rnd Htype (Hstep ◅ Hsteps) Hirred =
+    type-system-sound-rnd (preservation-rnd Htype Hstep) Hsteps Hirred
+
