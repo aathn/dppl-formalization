@@ -1,6 +1,10 @@
-module SmallStep (ℝ 𝕀 : Set) where
+open import Lib.Reals
 
-open import Syntax ℝ
+module SmallStep (R : Reals₀) where
+open Reals R hiding (refl)
+open Interval R
+
+open import Syntax R
 
 open import Lib.Prelude
 open import Lib.BindingSignature
@@ -61,9 +65,6 @@ RndCtx E = ∃[ E′ ] DetCtx E′ × E ≡ map₁ E′
 
 record EvalAssumptions : Set where
   field
-    0ʳ : ℝ
-    _*ʳ_ : ℝ → ℝ → ℝ
-    _>ʳ_ : ℝ → ℝ → 𝔹
     PrimEv : (ϕ : Prim) → Vector ℝ (PrimAr ϕ) → ℝ
     Sample : (D : Dist) → Vector ℝ (DistAr D) → 𝕀 → ∃ Value
     Infer  : ∃ Value → 𝕀 → ∃ Value
@@ -98,8 +99,8 @@ module Eval (Ass : EvalAssumptions) where
     eif
       : ∀ {r ts}
       → ts ₀ ≡ real r
-      → -------------------------------------------
-        if ts →ᵈ (if r >ʳ 0ʳ then ts ₁ else ts ₂)
+      → ------------------------------------------
+        if ts →ᵈ (if r ≲? 0ᴿ then ts ₂ else ts ₁)
 
     ediff
       : ∀ {ts}
@@ -136,8 +137,8 @@ module Eval (Ass : EvalAssumptions) where
     eweight
       : ∀ {t r w s}
       → t ₀ ≡ real r
-      → -------------------------------------------------------------------
-        (weight t , w , s) →ʳ (unit , (if r >ʳ 0ʳ then r *ʳ w else 0ʳ) , s)
+      → --------------------------------------------------------------------
+        (weight t , w , s) →ʳ (unit , (if r ≲? 0ᴿ then 0ᴿ else r * w) , s)
 
     eassumedist
       : ∀ {t D rs w p s}

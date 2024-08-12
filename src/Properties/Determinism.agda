@@ -1,13 +1,15 @@
-module Properties.Determinism (ℝ 𝕀 : Set) where
+open import Lib.Reals
+
+module Properties.Determinism (R : Reals) where
 
 open import Lib.Prelude
 open import Lib.FunExt
 open import Lib.BindingSignature
 open import Lib.EvalCtx
 
-open import Syntax ℝ
-open import SmallStep ℝ 𝕀
-open import Properties.SmallStep ℝ 𝕀
+open import Syntax R
+open import SmallStep R
+open import Properties.SmallStep R
 open import Properties.Util
 
 open import Data.Fin.Properties using (<-cmp)

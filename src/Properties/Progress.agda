@@ -1,11 +1,13 @@
-module Properties.Progress (ℝ 𝕀 : Set) where
+open import Lib.Reals
+
+module Properties.Progress (R : Reals₀) where
 
 -- Proofs of progress for the DPPL semantics
 
-open import Syntax ℝ
-open import Typing ℝ
-open import SmallStep ℝ 𝕀
-open import Properties.SmallStep ℝ 𝕀
+open import Syntax R
+open import Typing R
+open import SmallStep R
+open import Properties.SmallStep R
 open import Properties.Util
 
 open import Lib.Prelude

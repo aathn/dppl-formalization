@@ -1,6 +1,8 @@
-module Typing (ℝ : Set) where
+open import Lib.Reals
 
-open import Syntax ℝ
+module Typing (R : Reals₀) where
+
+open import Syntax R
 
 open import Lib.Prelude
 open import Lib.Unfinite

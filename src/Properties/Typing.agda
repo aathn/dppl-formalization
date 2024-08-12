@@ -1,9 +1,10 @@
-module Properties.Typing (ℝ : Set) where
+open import Lib.Reals
+module Properties.Typing (R : Reals₀) where
 
 -- Lemmas purely about typing
 
-open import Syntax ℝ
-open import Typing ℝ
+open import Syntax R
+open import Typing R
 open import Properties.Util
 
 open import Lib.Prelude

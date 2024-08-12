@@ -1,4 +1,6 @@
-module Properties.SmallStep (ℝ 𝕀 : Set) where
+open import Lib.Reals
+
+module Properties.SmallStep (R : Reals₀) where
 
 -- Minor lemmas about the step relations (and typing)
 
@@ -13,9 +15,9 @@ open import Data.Vec.Functional using (map ; updateAt)
 open import Data.Vec.Functional.Properties using (updateAt-updates)
 open import Relation.Nullary using (Irrelevant)
 
-open import Syntax ℝ
-open import Typing ℝ
-open import SmallStep ℝ 𝕀
+open import Syntax R
+open import Typing R
+open import SmallStep R
 
 -- Value t is irrelevant
 
@@ -176,25 +178,3 @@ module Step (Ass : EvalAssumptions) where
   value-cannot-step-rnd Hv (estep Hstep) with vabs ← Hv | edet () ← Hstep
   value-cannot-step-rnd Hv (econg (_ , Hctx , refl) Hstep) =
     value-cannot-step-rnd (ctx-value-inv Hctx Hv) Hstep
-
-  trace-length-step
-    : ∀ {tws tws′ p s}
-    → tws →ʳ tws′
-    → tws .π₂ .π₂ ≡ p :: s
-    → ------------------------------------
-      L.length (tws′ .π₂ .π₂) ≥ L.length s
-
-  trace-length-step (edet _) refl = ≤+1 ≤refl
-  trace-length-step (eweight _) refl = ≤+1 ≤refl
-  trace-length-step (eassumedist _) refl = ≤refl
-  trace-length-step (eassumeinfer _ _) refl = ≤refl
-
-  trace-length
-    : ∀ {tws tws′ p s}
-    → tws →rnd tws′
-    → tws .π₂ .π₂ ≡ p :: s
-    → ------------------------------------
-      L.length (tws′ .π₂ .π₂) ≥ L.length s
-
-  trace-length (estep Hstep) Heq = trace-length-step Hstep Heq
-  trace-length (econg (E , Hctx , refl) Hstep) Heq = trace-length Hstep Heq

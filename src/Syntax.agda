@@ -1,4 +1,8 @@
-module Syntax (ℝ : Set) where
+open import Lib.Reals
+
+module Syntax (R : Reals₀) where
+
+open Reals R
 
 open import Lib.Prelude
 open import Lib.Unfinite

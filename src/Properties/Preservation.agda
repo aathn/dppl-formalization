@@ -1,4 +1,8 @@
-module Properties.Preservation (ℝ 𝕀 : Set) where
+open import Lib.Reals
+
+module Properties.Preservation (R : Reals₀) where
+
+open Reals R hiding (refl)
 
 open import Lib.Prelude
 open import Lib.Unfinite
@@ -13,11 +17,11 @@ open import Data.List.Relation.Binary.Sublist.Propositional using ([])
 open import Data.Vec.Functional using (map ; updateAt)
 open import Data.Vec.Functional.Properties using (updateAt-updates ; updateAt-minimal ; updateAt-updateAt)
 
-open import Syntax ℝ
-open import Typing ℝ
-open import SmallStep ℝ 𝕀
-open import Properties.Typing ℝ
-open import Properties.SmallStep ℝ 𝕀
+open import Syntax R
+open import Typing R
+open import SmallStep R
+open import Properties.Typing R
+open import Properties.SmallStep R
 open import Properties.Util
 
 ctx-type-inv
@@ -189,9 +193,9 @@ module _ (Ass : EvalAssumptions) where
       tsub treal 0≤ (sreal (PrimCoeffBound Hϕ))
     preservation-det-step (tproj i Htype) (eproj .i Heq Hvs) rewrite Heq =
       ttup-inv Htype refl i
-    preservation-det-step (tif Htype Htype₁ Htype₂) (eif {r} _) with r >ʳ 0ʳ
-    ... | true  = Htype₁
-    ... | false = Htype₂
+    preservation-det-step (tif Htype Htype₁ Htype₂) (eif {r} _) with r ≲? 0ᴿ
+    ... | false = Htype₁
+    ... | true  = Htype₂
     preservation-det-step (tdiff Hcs Htype Htype₁) (ediff Hv Hv₁) =
       DiffPres Hcs Htype Htype₁ Hv Hv₁
     preservation-det-step (tsolve Htype Htype₁ Htype₂) (esolve Hv Hv₁ Hv₂) =
