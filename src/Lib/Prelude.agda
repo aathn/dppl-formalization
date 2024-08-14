@@ -398,7 +398,13 @@ wf< = <-wellFounded
 ----------------------------------------------------------------------
 open import Data.Vec.Functional as Vec public using (Vector)
 
-open import Data.Fin public using (Fin ; zero) renaming (suc to succ)
+open import Data.Fin public using (Fin ; zero) renaming (suc to succ ; _≤_ to _≤′_)
+open import Data.Fin using (fromℕ<)
+open import Data.Fin.Properties using (toℕ<n)
+
+-- Maximum on finite enumerated sets
+_⊔′_ : ∀ {n : ℕ} → Fin n → Fin n → Fin n
+n ⊔′ m = fromℕ< (≤lub _ _ _ (toℕ<n n) (toℕ<n m))
 
 -- Maximum of finitely many numbers
 Max : {n : ℕ} → Vector ℕ n → ℕ

@@ -106,7 +106,7 @@ module Progress (Ass : EvalAssumptions) where
       ; (ι₁ Hv)           → ι₁ $ vinfer Hv
       }
   progress-det (tweaken Htype [] _) = progress-det Htype
-  progress-det (tsub Htype 0≤ _)    = progress-det Htype
+  progress-det (tsub {e = ₀} Htype _ _) = progress-det Htype
   progress-det (tpromote {[]} Htype H≤) = progress-det Htype
 
 
@@ -205,10 +205,10 @@ module Progress (Ass : EvalAssumptions) where
       ; (ι₁ Hv) → ι₁ $ vinfer Hv
       }
   progress-rnd (tweaken Htype [] _) = progress-rnd Htype
-  progress-rnd (tsub Htype 0≤ _) =
+  progress-rnd (tsub {e = ₀} Htype _ _) =
     case (progress-det Htype) λ
       { (ι₁ Hv) → ι₁ Hv
       ; (ι₂ (_ , Hstep)) → ι₂ $ _ , →det⊆→rnd Hstep
       }
-  progress-rnd (tsub Htype (+1≤ 0≤) _) = progress-rnd Htype
+  progress-rnd (tsub {e = ₁} Htype _ _) = progress-rnd Htype
   progress-rnd (tpromote {[]} Htype H≤) = progress-rnd Htype

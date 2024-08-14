@@ -13,17 +13,17 @@ open import Lib.BindingSignature
 open import Data.Vec.Functional using (map ; fromList)
 
 Coeff : Set
-Coeff = ℕ
+Coeff = Fin 3
 
-pattern ca = 0
-pattern cb = 1
-pattern cc = 2
+pattern A = zero {n = 2}
+pattern P = succ {n = 2} zero
+pattern N = succ {n = 2} (succ zero)
 
 Eff : Set
-Eff = ℕ
+Eff = Fin 2
 
-pattern det = 0
-pattern rnd = 1
+pattern det = zero {n = 1}
+pattern rnd = succ {n = 1} zero
 
 -- Types
 
