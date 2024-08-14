@@ -33,6 +33,7 @@ data Distinct : TyEnv → Set where
 PrimTy : (ϕ : Prim) → Vector Coeff (PrimAr ϕ) × Coeff
 PrimTy padd        = const ca , ca
 PrimTy pmul        = const ca , ca
+PrimTy psin        = const ca , ca
 PrimTy (pwiener r) = const cc , cc
 
 DistTy : (D : Dist) → Vector Coeff (DistAr D) × Type

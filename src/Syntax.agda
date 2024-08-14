@@ -35,16 +35,6 @@ data Type : Set where
 
 -- Terms
 
-data Prim : Set where
-  padd    : Prim
-  pmul    : Prim
-  pwiener : ℝ → Prim
-
-PrimAr : Prim → ℕ
-PrimAr padd = 2
-PrimAr pmul = 2
-PrimAr (pwiener _) = 1
-
 data Dist : Set where
   dnormal : Dist
   dbeta   : Dist
@@ -54,6 +44,18 @@ DistAr : Dist → ℕ
 DistAr dnormal = 2
 DistAr dbeta   = 2
 DistAr dwiener = 0
+
+data Prim : Set where
+  padd    : Prim
+  pmul    : Prim
+  psin    : Prim
+  pwiener : ℝ → Prim
+
+PrimAr : Prim → ℕ
+PrimAr padd = 2
+PrimAr pmul = 2
+PrimAr psin = 1
+PrimAr (pwiener _) = 1
 
 TermSig : Sig
 TermSig = mkSig TermOp TermAr
