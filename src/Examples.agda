@@ -87,16 +87,16 @@ _vars8 = _vars7 ∪ [ MODEL ]
 -- Examples
 
 testExample :
-  [] ⊢ abs′ x (treal ca) (fvar x) :[ det ] (treal ca ⇒[ det ] treal ca)
+  [] ⊢ abs′ x (treal A) (fvar x) :[ det ] (treal A ⇒[ det ] treal A)
 testExample = tabs‵ (λ _ → tvar)
 
-example10 : ∀ c → let T = ttup {2} (λ {₀ → treal cc ; ₁ → treal c}) in
-  [ w ∶ treal cc ⇒[ det ] treal cc ] ⊢
+example10 : ∀ c → let T = ttup {2} (λ {₀ → treal N ; ₁ → treal c}) in
+  [ w ∶ treal N ⇒[ det ] treal N ] ⊢
   abs′ z T
-    (let‵ x (treal cc) (proj' {2} ₀ (fvar z))
-    (let‵ y (treal cc) (proj' {2} ₁ (fvar z))
+    (let‵ x (treal N) (proj' {2} ₀ (fvar z))
+    (let‵ y (treal N) (proj' {2} ₁ (fvar z))
     (app‵ (fvar w) (fvar x) +ᵖ fvar y)))
-  :[ det ] T ⇒[ det ] treal ca
+  :[ det ] T ⇒[ det ] treal A
 example10 c = 
   tabs‵ (λ _ → tapp 
            (tabs‵ (λ _ → tapp
