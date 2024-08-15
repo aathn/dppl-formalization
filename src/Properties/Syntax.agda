@@ -1,37 +1,54 @@
 open import Lib.Reals
+
 module Properties.Syntax (R : Reals₀) where
 
 open import Syntax R
+open import Properties.Util
+
 open import Lib.Prelude
 open import Lib.FunExt
-import Relation.Binary.PropositionalEquality.Properties as ≡
-open import Data.Vec.Functional.Properties
-open import Data.Product
--- open import Relation.Binary
 
-typeHasDecEq : hasDecEq Type
-isEquivalence ⦃ typeHasDecEq ⦄ = ≡.isEquivalence
-_≐_ ⦃ typeHasDecEq ⦄ (treal c₁) (treal c₂) with  c₁ ≐ c₂
-... | equ = yes refl
-... | neq p = no λ { refl → p refl}
-_≐_ ⦃ typeHasDecEq ⦄ (treal x) (T₂ ⇒[ x₁ ] T₃) = no λ ()
-_≐_ ⦃ typeHasDecEq ⦄ (treal x) (ttup x₁) = no λ ()
-_≐_ ⦃ typeHasDecEq ⦄ (treal x) (tdist T₂) = no λ ()
-_≐_ ⦃ typeHasDecEq ⦄ (_ ⇒[ _ ] T₃) (treal x₁) = no λ ()
-_≐_ ⦃ typeHasDecEq ⦄ (T₁ ⇒[ e₁ ] T₃) (T₂ ⇒[ e₂ ] T₄) with e₁ ≐ e₂ | _≐_ ⦃ typeHasDecEq ⦄ T₁ T₂ | _≐_ ⦃ typeHasDecEq ⦄ T₃ T₄
-... | equ | equ | equ = yes refl
-... | neq p | _ | _ = no λ { refl → p refl }
-... | _ | neq p | _ = no λ { refl → p refl }
-... | _ | _ | neq p = no λ { refl → p refl }
-_≐_ ⦃ typeHasDecEq ⦄ (T₁ ⇒[ x ] T₃) (ttup x₁) = {!!}
-_≐_ ⦃ typeHasDecEq ⦄ (T₁ ⇒[ x ] T₃) (tdist T₂) = {!!}
-_≐_ ⦃ typeHasDecEq ⦄ (ttup x) (treal x₁) = {!!}
-_≐_ ⦃ typeHasDecEq ⦄ (ttup x) (T₂ ⇒[ x₁ ] T₃) = {!!}
-_≐_ ⦃ typeHasDecEq ⦄ (ttup {₀} Ts₁) (ttup {₀} Ts₂) = yes (ap ttup (funext λ ()))
-_≐_ ⦃ typeHasDecEq ⦄ (ttup {₀} Ts₁) (ttup {_+1 n₂} Ts₂) = no λ ()
-_≐_ ⦃ typeHasDecEq ⦄ (ttup {_+1 n₁} Ts₁) (ttup {₀} Ts₂) = no λ ()
-_≐_ ⦃ typeHasDecEq ⦄ (ttup {_+1 n₁} Ts₁) (ttup {_+1 n₂} Ts₂) with _≐_ ⦃ typeHasDecEq ⦄ (Ts₁ ₀) (Ts₂ ₀)
-... | yes p = {!!}
-... | no p = {!!}
-_≐_ ⦃ typeHasDecEq ⦄ (ttup x) (tdist T₂) = {!!}
-_≐_ ⦃ typeHasDecEq ⦄ (tdist T₁) T₂ = {!!}
+open import Data.Fin.Instances using (Fin-≡-isDecEquivalence)
+
+deceqType : (T₁ T₂ : Type) → Dec (T₁ ≡ T₂)
+deceqType (treal c) (treal d) with c ≐ d
+... | equ   = equ
+... | neq p = neq λ {refl → p refl}
+deceqType (T₁ ⇒[ e ] T₃) (T₂ ⇒[ f ] T₄)
+  with deceqType T₁ T₂ | e ≐ f | deceqType T₃ T₄
+... | equ | equ | equ = equ
+... | neq p | _ | _ = neq λ {refl → p refl}
+... | _ | neq p | _ = neq λ {refl → p refl}
+... | _ | _ | neq p = neq λ {refl → p refl}
+deceqType (ttup {n₁} Ts₁) (ttup {n₂} Ts₂) with n₁ ≐ n₂
+... | neq p = neq λ {refl → p refl}
+... | equ = case (all-⊎ Heq) λ where
+             (ι₁ p) → yes (ap ttup $ funext p)
+             (ι₂ (_ , q , _)) → no λ {refl → q refl}
+  where Heq : ∀ i → Ts₁ i ≡ Ts₂ i ⊎ ¬ Ts₁ i ≡ Ts₂ i
+        Heq i with deceqType (Ts₁ i) (Ts₂ i)
+        ... | yes p = ι₁ p
+        ... | no  q = ι₂ q
+deceqType (tdist T₁) (tdist T₂) with deceqType T₁ T₂
+... | equ = equ
+... | neq p = neq λ {refl → p refl}
+
+deceqType (treal _) (_ ⇒[ _ ] _) = neq λ()
+deceqType (treal _) (ttup _)     = neq λ()
+deceqType (treal _) (tdist _)    = neq λ()
+deceqType (_ ⇒[ _ ] _) (treal _) = neq λ()
+deceqType (_ ⇒[ _ ] _) (ttup _)  = neq λ()
+deceqType (_ ⇒[ _ ] _) (tdist _) = neq λ()
+deceqType (ttup _) (treal _)     = neq λ()
+deceqType (ttup _) (_ ⇒[ _ ] _)  = neq λ()
+deceqType (ttup _) (tdist _)     = neq λ()
+deceqType (tdist _) (treal _)    = neq λ()
+deceqType (tdist _) (_ ⇒[ _ ] _) = neq λ()
+deceqType (tdist _) (ttup _)     = neq λ()
+
+import Relation.Binary.PropositionalEquality.Properties as ≡
+
+instance
+  hasDecEqType : hasDecEq Type
+  isEquivalence {{hasDecEqType}} = ≡.isEquivalence
+  _≐_ {{hasDecEqType}} = deceqType
