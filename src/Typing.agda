@@ -14,7 +14,6 @@ open import Data.List using (map)
 open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_)
 open import Data.List.Relation.Binary.Pointwise using (Pointwise)
 open import Data.List.Relation.Unary.All using (All)
-open import Data.Nat using (_⊔_)
 
 TyEnv : Set
 TyEnv = List (𝔸 × Type)
@@ -31,23 +30,23 @@ data Distinct : TyEnv → Set where
   _∷_ : ∀ {x T Γ} → x ∉ dom Γ → Distinct Γ → Distinct (Γ , x ∶ T)
 
 PrimTy : (ϕ : Prim) → Vector Coeff (PrimAr ϕ) × Coeff
-PrimTy padd        = const ca , ca
-PrimTy pmul        = const ca , ca
-PrimTy psin        = const ca , ca
-PrimTy (pwiener r) = const cc , cc
+PrimTy padd        = const A , A
+PrimTy pmul        = const A , A
+PrimTy psin        = const A , A
+PrimTy (pwiener r) = const N , N
 
 DistTy : (D : Dist) → Vector Coeff (DistAr D) × Type
-DistTy dnormal = const cc , treal cc
-DistTy dbeta   = const cc , treal cc
-DistTy dwiener = (λ()) , (treal cc ⇒[ det ] treal cc)
+DistTy dnormal = const N , treal N
+DistTy dbeta   = const N , treal N
+DistTy dwiener = (λ()) , (treal N ⇒[ det ] treal N)
 
 _⊙_ : Coeff → Type → Type
-c ⊙ (treal c′) = treal (c ⊔ c′)
+c ⊙ (treal c′) = treal (c ⊔′ c′)
 c ⊙ (ttup Ts)  = ttup $ c ⊙_ ∘ Ts
 c ⊙ T          = T
 
 _≤ᶜ_ : Coeff → Type → Set
-c ≤ᶜ treal d = c ≤ d
+c ≤ᶜ treal d = c ≤′ d
 c ≤ᶜ ttup Ts = ∀ i → c ≤ᶜ Ts i
 c ≤ᶜ T = 𝟙
 
@@ -60,7 +59,7 @@ data _<:_ : Type → Type → Set where
 
   sreal
     : ∀ {c c′}
-    → c′ ≤ c
+    → c′ ≤′ c
     → -------------------
       treal c <: treal c′
 
@@ -72,7 +71,7 @@ data _<:_ : Type → Type → Set where
 
   sarr
     : ∀ {T₁ T₁′ T₂ T₂′ e e′}
-    → T₁′ <: T₁ → T₂ <: T₂′ → e ≤ e′
+    → T₁′ <: T₁ → T₂ <: T₂′ → e ≤′ e′
     → -------------------------------
       T₁ ⇒[ e ] T₂ <: T₁′ ⇒[ e′ ] T₂′
 
@@ -119,7 +118,7 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
   treal
     : ∀ {r}
     → -----------------------------
-      [] ⊢ real r :[ det ] treal cc
+      [] ⊢ real r :[ det ] treal N
 
   ttup
     : ∀ {n Γ Ts ts e}
@@ -136,7 +135,7 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
 
   tif
     : ∀ {Γ ts e T}
-    → Γ ⊢ ts ₀ :[ e ] treal cb
+    → Γ ⊢ ts ₀ :[ e ] treal P
     → Γ ⊢ ts ₁ :[ e ] T
     → Γ ⊢ ts ₂ :[ e ] T
     → ------------------
@@ -144,17 +143,17 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
 
   tdiff
     : ∀ {Γ ts n m cs ds e}
-    → (∀ i → cs i ≤ cb)
+    → (∀ i → cs i ≤′ P)
     → Γ ⊢ ts ₀ :[ e ] treals {n} cs ⇒[ det ] treals {m} ds
     → Γ ⊢ ts ₁ :[ e ] treals cs
     → -----------------------------------------------------------
-      Γ ⊢ diff ts :[ e ] treals {n} (const ca) ⇒[ det ] treals ds
+      Γ ⊢ diff ts :[ e ] treals {n} (const A) ⇒[ det ] treals ds
 
   tsolve
     : ∀ {Γ ts n c cs e}
     → Γ ⊢ ts ₀ :[ e ] ttup {2} (λ {₀ → treal c; ₁ → treals {n} cs}) ⇒[ det ] treals cs
     → Γ ⊢ ts ₁ :[ e ] treals cs
-    → Γ ⊢ ts ₂ :[ e ] treal cb
+    → Γ ⊢ ts ₂ :[ e ] treal P
     → -----------------------------
       Γ ⊢ solve ts :[ e ] treals cs
 
@@ -174,15 +173,15 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
 
   tweight
     : ∀ {Γ t}
-    → Γ ⊢ t ₀ :[ rnd ] treal cc
+    → Γ ⊢ t ₀ :[ rnd ] treal N
     → ---------------------------
       Γ ⊢ weight t :[ rnd ] tunit
 
   texpect
     : ∀ {Γ t e}
-    → Γ ⊢ t ₀ :[ e ] tdist (treal cc)
+    → Γ ⊢ t ₀ :[ e ] tdist (treal N)
     → -----------------------------
-      Γ ⊢ expect t :[ e ] treal cc
+      Γ ⊢ expect t :[ e ] treal N
 
   tinfer
     : ∀ {Γ t e T}
@@ -201,7 +200,7 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
   tsub
     : ∀ {Γ t e e′ T T′}
     → Γ ⊢ t :[ e ] T
-    → e ≤ e′
+    → e ≤′ e′
     → T <: T′
     → ----------------
       Γ ⊢ t :[ e′ ] T′

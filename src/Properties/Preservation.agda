@@ -12,6 +12,7 @@ open import Lib.EvalCtx
 open import Lib.Substitution
 
 open import Data.Fin.Instances using (Fin-≡-isDecEquivalence)
+open import Data.Fin.Properties using (toℕ<n)
 open import Data.List.Relation.Unary.AllPairs using ([])
 open import Data.List.Relation.Binary.Sublist.Propositional using ([])
 open import Data.Vec.Functional using (map ; updateAt)
@@ -135,27 +136,21 @@ module _ (Ass : EvalAssumptions) where
 
   record PresAssumptions : Set where
     field
-      PrimCoeffBound
-        : ∀ {ϕ cs c}
-        → PrimTy ϕ ≡ (cs , c)
-        → -------------------
-          c ≤ cc
-
       DiffPres
         : ∀ {Γ t₀ t₁ n m cs ds e}
-        → (∀ i → cs i ≤ cb)
+        → (∀ i → cs i ≤′ P)
         → Γ ⊢ t₀ :[ e ] treals {n} cs ⇒[ det ] treals {m} ds
         → Γ ⊢ t₁ :[ e ] treals cs
         → (v₀ : Value t₀) (v₁ : Value t₁)
         → --------------------------------------------------------------------------
-          Γ ⊢ Diff (_ , v₀) (_ , v₁) :[ e ] treals {n} (const ca) ⇒[ det ] treals ds
+          Γ ⊢ Diff (_ , v₀) (_ , v₁) :[ e ] treals {n} (const A) ⇒[ det ] treals ds
 
       SolvePres
         : ∀ {Γ t₀ t₁ t₂ Ts n c cs e}
         → Γ ⊢ t₀ :[ e ] ttup {2} Ts ⇒[ det ] treals cs
         → Ts ₀ ≡ treal c → Ts ₁ ≡ treals {n} cs
         → Γ ⊢ t₁ :[ e ] treals cs
-        → Γ ⊢ t₂ :[ e ] treal cb
+        → Γ ⊢ t₂ :[ e ] treal P
         → (v₀ : Value t₀) (v₁ : Value t₁) (v₂ : Value t₂)
         → -----------------------------------------------------
           Γ ⊢ Solve (_ , v₀) (_ , v₁) (_ , v₂) :[ e ] treals cs
@@ -190,7 +185,7 @@ module _ (Ass : EvalAssumptions) where
       rewrite subst-intro {x = x} {0} {ts ₁} (t ₀) it =
       substitution-pres-typing (Hcof x) (val-type-det Htype₁ Hv)
     preservation-det-step (tprim Hϕ Htypes Hd) (eprim Heq) =
-      tsub treal 0≤ (sreal (PrimCoeffBound Hϕ))
+      tsub treal 0≤ (sreal (≤-1 (toℕ<n _)))
     preservation-det-step (tproj i Htype) (eproj .i Heq Hvs) rewrite Heq =
       ttup-inv Htype refl i
     preservation-det-step (tif Htype Htype₁ Htype₂) (eif {r} _) with r ≲? 0ᴿ
