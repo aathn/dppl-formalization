@@ -40,7 +40,7 @@ open import Relation.Nullary public using (¬_)
 -- Unit type
 ----------------------------------------------------------------------
 
-open import Data.Unit.Polymorphic public using (tt)
+open import Data.Unit public using (tt)
   renaming (⊤ to 𝟙)
 
 ----------------------------------------------------------------------
@@ -733,6 +733,6 @@ pair _ x y = (x , y)
 
 -- Iterated cartesian product
 infixr 6 _^_
-_^_ : {l : Level} → Set l → ℕ → Set l
+_^_ : Set → ℕ → Set
 A ^ 0     = 𝟙
 A ^(n +1) = A × (A ^ n)

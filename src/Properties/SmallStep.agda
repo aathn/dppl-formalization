@@ -94,7 +94,7 @@ canonical-dist
     (∃[ D ] ∃[ rs ] t ≡ dist D (map real rs))
   ⊎ (∃[ v ] t ≡ infer v × Value (v ₀))
 
-canonical-dist (tdist {ts = ts} _ Htypes _) (vdist Hvs) _ =
+canonical-dist (tdist {ts = ts} _ _ Htypes) (vdist Hvs) _ =
   let Hreals : ∃[ rs ] ts ≡ map real rs
       Hreals = _ , funext λ i → π₂ $ canonical-real (Htypes i) (Hvs i) refl
   in
@@ -115,10 +115,10 @@ val-type-det
     Γ ⊢ t :[ det ] T
 val-type-det (tabs Htype) _ = tabs Htype
 val-type-det treal _ = treal
-val-type-det (ttup Htypes Hd) (vtup Hvs) =
-  ttup (λ i → val-type-det (Htypes i) (Hvs i)) Hd
-val-type-det (tdist HD Htypes Hd) (vdist Hvs) =
-  tdist HD (λ i → val-type-det (Htypes i) (Hvs i)) Hd
+val-type-det (ttup Hd Htypes) (vtup Hvs) =
+  ttup Hd (λ i → val-type-det (Htypes i) (Hvs i))
+val-type-det (tdist HD Hd Htypes) (vdist Hvs) =
+  tdist HD Hd (λ i → val-type-det (Htypes i) (Hvs i))
 val-type-det (tinfer Htype) (vinfer Hval) = tinfer (val-type-det Htype Hval)
 val-type-det (tweaken Htype H⊆ Hd) Hval = tweaken (val-type-det Htype Hval) H⊆ Hd
 val-type-det (tsub Htype He Hsub) Hval = tsub (val-type-det Htype Hval) 0≤ Hsub
