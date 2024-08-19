@@ -22,7 +22,7 @@ distinct? : ∀ Γ → Dec (Distinct Γ)
 distinct? [] = yes []
 distinct? (Γ , x ∶ T) with x ∈? dom Γ | distinct? Γ
 ... | yes p | _     = no λ { (H ∷ _) → ∉→¬∈ {{p = H}} p }
-... | no  q | no  u = no λ { (_ ∷ H) → u H}
+... | no  q | no  u = no λ { (_ ∷ H) → u H }
 ... | no  q | yes v = yes (¬∈→∉ q ∷ v)
 
 -- Syntax shorthands

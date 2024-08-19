@@ -433,7 +433,7 @@ open Array public
 ----------------------------------------------------------------------
 -- Lists
 ----------------------------------------------------------------------
-open import Data.List using (List ; []) renaming (_∷_ to _::_) public
+open import Data.List using (List ; [] ; _∷_) public
 
 ----------------------------------------------------------------------
 --  Finite sets represented by trees
@@ -712,7 +712,7 @@ ordinal (n +1) = ordinal n ∪ [ n ]
 -- Dependent product
 -- Cartesian product
 ----------------------------------------------------------------------
-open import Data.Product using (_,_ ; _×_)
+open import Data.Product using (_,_ ; _×_ ; ∃)
   renaming (Σ to ∑ ; proj₁ to π₁ ; proj₂ to π₂)
   public
 
