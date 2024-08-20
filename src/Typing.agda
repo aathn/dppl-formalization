@@ -13,6 +13,7 @@ open import Lib.AbstractionConcretion hiding (abs)
 open import Lib.BindingSignature
 
 open import Data.List using (map)
+open import Data.List.Membership.Propositional using () renaming (_∈_ to _∈ᴱ_)
 open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_)
 open import Data.List.Relation.Binary.Pointwise using (Pointwise)
 open import Data.List.Relation.Unary.All using (All)
@@ -96,7 +97,7 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
     {x : 𝔸}
     {T : Type}
     {Γ : TyEnv}
-    (_ : [ x ∶ T ] ⊆ Γ)
+    (_ : (x , T) ∈ᴱ Γ)
     (_ : Distinct Γ)
     → -------------------
     Γ ⊢ fvar x :[ det ] T

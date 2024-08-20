@@ -9,8 +9,9 @@ open import Data.Fin using () renaming (_<_ to _<ꟳ_)
 open import Data.List using (_++_ ; map)
 open import Data.List.Properties
   using (++-conicalʳ ; ∷-injective ; ∷-injectiveˡ ; ∷-injectiveʳ)
-open import Data.List.Membership.Propositional using () renaming (_∈_ to _∈ˡ_)
-open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_ ; [] ; _∷_ ; _∷ʳ_)
+open import Data.List.Membership.Propositional using () renaming (_∈_ to _∈ᴱ_)
+open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_ ; [] ; _∷_ ; _∷ʳ_ ; ⊆-upper-bound ; UpperBound)
+open import Data.List.Relation.Unary.Any using (here ; there)
 import Data.Vec.Functional as V
 open import Relation.Binary using (Rel ; Decidable)
 
@@ -85,3 +86,32 @@ vmap-injective
 
 vmap-injective f f-inj Heq =
   funext λ i → f-inj $ ap (_$ i) Heq
+
+open UpperBound
+
+⊆-upper-bound-∈ :
+  {A : Set}
+  {x : A}
+  {xs ys zs : List A}
+  (σ : xs ⊆ zs)
+  (τ : ys ⊆ zs)
+  → ------------------------------------------
+  let ub = ⊆-upper-bound σ τ .theUpperBound in
+  x ∈ᴱ ub → x ∈ᴱ xs ⊎ x ∈ᴱ ys
+⊆-upper-bound-∈ [] [] ()
+⊆-upper-bound-∈ (y ∷ʳ σ) (.y ∷ʳ τ) H∈ = ⊆-upper-bound-∈ σ τ H∈
+⊆-upper-bound-∈ (y ∷ʳ σ) (refl ∷ τ) (here refl) = ι₂ $ here refl
+⊆-upper-bound-∈ (y ∷ʳ σ) (refl ∷ τ) (there H∈) =
+  case (⊆-upper-bound-∈ σ τ H∈) λ where
+    (ι₁ Hx) → ι₁ Hx
+    (ι₂ Hy) → ι₂ $ there Hy
+⊆-upper-bound-∈ (refl ∷ σ) (_ ∷ʳ τ) (here refl) = ι₁ $ here refl
+⊆-upper-bound-∈ (refl ∷ σ) (_ ∷ʳ τ) (there H∈) =
+  case (⊆-upper-bound-∈ σ τ H∈) λ where
+    (ι₁ Hx) → ι₁ $ there Hx
+    (ι₂ Hy) → ι₂ $ Hy
+⊆-upper-bound-∈ (refl ∷ σ) (refl ∷ τ) (here refl) = ι₁ $ here refl
+⊆-upper-bound-∈ (refl ∷ σ) (refl ∷ τ) (there H∈)  =
+  case (⊆-upper-bound-∈ σ τ H∈) λ where
+    (ι₁ Hx) → ι₁ $ there Hx
+    (ι₂ Hy) → ι₂ $ there Hy

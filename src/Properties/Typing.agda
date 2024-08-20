@@ -19,21 +19,18 @@ open import Lib.AbstractionConcretion hiding (abs)
 open import Lib.BindingSignature
 open import Lib.Substitution
 
-open import Data.List using (_++_ ; deduplicate ; filter)
-open import Data.List.Properties as LP using ()
-open import Data.List.Relation.Binary.Permutation.Propositional using (_↭_)
+open import Data.List using (_++_)
 open import Data.List.Relation.Binary.Pointwise as P using (Pointwise ; [] ; _∷_)
 open import Data.List.Relation.Binary.Sublist.Propositional
-  using (_⊆_ ; [] ; _∷_ ; _∷ʳ_ ; ⊆-refl ; ⊆-trans ; lookup ; minimum)
+  using (_⊆_ ; [] ; _∷_ ; _∷ʳ_ ; ⊆-refl ; ⊆-trans ; lookup ; UpperBound
+        ;⊆-upper-bound ; from∈ ; to∈)
 open import Data.List.Relation.Binary.Sublist.Propositional.Properties as SP using ()
 open import Data.List.Relation.Unary.Any using (here ; there)
 open import Data.List.Relation.Unary.Any.Properties as AnyP using ()
 open import Data.List.Relation.Unary.All as A using (All ; [] ; _∷_)
 open import Data.List.Relation.Unary.All.Properties as AllP using ()
-open import Data.List.Membership.Propositional using () renaming (_∈_ to _∈ˡ_)
+open import Data.List.Membership.Propositional using () renaming (_∈_ to _∈ᴱ_)
 open import Data.List.Membership.Propositional.Properties as MP using ()
-open import Relation.Nullary using (¬?)
-open import Relation.Unary using (Pred ; Decidable)
 
 infixl 5 _&_
 _&_ : TyEnv → TyEnv → TyEnv
@@ -115,9 +112,9 @@ sub-env :
   (_ : Γ₂ <:ᴱ Γ₁)
   → -------------------
   Γ₂ ⊢ t :[ e ] T
-sub-env (tvar H⊆ Hd) Hsub
-  with Γ₂′ , (refl , Hsub′) ∷ [] , H⊆′ ← sub-⊆ Hsub H⊆ =
-  tsub (tvar H⊆′ (dom-distinct (symm $ sub-dom Hsub) Hd)) ≤refl Hsub′
+sub-env (tvar H∈ Hd) Hsub
+  with Γ₂′ , (refl , Hsub′) ∷ [] , H⊆′ ← sub-⊆ Hsub (from∈ H∈) =
+  tsub (tvar (to∈ H⊆′) (dom-distinct (symm $ sub-dom Hsub) Hd)) ≤refl Hsub′
 sub-env (tabs (Иi As Hcof)) Hsub =
   tabs $ Иi As λ y → sub-env (Hcof y) ((refl , sub-refl) ∷ Hsub)
 sub-env (tapp Htype Htype₁) Hsub =
@@ -187,7 +184,7 @@ weaken-typing :
   (_ : Distinct Γ)
   → -------------------
   Γ ⊢ t :[ e ] T
-weaken-typing (tvar H⊆₀ _) H⊆ Hd = tvar (⊆-trans H⊆₀ H⊆) Hd
+weaken-typing (tvar H∈ _) H⊆ Hd = tvar (to∈ (⊆-trans (from∈ H∈) H⊆)) Hd
 weaken-typing {Γ} (tabs (Иi As Htype)) H⊆ Hd =
   tabs $ Иi (dom Γ ∪ As) λ
     {x {{∉∪}} → weaken-typing (Htype x) (refl ∷ H⊆) (it ∷ Hd)}
@@ -288,11 +285,11 @@ tinfer-inv (tsub Htype H≤ (sdist Hsub)) refl =
 tinfer-inv (tpromote {T = tdist _} Htype H≤ H⊆ Hd) refl =
   tpromote (tinfer-inv Htype refl) H≤ H⊆ Hd
 
-dom-∈ : {Γ : TyEnv}{x : 𝔸} → x ∈ dom Γ → ∃ λ T → (x , T) ∈ˡ Γ
+dom-∈ : {Γ : TyEnv}{x : 𝔸} → x ∈ dom Γ → ∃ λ T → (x , T) ∈ᴱ Γ
 dom-∈ {x ∷ Γ} (∈∪₁ ∈[]) = _ , here refl
 dom-∈ {x ∷ Γ} (∈∪₂ x∈Γ) with T , H∈ ← dom-∈ x∈Γ = T , there H∈
 
-∈-dom : {Γ : TyEnv}{x : 𝔸}{T : Type} → (x , T) ∈ˡ Γ → x ∈ dom Γ
+∈-dom : {Γ : TyEnv}{x : 𝔸}{T : Type} → (x , T) ∈ᴱ Γ → x ∈ dom Γ
 ∈-dom {x ∷ Γ} (here refl) = ∈∪₁ ∈[]
 ∈-dom {x ∷ Γ} (there H∈)  = ∈∪₂ (∈-dom H∈)
 
@@ -311,7 +308,7 @@ dom-∈ {x ∷ Γ} (∈∪₂ x∈Γ) with T , H∈ ← dom-∈ x∈Γ = T , the
   (_ : x ∉ dom Γ)
   → ------------------
   x ∉ fv t
-∉-dom-fv (tvar H⊆ Hd) H∉ with ∉∪ {{p}} ← ∉-dom-⊆ H∉ H⊆ = p
+∉-dom-fv (tvar H∈ Hd) H∉ with ∉∪ {{p}} ← ∉-dom-⊆ H∉ (from∈ H∈) = p
 ∉-dom-fv {x} (tabs {t = t} (Иi As Hcof)) H∉
   with y , ∉∪ {{∉[]}} ← fresh {𝔸} ([ x ] ∪ As)
   with Hnin ← ∉-dom-fv {x} (Hcof y) (∉∪ {{p = ∉[] {{p = symm≠ y x it}}}} {{H∉}}) =
@@ -497,70 +494,24 @@ has-type-coeff-env :
   (_ : c ≤ᶜ T)
   → -----------------------------------------
   ∃ λ Γ′ → Γ′ ⊢ t :[ e ] T × c ≤ᴱ Γ′ × Γ′ ⊆ Γ
-has-type-coeff-env = {!!}
-
-_∪ᴱ_ : TyEnv → TyEnv → TyEnv
-Γ₁ ∪ᴱ Γ₂ = deduplicate (λ x y → π₁ x ≐ π₁ y) (Γ₁ ++ Γ₂)
-
-dedup-distinct :
-  {Γ : TyEnv}
-  → --------------------------------------------
-  Distinct (deduplicate (λ x y → π₁ x ≐ π₁ y) Γ)
-dedup-distinct {[]} = []
-dedup-distinct {x ∷ Γ} =
-  ¬∈→∉ (λ H∈ → MP.∈-filter⁻ _ {xs = deduplicate _ Γ} (dom-∈ H∈ .π₂) .π₂ refl)
-    ∷ ⊆-distinct (dedup-distinct {Γ}) (SP.filter-⊆ _ _)
-
-∪ᴱ-distinct :
-  (Γ Γ′ : TyEnv)
-  (_ : Distinct Γ)
-  → ------------------------
-  ∃ λ Γ″ → Γ ∪ᴱ Γ′ ≡ Γ ++ Γ″
-∪ᴱ-distinct _ _ [] = _ , refl
-∪ᴱ-distinct ((x , T) ∷ Γ) Γ′ (H∉ ∷ Hd)
-  with Γ″ , Heq ← ∪ᴱ-distinct Γ Γ′ Hd = _ , ap (_ ∷_) Heq′
-  where
-  H∉′ : All (¬_ ∘ (x ≡_) ∘ π₁) Γ
-  H∉′ = A.map (λ {H≢ refl → H≢ (_ , refl)}) $
-              AllP.¬Any⇒All¬ {P = λ y → ∃ λ T → (x , T) ≡ y} Γ λ H∈ →
-                ∉→¬∈ {{p = H∉}} $ ∈-dom $ AnyP.Any-Σ⁻ʳ H∈ .π₂
-  Heq′ = proof
-    filter (¬? ∘ (x ≐_) ∘ π₁) (Γ ∪ᴱ Γ′) ≡[ ap (filter _) Heq ]
-    filter _ (Γ ++ Γ″)                  ≡[ LP.filter-++ _ Γ Γ″ ]
-    filter _ Γ ++ filter _ Γ″           ≡[ ap (_++ _) $ LP.filter-all _ H∉′ ]
-    Γ ++ filter (¬? ∘ (x ≐_) ∘ π₁) Γ″   qed
-
-∪ᴱ-comm :
-  {Γ₁ : TyEnv}
-  {Γ₂ : TyEnv}
-  → -----------------
-  Γ₁ ∪ᴱ Γ₂ ↭ Γ₂ ∪ᴱ Γ₁
-∪ᴱ-comm = {!!}
-
-∪ᴱ-inj₁ :
-  {Γ₁ : TyEnv}
-  (Γ₂ : TyEnv)
-  (_ : Distinct Γ₁)
-  → ---------------
-  Γ₁ ⊆ Γ₁ ∪ᴱ Γ₂
-∪ᴱ-inj₁ {Γ₁} Γ₂ Hd rewrite ∪ᴱ-distinct Γ₁ Γ₂ Hd .π₂ = SP.++⁺ʳ _ ⊆-refl
-
-∪ᴱ-inj₂ :
-  (Γ₁ : TyEnv)
-  {Γ₂ : TyEnv}
-  (_ : Distinct Γ₂)
-  → ---------------
-  Γ₂ ⊆ Γ₁ ∪ᴱ Γ₂
-∪ᴱ-inj₂ [] {Γ₂} Hd = {!!}
-∪ᴱ-inj₂ (x ∷ Γ₁) {Γ₂} Hd = {!!}
-
-∪ᴱ-lub :
-  {Γ₁ Γ₂ Γ₃ : TyEnv}
-  (_ : Γ₁ ⊆ Γ₃)
-  (_ : Γ₂ ⊆ Γ₃)
-  → ----------------
-  Γ₁ ∪ᴱ Γ₂ ⊆ Γ₃
-∪ᴱ-lub = {!!}
+has-type-coeff-env (tvar {x} {T} H∈ Hd) H≤ =
+  [ x ∶ T ] , tvar (here refl) (∉Ø ∷ []) , H≤ ∷ [] , from∈ H∈
+has-type-coeff-env (tabs (Иi As Htype)) H≤ = {!!}
+has-type-coeff-env (tapp Htype Htype₁) H≤ = {!!}
+has-type-coeff-env (tprim x x₁ x₂) H≤ = {!!}
+has-type-coeff-env (treal x) H≤ = {!!}
+has-type-coeff-env (ttup x x₁) H≤ = {!!}
+has-type-coeff-env (tproj i Htype) H≤ = {!!}
+has-type-coeff-env (tif Htype Htype₁ Htype₂) H≤ = {!!}
+has-type-coeff-env (tdiff x Htype Htype₁) H≤ = {!!}
+has-type-coeff-env (tsolve Htype Htype₁ Htype₂) H≤ = {!!}
+has-type-coeff-env (tdist x x₁ x₂) H≤ = {!!}
+has-type-coeff-env (tassume Htype) H≤ = {!!}
+has-type-coeff-env (tweight Htype) H≤ = {!!}
+has-type-coeff-env (texpect Htype) H≤ = {!!}
+has-type-coeff-env (tinfer Htype) H≤ = {!!}
+has-type-coeff-env (tsub Htype x x₁) H≤ = {!!}
+has-type-coeff-env (tpromote Htype x x₁ x₂) H≤ = {!!}
 
 substitution-pres-typing :
   {Γ Γ′ : TyEnv}
@@ -590,11 +541,11 @@ substitution-pres-typing {x = x} Htype Hu =
     (_ : Γ₀ ⊢ t :[ e ] T₁)
     → ----------------------------
     Γ″ & Γ′ ⊢ (x => u) t :[ e ] T₁
-  go {{refl}} (tvar {x = x₁} H⊆₀ Hd) with x ≐ x₁
-  ... | equ with _ , _ , _ , _ , Heq ← ⊆-split (distinct-∉ Hd) (∈∪₁ ∈[]) H⊆₀
+  go {{refl}} (tvar {x = x₁} H∈ Hd) with x ≐ x₁
+  ... | equ with _ , _ , _ , _ , Heq ← ⊆-split (distinct-∉ Hd) (∈∪₁ ∈[]) (from∈ H∈)
             with refl , refl , refl ← single-inv {{Heq}} =
         weaken-typing it (SP.++⁺ˡ _ ⊆-refl) it
-  ... | neq H≢ = tvar (⊆-trans (⊆-strengthen it H⊆₀) (SP.++⁺ ⊆-refl it)) it
+  ... | neq H≢ = tvar (to∈ (⊆-trans (⊆-strengthen it (from∈ H∈)) (SP.++⁺ ⊆-refl it))) it
     where instance
     _ : x ≠ x₁
     _ = dec-neq _ _ H≢
@@ -626,22 +577,21 @@ substitution-pres-typing {x = x} Htype Hu =
   go (tinfer Htype)  = tinfer  $ go Htype
   go (tsub Htype H≤ Hsub) = tsub (go Htype) H≤ Hsub
   go {Γ′ = Γ′} {Γ″} {u = u} {T₂ = T₂} {{refl}}
-    (tpromote {Γ′ = Γ₂} {t = t} Htype H≤ H⊆ Hd) with x ∈? dom Γ₂
+    (tpromote {Γ′ = Δ} {t = t} {c = c} Htype H≤ H⊆ Hd) with x ∈? dom Δ
   ... | yes H∈ with Δ₁ , Δ₂ , H⊆₁ , H⊆₂ , refl ← ⊆-split (distinct-∉ Hd) H∈ H⊆
                with H≤₂ , H≤T₂ ∷ H≤₁ ← AllP.++⁻ Δ₂ H≤ =
-    let Θ , Hu′ , H≤′ , H⊆′ = has-type-coeff-env it H≤T₂
-        Hd′ : Distinct Γ″
-        Hd′ = ⊆-distinct it (SP.++⁺ˡ _ ⊆-refl)
-        Hu″ : Δ₁ ∪ᴱ Θ ⊢ u :[ det ] T₂
-        Hu″ = weaken-typing Hu′ (∪ᴱ-inj₂ Δ₁ (⊆-distinct Hd′ H⊆′)) dedup-distinct
-        HΘ⊆ : (Δ₁ ∪ᴱ Θ) & Δ₂ ⊆ Γ″ & Γ′
-        HΘ⊆ = SP.++⁺ H⊆₂ (∪ᴱ-lub (⊆-trans H⊆₁ it) H⊆′)
-    in  tpromote (go {{Hu = Hu″}}
-                     {{∪ᴱ-inj₁ _ (⊆-distinct Hd′ (⊆-trans H⊆₁ it))}}
-                     {{⊆-distinct it HΘ⊆}}
-                     Htype)
-                 (AllP.++⁺ H≤₂ (AllP.deduplicate⁺ _ (AllP.++⁺ H≤₁ H≤′)))
-                 HΘ⊆
+    let _ , Hu′ , H≤′ , H⊆′ = has-type-coeff-env it H≤T₂
+        Θ = ⊆-upper-bound (⊆-trans H⊆₁ it) H⊆′
+        open UpperBound
+        Hu″ : _ ⊢ u :[ det ] T₂
+        Hu″ = weaken-typing Hu′ (inj₂ Θ) (⊆-distinct it (SP.++⁺ˡ _ (sub Θ)))
+        H≤″ : {x : 𝔸 × Type} → x ∈ᴱ theUpperBound Θ → c ≤ᶜ π₂ x
+        H≤″ H∈ = case (⊆-upper-bound-∈ (⊆-trans H⊆₁ it) H⊆′ H∈) λ where
+                   (ι₁ Hx) → A.lookup H≤₁ Hx
+                   (ι₂ Hy) → A.lookup H≤′ Hy
+    in  tpromote (go {{Hu = Hu″}} {{inj₁ Θ}} {{⊆-distinct it (SP.++⁺ H⊆₂ (sub Θ))}} Htype)
+                 (AllP.++⁺ H≤₂ (A.tabulate H≤″))
+                 (SP.++⁺ H⊆₂ (sub Θ))
                  it
   ... | no H∉ rewrite subst-fresh u t (∉-dom-fv Htype (¬∈→∉ H∉)) =
     tpromote Htype H≤ (⊆-trans (⊆-strengthen (¬∈→∉ H∉) H⊆) (SP.++⁺ ⊆-refl it)) it
