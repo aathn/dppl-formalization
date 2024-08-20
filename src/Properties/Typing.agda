@@ -19,16 +19,21 @@ open import Lib.AbstractionConcretion hiding (abs)
 open import Lib.BindingSignature
 open import Lib.Substitution
 
-open import Data.List using (_++_)
-open import Data.List.Properties using (++-conicalʳ)
-open import Data.List.Relation.Binary.Sublist.Propositional
-  using (_⊆_ ; [] ; _∷_ ; _∷ʳ_ ; ⊆-refl ; ⊆-trans ; lookup)
-open import Data.List.Relation.Binary.Sublist.Propositional.Properties as SP using ()
+open import Data.List using (_++_ ; deduplicate ; filter)
+open import Data.List.Properties as LP using ()
+open import Data.List.Relation.Binary.Permutation.Propositional using (_↭_)
 open import Data.List.Relation.Binary.Pointwise as P using (Pointwise ; [] ; _∷_)
+open import Data.List.Relation.Binary.Sublist.Propositional
+  using (_⊆_ ; [] ; _∷_ ; _∷ʳ_ ; ⊆-refl ; ⊆-trans ; lookup ; minimum)
+open import Data.List.Relation.Binary.Sublist.Propositional.Properties as SP using ()
 open import Data.List.Relation.Unary.Any using (here ; there)
 open import Data.List.Relation.Unary.Any.Properties as AnyP using ()
 open import Data.List.Relation.Unary.All as A using (All ; [] ; _∷_)
+open import Data.List.Relation.Unary.All.Properties as AllP using ()
 open import Data.List.Membership.Propositional using () renaming (_∈_ to _∈ˡ_)
+open import Data.List.Membership.Propositional.Properties as MP using ()
+open import Relation.Nullary using (¬?)
+open import Relation.Unary using (Pred ; Decidable)
 
 infixl 5 _&_
 _&_ : TyEnv → TyEnv → TyEnv
@@ -494,6 +499,69 @@ has-type-coeff-env :
   ∃ λ Γ′ → Γ′ ⊢ t :[ e ] T × c ≤ᴱ Γ′ × Γ′ ⊆ Γ
 has-type-coeff-env = {!!}
 
+_∪ᴱ_ : TyEnv → TyEnv → TyEnv
+Γ₁ ∪ᴱ Γ₂ = deduplicate (λ x y → π₁ x ≐ π₁ y) (Γ₁ ++ Γ₂)
+
+dedup-distinct :
+  {Γ : TyEnv}
+  → --------------------------------------------
+  Distinct (deduplicate (λ x y → π₁ x ≐ π₁ y) Γ)
+dedup-distinct {[]} = []
+dedup-distinct {x ∷ Γ} =
+  ¬∈→∉ (λ H∈ → MP.∈-filter⁻ _ {xs = deduplicate _ Γ} (dom-∈ H∈ .π₂) .π₂ refl)
+    ∷ ⊆-distinct (dedup-distinct {Γ}) (SP.filter-⊆ _ _)
+
+∪ᴱ-distinct :
+  (Γ Γ′ : TyEnv)
+  (_ : Distinct Γ)
+  → ------------------------
+  ∃ λ Γ″ → Γ ∪ᴱ Γ′ ≡ Γ ++ Γ″
+∪ᴱ-distinct _ _ [] = _ , refl
+∪ᴱ-distinct ((x , T) ∷ Γ) Γ′ (H∉ ∷ Hd)
+  with Γ″ , Heq ← ∪ᴱ-distinct Γ Γ′ Hd = _ , ap (_ ∷_) Heq′
+  where
+  H∉′ : All (¬_ ∘ (x ≡_) ∘ π₁) Γ
+  H∉′ = A.map (λ {H≢ refl → H≢ (_ , refl)}) $
+              AllP.¬Any⇒All¬ {P = λ y → ∃ λ T → (x , T) ≡ y} Γ λ H∈ →
+                ∉→¬∈ {{p = H∉}} $ ∈-dom $ AnyP.Any-Σ⁻ʳ H∈ .π₂
+  Heq′ = proof
+    filter (¬? ∘ (x ≐_) ∘ π₁) (Γ ∪ᴱ Γ′) ≡[ ap (filter _) Heq ]
+    filter _ (Γ ++ Γ″)                  ≡[ LP.filter-++ _ Γ Γ″ ]
+    filter _ Γ ++ filter _ Γ″           ≡[ ap (_++ _) $ LP.filter-all _ H∉′ ]
+    Γ ++ filter (¬? ∘ (x ≐_) ∘ π₁) Γ″   qed
+
+∪ᴱ-comm :
+  {Γ₁ : TyEnv}
+  {Γ₂ : TyEnv}
+  → -----------------
+  Γ₁ ∪ᴱ Γ₂ ↭ Γ₂ ∪ᴱ Γ₁
+∪ᴱ-comm = {!!}
+
+∪ᴱ-inj₁ :
+  {Γ₁ : TyEnv}
+  (Γ₂ : TyEnv)
+  (_ : Distinct Γ₁)
+  → ---------------
+  Γ₁ ⊆ Γ₁ ∪ᴱ Γ₂
+∪ᴱ-inj₁ {Γ₁} Γ₂ Hd rewrite ∪ᴱ-distinct Γ₁ Γ₂ Hd .π₂ = SP.++⁺ʳ _ ⊆-refl
+
+∪ᴱ-inj₂ :
+  (Γ₁ : TyEnv)
+  {Γ₂ : TyEnv}
+  (_ : Distinct Γ₂)
+  → ---------------
+  Γ₂ ⊆ Γ₁ ∪ᴱ Γ₂
+∪ᴱ-inj₂ [] {Γ₂} Hd = {!!}
+∪ᴱ-inj₂ (x ∷ Γ₁) {Γ₂} Hd = {!!}
+
+∪ᴱ-lub :
+  {Γ₁ Γ₂ Γ₃ : TyEnv}
+  (_ : Γ₁ ⊆ Γ₃)
+  (_ : Γ₂ ⊆ Γ₃)
+  → ----------------
+  Γ₁ ∪ᴱ Γ₂ ⊆ Γ₃
+∪ᴱ-lub = {!!}
+
 substitution-pres-typing :
   {Γ Γ′ : TyEnv}
   {x : 𝔸}
@@ -551,68 +619,77 @@ substitution-pres-typing {x = x} Htype Hu =
     tdiff Hcs (go Htype) (go Htype₁)
   go (tsolve Htype Htype₁ Htype₂) =
     tsolve (go Htype) (go Htype₁) (go Htype₂)
-  go {{refl}} (tdist HD _ Htypes) = tdist HD it (go ∘ Htypes)
+  go (tdist HD _ Htypes) = tdist HD it (go ∘ Htypes)
   go (tassume Htype) = tassume $ go Htype
   go (tweight Htype) = tweight $ go Htype
   go (texpect Htype) = texpect $ go Htype
   go (tinfer Htype)  = tinfer  $ go Htype
-  -- go {{refl}} (tweaken {Γ′ = Γ₂} {t = t} Htype H⊆ Hd) with x ∈? dom Γ₂
-  -- ... | yes H∈ with Δ₁ , Δ₂ , H⊆₂ , H⊆₁ , refl ← ⊆-split (distinct-∉ Hd) H∈ H⊆ =
-  --   tweaken (go Htype) (++⁺ H⊆₁ H⊆₂) (distinct-weaken Hd)
-  -- ... | no H∉ rewrite subst-fresh u t (∉-dom-fv Htype (¬∈→∉ H∉)) =
-  --   tweaken Htype (⊆-strengthen (¬∈→∉ H∉) H⊆) (distinct-weaken Hd)
   go (tsub Htype H≤ Hsub) = tsub (go Htype) H≤ Hsub
-  go {u = u} {{refl}} {{Hu}} (tpromote {Γ′ = Γ₂} {t = t} Htype H≤ H⊆ Hd) with x ∈? dom Γ₂
-  ... | yes H∈ with Δ₁ , Δ₂ , H⊆₂ , H⊆₁ , refl ← ⊆-split (distinct-∉ Hd) H∈ H⊆ =
-    let Γ , Hu′ , H≤′ , H⊆′ = has-type-coeff-env Hu (A.lookup H≤ (AnyP.++⁺ʳ Δ₂ (here refl))) in
-    tpromote (go {{Hu = Hu′}} {{{!!}}} {{{!!}}} Htype) {!!} {!!} it
-  ... | no  H∉ rewrite subst-fresh u t (∉-dom-fv Htype (¬∈→∉ H∉)) =
+  go {Γ′ = Γ′} {Γ″} {u = u} {T₂ = T₂} {{refl}}
+    (tpromote {Γ′ = Γ₂} {t = t} Htype H≤ H⊆ Hd) with x ∈? dom Γ₂
+  ... | yes H∈ with Δ₁ , Δ₂ , H⊆₁ , H⊆₂ , refl ← ⊆-split (distinct-∉ Hd) H∈ H⊆
+               with H≤₂ , H≤T₂ ∷ H≤₁ ← AllP.++⁻ Δ₂ H≤ =
+    let Θ , Hu′ , H≤′ , H⊆′ = has-type-coeff-env it H≤T₂
+        Hd′ : Distinct Γ″
+        Hd′ = ⊆-distinct it (SP.++⁺ˡ _ ⊆-refl)
+        Hu″ : Δ₁ ∪ᴱ Θ ⊢ u :[ det ] T₂
+        Hu″ = weaken-typing Hu′ (∪ᴱ-inj₂ Δ₁ (⊆-distinct Hd′ H⊆′)) dedup-distinct
+        HΘ⊆ : (Δ₁ ∪ᴱ Θ) & Δ₂ ⊆ Γ″ & Γ′
+        HΘ⊆ = SP.++⁺ H⊆₂ (∪ᴱ-lub (⊆-trans H⊆₁ it) H⊆′)
+    in  tpromote (go {{Hu = Hu″}}
+                     {{∪ᴱ-inj₁ _ (⊆-distinct Hd′ (⊆-trans H⊆₁ it))}}
+                     {{⊆-distinct it HΘ⊆}}
+                     Htype)
+                 (AllP.++⁺ H≤₂ (AllP.deduplicate⁺ _ (AllP.++⁺ H≤₁ H≤′)))
+                 HΘ⊆
+                 it
+  ... | no H∉ rewrite subst-fresh u t (∉-dom-fv Htype (¬∈→∉ H∉)) =
     tpromote Htype H≤ (⊆-trans (⊆-strengthen (¬∈→∉ H∉) H⊆) (SP.++⁺ ⊆-refl it)) it
 
 
--- -- var-substitution-pres-typing
--- --   : ∀ {Γ Γ′ x y T₂ t e T₁}
--- --   → Γ , x ∶ T₂ & Γ′ ⊢ t :[ e ] T₁
--- --   → -------------------------------------------
--- --     Γ , y ∶ T₂ & Γ′ ⊢ (x => fvar y) t :[ e ] T₁
--- -- substitution-pres-typing {Γ′} {x} {u} {T₂} Htype Hu = go Htype
--- --   where
--- --   go
--- --     : ∀ {Γ′ Γ₀ t e T₁}
--- --     → {{Γ₀ ≡ [ x ∶ T₂ ] & Γ′}}
--- --     → Γ₀ ⊢ t :[ e ] T₁
--- --     → -------------------------
--- --       [] & Γ′ ⊢ (x => u) t :[ e ] T₁
--- --   go {{Heq}} (tvar {x = x₁})
--- --     with refl , refl , refl ← single-inv {{Heq}}
--- --     rewrite dec-equ x = Hu
--- --   go {Γ′} {{refl}} (tabs {t = t} (Иi As Hcof)) =
--- --     tabs $ Иi ([ x ] ∪ As) λ { y {{∉∪ {{∉x}}}} →
--- --       let Heq : (x => u)((0 ~> y) (t ₀)) ≡ (0 ~> y)((x => u) (t ₀))
--- --           Heq = subst-open-comm (t ₀) (symm≠ y x (∉[]₁ ∉x)) (lc-at→≻ _ _ $ well-typed-lc Hu)
--- --       in
--- --       subst (λ x → _ ⊢ x :[ _ ] _) Heq $ go {Γ′ , y ∶ _} (Hcof y)
--- --     }
--- --   go (tapp Htype Htype₁) = tapp (go Htype) (go Htype₁)
--- --   go {{refl}} (tprim Hϕ Hd Htypes) = tprim Hϕ (distinct-weaken Hd) (go ∘ Htypes)
--- --   go {Γ′} treal with () ← ++-conicalʳ Γ′ _ $ symm it
--- --   go {{refl}} (ttup Hd Htypes) = ttup (distinct-weaken Hd) (go ∘ Htypes)
--- --   go (tproj i Htype) = tproj i $ go Htype
--- --   go (tif Htype Htype₁ Htype₂) =
--- --     tif (go Htype) (go Htype₁) (go Htype₂)
--- --   go (tdiff Hcs Htype Htype₁) =
--- --     tdiff Hcs (go Htype) (go Htype₁)
--- --   go (tsolve Htype Htype₁ Htype₂) =
--- --     tsolve (go Htype) (go Htype₁) (go Htype₂)
--- --   go {{refl}} (tdist HD Hd Htypes) = tdist HD (distinct-weaken Hd) (go ∘ Htypes)
--- --   go (tassume Htype) = tassume $ go Htype
--- --   go (tweight Htype) = tweight $ go Htype
--- --   go (texpect Htype) = texpect $ go Htype
--- --   go (tinfer Htype)  = tinfer  $ go Htype
--- --   go {{refl}} (tweaken {Γ′ = Γ₂} {t = t} Htype H⊆ Hd) with x ∈? dom Γ₂
--- --   ... | yes H∈ with Δ₁ , Δ₂ , [] , H⊆₁ , refl ← ⊆-split (distinct-∉ Hd) H∈ H⊆ =
--- --     tweaken (go Htype) (++⁺ H⊆₁ []) (distinct-weaken Hd)
--- --   ... | no H∉ rewrite subst-fresh u t (∉-dom-fv Htype (¬∈→∉ H∉)) =
--- --     tweaken Htype (⊆-strengthen (¬∈→∉ H∉) H⊆) (distinct-weaken Hd)
--- --   go (tsub Htype H≤ Hsub) = tsub (go Htype) H≤ Hsub
--- --   go {{refl}} (tpromote Htype Hmul) = tpromote (go Htype) (all-weaken Hmul)
+-- var-substitution-pres-typing
+--   : ∀ {Γ Γ′ x y T₂ t e T₁}
+--   → Γ , x ∶ T₂ & Γ′ ⊢ t :[ e ] T₁
+--   → -------------------------------------------
+--     Γ , y ∶ T₂ & Γ′ ⊢ (x => fvar y) t :[ e ] T₁
+-- substitution-pres-typing {Γ′} {x} {u} {T₂} Htype Hu = go Htype
+--   where
+--   go
+--     : ∀ {Γ′ Γ₀ t e T₁}
+--     → {{Γ₀ ≡ [ x ∶ T₂ ] & Γ′}}
+--     → Γ₀ ⊢ t :[ e ] T₁
+--     → -------------------------
+--       [] & Γ′ ⊢ (x => u) t :[ e ] T₁
+--   go {{Heq}} (tvar {x = x₁})
+--     with refl , refl , refl ← single-inv {{Heq}}
+--     rewrite dec-equ x = Hu
+--   go {Γ′} {{refl}} (tabs {t = t} (Иi As Hcof)) =
+--     tabs $ Иi ([ x ] ∪ As) λ { y {{∉∪ {{∉x}}}} →
+--       let Heq : (x => u)((0 ~> y) (t ₀)) ≡ (0 ~> y)((x => u) (t ₀))
+--           Heq = subst-open-comm (t ₀) (symm≠ y x (∉[]₁ ∉x)) (lc-at→≻ _ _ $ well-typed-lc Hu)
+--       in
+--       subst (λ x → _ ⊢ x :[ _ ] _) Heq $ go {Γ′ , y ∶ _} (Hcof y)
+--     }
+--   go (tapp Htype Htype₁) = tapp (go Htype) (go Htype₁)
+--   go {{refl}} (tprim Hϕ Hd Htypes) = tprim Hϕ (distinct-weaken Hd) (go ∘ Htypes)
+--   go {Γ′} treal with () ← ++-conicalʳ Γ′ _ $ symm it
+--   go {{refl}} (ttup Hd Htypes) = ttup (distinct-weaken Hd) (go ∘ Htypes)
+--   go (tproj i Htype) = tproj i $ go Htype
+--   go (tif Htype Htype₁ Htype₂) =
+--     tif (go Htype) (go Htype₁) (go Htype₂)
+--   go (tdiff Hcs Htype Htype₁) =
+--     tdiff Hcs (go Htype) (go Htype₁)
+--   go (tsolve Htype Htype₁ Htype₂) =
+--     tsolve (go Htype) (go Htype₁) (go Htype₂)
+--   go {{refl}} (tdist HD Hd Htypes) = tdist HD (distinct-weaken Hd) (go ∘ Htypes)
+--   go (tassume Htype) = tassume $ go Htype
+--   go (tweight Htype) = tweight $ go Htype
+--   go (texpect Htype) = texpect $ go Htype
+--   go (tinfer Htype)  = tinfer  $ go Htype
+--   go {{refl}} (tweaken {Γ′ = Γ₂} {t = t} Htype H⊆ Hd) with x ∈? dom Γ₂
+--   ... | yes H∈ with Δ₁ , Δ₂ , [] , H⊆₁ , refl ← ⊆-split (distinct-∉ Hd) H∈ H⊆ =
+--     tweaken (go Htype) (++⁺ H⊆₁ []) (distinct-weaken Hd)
+--   ... | no H∉ rewrite subst-fresh u t (∉-dom-fv Htype (¬∈→∉ H∉)) =
+--     tweaken Htype (⊆-strengthen (¬∈→∉ H∉) H⊆) (distinct-weaken Hd)
+--   go (tsub Htype H≤ Hsub) = tsub (go Htype) H≤ Hsub
+--   go {{refl}} (tpromote Htype Hmul) = tpromote (go Htype) (all-weaken Hmul)

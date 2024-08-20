@@ -6,8 +6,7 @@ open import Lib.Prelude
 open import Lib.FunExt
 
 open import Data.Fin using () renaming (_<_ to _<ꟳ_)
-open import Data.Product using (∃-syntax)
-open import Data.List using (_++_ ; map ; merge)
+open import Data.List using (_++_ ; map)
 open import Data.List.Properties
   using (++-conicalʳ ; ∷-injective ; ∷-injectiveˡ ; ∷-injectiveʳ)
 open import Data.List.Membership.Propositional using () renaming (_∈_ to _∈ˡ_)
@@ -29,8 +28,8 @@ x ∈? (xs ∪ xs₁) with x ∈? xs
 all-⊎
   : ∀ {n} {A B : Fin n → Set}
   → (∀ i → A i ⊎ B i)
-  → -------------------------------------------------------
-    (∀ i → A i) ⊎ ∃[ j ] B j × ∀ (i : Fin n) → i <ꟳ j → A i
+  → --------------------------------------------------------
+    (∀ i → A i) ⊎ ∃ λ j → B j × ∀ (i : Fin n) → i <ꟳ j → A i
 
 all-⊎ {zero} f = ι₁ λ()
 all-⊎ {n +1} f =
@@ -57,7 +56,7 @@ map-∷-inv
   : ∀ {A B : Set} {Γ : List A} {Γ₁ : List B} {x : B} {f}
   → x ∷ Γ₁ ≡ map f Γ
   → -----------------
-    ∃[ y ] ∃[ Γ₁′ ]
+    ∃ λ y → ∃ λ Γ₁′ →
     y ∷ Γ₁′ ≡ Γ × x ≡ f y × Γ₁ ≡ map f Γ₁′
 
 map-∷-inv {Γ = y ∷ Γ′} refl = y , Γ′ , refl , refl , refl
@@ -65,8 +64,8 @@ map-∷-inv {Γ = y ∷ Γ′} refl = y , Γ′ , refl , refl , refl
 map-++-inv
   : ∀ {A B : Set} {Γ : List A} {Γ₁ Γ₂} {f : A → B}
   → Γ₁ ++ Γ₂ ≡ map f Γ
-  → ------------------
-    ∃[ Γ₁′ ] ∃[ Γ₂′ ]
+  → -------------------
+    ∃ λ Γ₁′ → ∃ λ Γ₂′ →
     Γ₁′ ++ Γ₂′ ≡ Γ × Γ₁ ≡ map f Γ₁′ × Γ₂ ≡ map f Γ₂′
 
 map-++-inv {Γ = Γ} {[]} Heq = [] , Γ , refl , refl , Heq
