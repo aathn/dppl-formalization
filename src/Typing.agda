@@ -68,7 +68,7 @@ data _<:_ : Type → Type → Set where
 
   sarr
     : ∀ {T₁ T₁′ T₂ T₂′ e e′}
-    → T₁′ <: T₁ → T₂ <: T₂′ → e ≤′ e′
+    → T₁′ <: T₁ → e ≤′ e′ → T₂ <: T₂′
     → -------------------------------
       T₁ ⇒[ e ] T₂ <: T₁′ ⇒[ e′ ] T₂′
 
@@ -78,8 +78,8 @@ data _<:_ : Type → Type → Set where
     → -------------------
       tdist T <: tdist T′
 
-infix 4 _[_]⊢_:[_]_
-data _[_]⊢_:[_]_ : TyEnv → Coeff → Term → Eff → Type → Set where
+infix 4 _⊢[_]_:[_]_
+data _⊢[_]_:[_]_ : TyEnv → Coeff → Term → Eff → Type → Set where
 
   tvar :
     {x : 𝔸}
@@ -90,7 +90,7 @@ data _[_]⊢_:[_]_ : TyEnv → Coeff → Term → Eff → Type → Set where
     (_ : c ≤ᶜ T)
     (_ : Distinct Γ)
     → ------------------------
-    Γ [ c ]⊢ fvar x :[ det ] T
+    Γ ⊢[ c ] fvar x :[ det ] T
 
   tlam :
     {Γ : TyEnv}
@@ -98,9 +98,9 @@ data _[_]⊢_:[_]_ : TyEnv → Coeff → Term → Eff → Type → Set where
     {T₁ T₂ : Type}
     {t : Vector Term 1}
     {e : Eff}
-    (_ : И x ∶ 𝔸 , Γ , x ∶ T₁ [ c ]⊢ conc (t ₀) x :[ e ] T₂)
+    (_ : И x ∶ 𝔸 , Γ , x ∶ T₁ ⊢[ c ] conc (t ₀) x :[ e ] T₂)
     → ------------------------------------------------------
-    Γ [ c ]⊢ lam T₁ t :[ det ] T₁ ⇒[ e ] T₂
+    Γ ⊢[ c ] lam T₁ t :[ det ] T₁ ⇒[ e ] T₂
 
   tapp :
     {Γ : TyEnv}
@@ -108,10 +108,10 @@ data _[_]⊢_:[_]_ : TyEnv → Coeff → Term → Eff → Type → Set where
     {ts : Vector Term 2}
     {e : Eff}
     {T₁ T₂ : Type}
-    (_ : Γ [ c ]⊢ ts ₀ :[ e ] T₁ ⇒[ e ] T₂)
-    (_ : Γ [ c ]⊢ ts ₁ :[ e ] T₁)
+    (_ : Γ ⊢[ c ] ts ₀ :[ e ] T₁ ⇒[ e ] T₂)
+    (_ : Γ ⊢[ c ] ts ₁ :[ e ] T₁)
     → -------------------------------------
-    Γ [ c ]⊢ app ts :[ e ] T₂
+    Γ ⊢[ c ] app ts :[ e ] T₂
 
   tprim :
     {ϕ : Prim}
@@ -123,16 +123,16 @@ data _[_]⊢_:[_]_ : TyEnv → Coeff → Term → Eff → Type → Set where
     {e : Eff}
     (_ : PrimTy ϕ ≡ (cs , c))
     (_ : Distinct Γ)
-    (_ : ∀ i → Γ [ d ]⊢ ts i :[ e ] treal (cs i))
+    (_ : ∀ i → Γ ⊢[ d ] ts i :[ e ] treal (cs i))
     → -------------------------------------------
-    Γ [ d ]⊢ prim ϕ ts :[ e ] treal c
+    Γ ⊢[ d ] prim ϕ ts :[ e ] treal c
 
   treal :
     {Γ : TyEnv}
     {r : ℝ}
     (_ : Distinct Γ)
     → ------------------------------
-    Γ [ N ]⊢ real r :[ det ] treal N
+    Γ ⊢[ N ] real r :[ det ] treal N
 
   ttup :
     {n : ℕ}
@@ -142,9 +142,9 @@ data _[_]⊢_:[_]_ : TyEnv → Coeff → Term → Eff → Type → Set where
     {ts : Vector Term n}
     {e : Eff}
     (_ : Distinct Γ)
-    (_ : ∀ i → Γ [ c ]⊢ ts i :[ e ] Ts i)
+    (_ : ∀ i → Γ ⊢[ c ] ts i :[ e ] Ts i)
     → -----------------------------------
-    Γ [ c ]⊢ tup ts :[ e ] ttup Ts
+    Γ ⊢[ c ] tup ts :[ e ] ttup Ts
 
   tproj :
     {n : ℕ}
@@ -154,9 +154,9 @@ data _[_]⊢_:[_]_ : TyEnv → Coeff → Term → Eff → Type → Set where
     {t : Vector Term 1}
     {e : Eff}
     (i : Fin n)
-    (_ : Γ [ c ]⊢ t ₀ :[ e ] ttup Ts)
+    (_ : Γ ⊢[ c ] t ₀ :[ e ] ttup Ts)
     → -------------------------------
-    Γ [ c ]⊢ proj i t :[ e ] Ts i
+    Γ ⊢[ c ] proj i t :[ e ] Ts i
 
   tif :
     {Γ : TyEnv}
@@ -164,11 +164,11 @@ data _[_]⊢_:[_]_ : TyEnv → Coeff → Term → Eff → Type → Set where
     {ts : Vector Term 3}
     {e : Eff}
     {T : Type}
-    (_ : Γ [ c ]⊢ ts ₀ :[ e ] treal P)
-    (_ : Γ [ c ]⊢ ts ₁ :[ e ] T)
-    (_ : Γ [ c ]⊢ ts ₂ :[ e ] T)
+    (_ : Γ ⊢[ c ] ts ₀ :[ e ] treal P)
+    (_ : Γ ⊢[ c ] ts ₁ :[ e ] T)
+    (_ : Γ ⊢[ c ] ts ₂ :[ e ] T)
     → --------------------------------
-    Γ [ c ]⊢ if ts :[ e ] T
+    Γ ⊢[ c ] if ts :[ e ] T
 
   tdiff :
     {Γ : TyEnv}
@@ -179,10 +179,10 @@ data _[_]⊢_:[_]_ : TyEnv → Coeff → Term → Eff → Type → Set where
     {ds : Vector Coeff m}
     {e : Eff}
     (_ : ∀ i → cs i ≤′ P)
-    (_ : Γ [ c ]⊢ ts ₀ :[ e ] treals cs ⇒[ det ] treals ds)
-    (_ : Γ [ c ]⊢ ts ₁ :[ e ] treals cs)
+    (_ : Γ ⊢[ c ] ts ₀ :[ e ] treals cs ⇒[ det ] treals ds)
+    (_ : Γ ⊢[ c ] ts ₁ :[ e ] treals cs)
     → -------------------------------------------------------------
-    Γ [ c ]⊢ diff ts :[ e ] treals {n} (const A) ⇒[ det ] treals ds
+    Γ ⊢[ c ] diff ts :[ e ] treals {n} (const A) ⇒[ det ] treals ds
 
   tsolve :
     {Γ : TyEnv}
@@ -191,11 +191,11 @@ data _[_]⊢_:[_]_ : TyEnv → Coeff → Term → Eff → Type → Set where
     {c d : Coeff}
     {cs : Vector Coeff n}
     {e : Eff}
-    (_ : Γ [ d ]⊢ ts ₀ :[ e ] ttup {2} (λ {₀ → treal c; ₁ → treals cs}) ⇒[ det ] treals cs)
-    (_ : Γ [ d ]⊢ ts ₁ :[ e ] treals cs)
-    (_ : Γ [ d ]⊢ ts ₂ :[ e ] treal P)
+    (_ : Γ ⊢[ d ] ts ₀ :[ e ] ttup {2} (λ {₀ → treal c; ₁ → treals cs}) ⇒[ det ] treals cs)
+    (_ : Γ ⊢[ d ] ts ₁ :[ e ] treals cs)
+    (_ : Γ ⊢[ d ] ts ₂ :[ e ] treal P)
     → -------------------------------------------------------------------------------------
-    Γ [ d ]⊢ solve ts :[ e ] treals cs
+    Γ ⊢[ d ] solve ts :[ e ] treals cs
 
   tdist :
     {D : Dist}
@@ -207,35 +207,35 @@ data _[_]⊢_:[_]_ : TyEnv → Coeff → Term → Eff → Type → Set where
     {e : Eff}
     (_ : DistTy D ≡ (cs , T))
     (_ : Distinct Γ)
-    (_ : (∀ i → Γ [ c ]⊢ ts i :[ e ] treal (cs i)))
+    (_ : (∀ i → Γ ⊢[ c ] ts i :[ e ] treal (cs i)))
     → ---------------------------------------------
-    Γ [ c ]⊢ dist D ts :[ e ] tdist T
+    Γ ⊢[ c ] dist D ts :[ e ] tdist T
 
   tassume :
     {Γ : TyEnv}
     {c : Coeff}
     {t : Vector Term 1}
     {T : Type}
-    (_ : Γ [ c ]⊢ t ₀ :[ rnd ] tdist T)
+    (_ : Γ ⊢[ c ] t ₀ :[ rnd ] tdist T)
     → ---------------------------------
-    Γ [ c ]⊢ assume t :[ rnd ] T
+    Γ ⊢[ c ] assume t :[ rnd ] T
 
   tweight :
     {Γ : TyEnv}
     {c : Coeff}
     {t : Vector Term 1}
-    (_ : Γ [ c ]⊢ t ₀ :[ rnd ] treal N)
+    (_ : Γ ⊢[ c ] t ₀ :[ rnd ] treal N)
     → ---------------------------------
-    Γ [ c ]⊢ weight t :[ rnd ] tunit
+    Γ ⊢[ c ] weight t :[ rnd ] tunit
 
   texpect :
     {Γ : TyEnv}
     {c : Coeff}
     {t : Vector Term 1}
     {e : Eff}
-    (_ : Γ [ c ]⊢ t ₀ :[ e ] tdist (treal N))
+    (_ : Γ ⊢[ c ] t ₀ :[ e ] tdist (treal N))
     → ---------------------------------------
-    Γ [ c ]⊢ expect t :[ e ] treal N
+    Γ ⊢[ c ] expect t :[ e ] treal N
 
   tinfer :
     {Γ : TyEnv}
@@ -243,39 +243,40 @@ data _[_]⊢_:[_]_ : TyEnv → Coeff → Term → Eff → Type → Set where
     {t : Vector Term 1}
     {e : Eff}
     {T : Type}
-    (_ : Γ [ c ]⊢ t ₀ :[ e ] tunit ⇒[ rnd ] T)
+    (_ : Γ ⊢[ c ] t ₀ :[ e ] tunit ⇒[ rnd ] T)
     → ----------------------------------------
-    Γ [ c ]⊢ infer t :[ e ] tdist T
+    Γ ⊢[ c ] infer t :[ e ] tdist T
 
-  tsubeff :
+  tsub :
     {Γ : TyEnv}
-    {c : Coeff}
+    {c c′ : Coeff}
     {t : Term}
     {e e′ : Eff}
     {T : Type}
-    (_ : Γ [ c ]⊢ t :[ e ] T)
+    (_ : Γ ⊢[ c ] t :[ e ] T)
+    (_ : c′ ≤′ c)
     (_ : e ≤′ e′)
     → -----------------------
-    Γ [ c ]⊢ t :[ e′ ] T
+    Γ ⊢[ c′ ] t :[ e′ ] T
 
   tpromote :
     {Γ : TyEnv}
     {t : Term}
     {e : Eff}
-    {c c′ : Coeff}
+    {c c′ d : Coeff}
     {T : Type}
-    (_ : Γ [ c ]⊢ t :[ e ] T)
-    (_ : c′ ≤′ c)
+    (_ : Γ ⊢[ d ] t :[ e ] T)
+    (_ : d ≡ c′ ⊔′ c)
     → -----------------------
-    Γ [ c′ ]⊢ t :[ e ] c ⊙ T
+    Γ ⊢[ c′ ] t :[ e ] c ⊙ T
 
   tdemote :
     {Γ : TyEnv}
     {t : Term}
     {e : Eff}
-    {c c′ : Coeff}
+    {c c′ d : Coeff}
     {T : Type}
-    (_ : Γ [ c′ ]⊢ t :[ e ] c ⊙ T)
-    (_ : c′ ≤′ c)
+    (_ : Γ ⊢[ c′ ] t :[ e ] c ⊙ T)
+    (_ : d ≡ c′ ⊔′ c)
     → ----------------------------
-    Γ [ c ]⊢ t :[ e ] T
+    Γ ⊢[ d ] t :[ e ] T
