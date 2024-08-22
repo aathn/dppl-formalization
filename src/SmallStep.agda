@@ -12,65 +12,67 @@ open import Lib.EvalCtx
 open import Lib.Substitution
 
 open import Data.Vec.Functional using (map)
-open import Data.Product using (∃ ; ∃-syntax ; map₁)
+open import Data.Product using (map₁)
 open import Relation.Unary using (Pred)
 open import Relation.Binary using (Rel)
 open import Relation.Binary.Construct.Closure.ReflexiveTransitive using (Star)
 
 instance
   eval-order : EvalOrder TermSig
-  eval-order {oabs _} =
+  eval-order {olam _} =
     record {len = 0 ; ord = λ() ; inj = λ where {()} }
   eval-order {oif} =
     record {len = 1 ; ord = λ {₀ → ₀} ; inj = λ where {₀} {₀} _ → refl}
   eval-order {o} =
     record {len = length (TermAr o) ; ord = id ; inj = id}
 
-data Value : Pred Term ℓ₀ where
+data IsValue : Pred Term ℓ₀ where
 
-  vabs
+  vlam
     : ∀ {T t}
     → ---------------
-      Value (abs T t)
+      IsValue (lam T t)
 
   vreal
     : ∀ {r}
     → --------------
-      Value (real r)
+      IsValue (real r)
 
   vtup
     : ∀ {n vs}
-    → (∀ i → Value (vs i))
+    → (∀ i → IsValue (vs i))
     → --------------------
-      Value (tup {n} vs)
+      IsValue (tup {n} vs)
 
   vdist
     : ∀ {D vs}
-    → (∀ i → Value (vs i))
+    → (∀ i → IsValue (vs i))
     → --------------------
-      Value (dist D vs)
+      IsValue (dist D vs)
 
   vinfer
     : ∀ {v}
-    → Value (v ₀)
+    → IsValue (v ₀)
     → ---------------
-      Value (infer v)
+      IsValue (infer v)
 
+Value : Set
+Value = ∃ IsValue
 
 DetCtx : Pred (Term → Term) _
-DetCtx = EvalCtx Value
+DetCtx = EvalCtx IsValue
 
 RndCtx : Pred (Term × ℝ × List 𝕀 → Term × ℝ × List 𝕀) _
-RndCtx E = ∃[ E′ ] DetCtx E′ × E ≡ map₁ E′
+RndCtx E = ∃ λ E′ → DetCtx E′ × E ≡ map₁ E′
 
 record EvalAssumptions : Set where
   field
     PrimEv : (ϕ : Prim) → Vector ℝ (PrimAr ϕ) → ℝ
-    Sample : (D : Dist) → Vector ℝ (DistAr D) → 𝕀 → ∃ Value
-    Infer  : ∃ Value → 𝕀 → ∃ Value
-    Expect : (𝕀 → ∃ Value) → ℝ
-    Diff  : ∃ Value → ∃ Value → Term
-    Solve : ∃ Value → ∃ Value → ∃ Value → Term
+    Sample : (D : Dist) → Vector ℝ (DistAr D) → 𝕀 → Value
+    Infer  : Value → 𝕀 → Value
+    Expect : (𝕀 → Value) → ℝ
+    Diff  : Value → Value → Term
+    Solve : Value → Value → Value → Term
 
 
 module Eval (Ass : EvalAssumptions) where
@@ -80,7 +82,7 @@ module Eval (Ass : EvalAssumptions) where
  
     eapp
       : ∀ {ts T t}
-      → ts ₀ ≡ abs T t → Value (ts ₁)
+      → ts ₀ ≡ lam T t → IsValue (ts ₁)
       → -----------------------------
         app ts →ᵈ (0 ≈> ts ₁) (t ₀)
   
@@ -92,7 +94,7 @@ module Eval (Ass : EvalAssumptions) where
   
     eproj
       : ∀ {n t ts} i
-      → t ₀ ≡ tup ts → (∀ j → Value (ts j))
+      → t ₀ ≡ tup ts → (∀ j → IsValue (ts j))
       → -----------------------------------
         proj {n} i t →ᵈ ts i
 
@@ -104,13 +106,13 @@ module Eval (Ass : EvalAssumptions) where
 
     ediff
       : ∀ {ts}
-      → (v₀ : Value (ts ₀)) (v₁ : Value (ts ₁))
+      → (v₀ : IsValue (ts ₀)) (v₁ : IsValue (ts ₁))
       → ---------------------------------------
         diff ts →ᵈ Diff (_ , v₀) (_ , v₁)
 
     esolve
       : ∀ {ts}
-      → (v₀ : Value (ts ₀)) (v₁ : Value (ts ₁)) (v₂ : Value (ts ₂))
+      → (v₀ : IsValue (ts ₀)) (v₁ : IsValue (ts ₁)) (v₂ : IsValue (ts ₂))
       → -----------------------------------------------------------
         solve ts →ᵈ Solve (_ , v₀) (_ , v₁) (_ , v₂)
 
@@ -122,7 +124,7 @@ module Eval (Ass : EvalAssumptions) where
 
     eexpectinfer
       : ∀ {t t′}
-      → t ₀ ≡ infer t′ → (v : Value (t′ ₀))
+      → t ₀ ≡ infer t′ → (v : IsValue (t′ ₀))
       → -----------------------------------------
         expect t →ᵈ real (Expect (Infer (_ , v)))
 
@@ -144,13 +146,13 @@ module Eval (Ass : EvalAssumptions) where
       : ∀ {t D rs w p s}
       → t ₀ ≡ dist D (map real rs)
       → ------------------------------------------------------
-        (assume t , w , p :: s) →ʳ (Sample D rs p .π₁ , w , s)
+        (assume t , w , p ∷ s) →ʳ (Sample D rs p .π₁ , w , s)
 
     eassumeinfer
       : ∀ {t t′ w p s}
-      → t ₀ ≡ infer t′ → (v : Value (t′ ₀))
+      → t ₀ ≡ infer t′ → (v : IsValue (t′ ₀))
       → ---------------------------------------------------------
-        (assume t , w , p :: s) →ʳ (Infer (_ , v) p .π₁ , w , s)
+        (assume t , w , p ∷ s) →ʳ (Infer (_ , v) p .π₁ , w , s)
 
 
   -- Full evaluation relations

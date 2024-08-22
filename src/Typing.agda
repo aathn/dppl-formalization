@@ -9,14 +9,10 @@ open import Syntax R
 open import Lib.Prelude
 open import Lib.Unfinite
 open import Lib.oc-Sets
-open import Lib.AbstractionConcretion hiding (abs)
+open import Lib.AbstractionConcretion
 open import Lib.BindingSignature
 
-open import Data.List using (map)
 open import Data.List.Membership.Propositional using () renaming (_∈_ to _∈ᴱ_)
-open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_)
-open import Data.List.Relation.Binary.Pointwise using (Pointwise)
-open import Data.List.Relation.Unary.All using (All)
 
 TyEnv : Set
 TyEnv = List (𝔸 × Type)
@@ -54,9 +50,6 @@ c ≤ᶜ treal d = c ≤′ d
 c ≤ᶜ ttup Ts = ∀ i → c ≤ᶜ Ts i
 c ≤ᶜ T = 𝟙
 
-_≤ᴱ_ : Coeff → TyEnv → Set
-c ≤ᴱ Γ = All (c ≤ᶜ_ ∘ π₂) Γ
-
 
 infix 5 _<:_
 data _<:_ : Type → Type → Set where
@@ -85,186 +78,204 @@ data _<:_ : Type → Type → Set where
     → -------------------
       tdist T <: tdist T′
 
-
-_<:ᴱ_ : TyEnv → TyEnv → Set
-_<:ᴱ_ = Pointwise (λ (x₁ , T₁) (x₂ , T₂) → x₁ ≡ x₂ × T₁ <: T₂)
-
-
-infix 4 _⊢_:[_]_
-data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
+infix 4 _[_]⊢_:[_]_
+data _[_]⊢_:[_]_ : TyEnv → Coeff → Term → Eff → Type → Set where
 
   tvar :
     {x : 𝔸}
     {T : Type}
     {Γ : TyEnv}
+    {c : Coeff}
     (_ : (x , T) ∈ᴱ Γ)
+    (_ : c ≤ᶜ T)
     (_ : Distinct Γ)
-    → -------------------
-    Γ ⊢ fvar x :[ det ] T
+    → ------------------------
+    Γ [ c ]⊢ fvar x :[ det ] T
 
-  tabs :
+  tlam :
     {Γ : TyEnv}
+    {c : Coeff}
     {T₁ T₂ : Type}
     {t : Vector Term 1}
     {e : Eff}
-    (_ : И x ∶ 𝔸 , Γ , x ∶ T₁ ⊢ conc (t ₀) x :[ e ] T₂)
-    → -------------------------------------------------
-    Γ ⊢ abs T₁ t :[ det ] T₁ ⇒[ e ] T₂
+    (_ : И x ∶ 𝔸 , Γ , x ∶ T₁ [ c ]⊢ conc (t ₀) x :[ e ] T₂)
+    → ------------------------------------------------------
+    Γ [ c ]⊢ lam T₁ t :[ det ] T₁ ⇒[ e ] T₂
 
   tapp :
     {Γ : TyEnv}
+    {c : Coeff}
     {ts : Vector Term 2}
     {e : Eff}
     {T₁ T₂ : Type}
-    (_ : Γ ⊢ ts ₀ :[ e ] T₁ ⇒[ e ] T₂)
-    (_ : Γ ⊢ ts ₁ :[ e ] T₁)
-    → --------------------------------
-    Γ ⊢ app ts :[ e ] T₂
+    (_ : Γ [ c ]⊢ ts ₀ :[ e ] T₁ ⇒[ e ] T₂)
+    (_ : Γ [ c ]⊢ ts ₁ :[ e ] T₁)
+    → -------------------------------------
+    Γ [ c ]⊢ app ts :[ e ] T₂
 
   tprim :
     {ϕ : Prim}
     {Γ : TyEnv}
+    {d : Coeff}
     {cs : Vector Coeff (PrimAr ϕ)}
     {c : Coeff}
     {ts : Vector Term (PrimAr ϕ)}
     {e : Eff}
     (_ : PrimTy ϕ ≡ (cs , c))
     (_ : Distinct Γ)
-    (_ : ∀ i → Γ ⊢ ts i :[ e ] treal (cs i))
-    → --------------------------------------
-    Γ ⊢ prim ϕ ts :[ e ] treal c
+    (_ : ∀ i → Γ [ d ]⊢ ts i :[ e ] treal (cs i))
+    → -------------------------------------------
+    Γ [ d ]⊢ prim ϕ ts :[ e ] treal c
 
   treal :
     {Γ : TyEnv}
     {r : ℝ}
     (_ : Distinct Γ)
-    → -------------------------
-    Γ ⊢ real r :[ det ] treal N
+    → ------------------------------
+    Γ [ N ]⊢ real r :[ det ] treal N
 
   ttup :
     {n : ℕ}
     {Γ : TyEnv}
+    {c : Coeff}
     {Ts : Vector Type n}
     {ts : Vector Term n}
     {e : Eff}
     (_ : Distinct Γ)
-    (_ : ∀ i → Γ ⊢ ts i :[ e ] Ts i)
-    → ------------------------------
-    Γ ⊢ tup ts :[ e ] ttup Ts
+    (_ : ∀ i → Γ [ c ]⊢ ts i :[ e ] Ts i)
+    → -----------------------------------
+    Γ [ c ]⊢ tup ts :[ e ] ttup Ts
 
   tproj :
     {n : ℕ}
     {Ts : Vector Type n}
     {Γ : TyEnv}
+    {c : Coeff}
     {t : Vector Term 1}
     {e : Eff}
     (i : Fin n)
-    (_ : Γ ⊢ t ₀ :[ e ] ttup Ts)
-    → --------------------------
-    Γ ⊢ proj i t :[ e ] Ts i
+    (_ : Γ [ c ]⊢ t ₀ :[ e ] ttup Ts)
+    → -------------------------------
+    Γ [ c ]⊢ proj i t :[ e ] Ts i
 
   tif :
     {Γ : TyEnv}
+    {c : Coeff}
     {ts : Vector Term 3}
     {e : Eff}
     {T : Type}
-    (_ : Γ ⊢ ts ₀ :[ e ] treal P)
-    (_ : Γ ⊢ ts ₁ :[ e ] T)
-    (_ : Γ ⊢ ts ₂ :[ e ] T)
-    → ---------------------------
-    Γ ⊢ if ts :[ e ] T
+    (_ : Γ [ c ]⊢ ts ₀ :[ e ] treal P)
+    (_ : Γ [ c ]⊢ ts ₁ :[ e ] T)
+    (_ : Γ [ c ]⊢ ts ₂ :[ e ] T)
+    → --------------------------------
+    Γ [ c ]⊢ if ts :[ e ] T
 
   tdiff :
     {Γ : TyEnv}
+    {c : Coeff}
     {ts : Vector Term 2}
     {n m : ℕ}
     {cs : Vector Coeff n}
     {ds : Vector Coeff m}
     {e : Eff}
     (_ : ∀ i → cs i ≤′ P)
-    (_ : Γ ⊢ ts ₀ :[ e ] treals cs ⇒[ det ] treals ds)
-    (_ : Γ ⊢ ts ₁ :[ e ] treals cs)
-    → --------------------------------------------------------
-    Γ ⊢ diff ts :[ e ] treals {n} (const A) ⇒[ det ] treals ds
+    (_ : Γ [ c ]⊢ ts ₀ :[ e ] treals cs ⇒[ det ] treals ds)
+    (_ : Γ [ c ]⊢ ts ₁ :[ e ] treals cs)
+    → -------------------------------------------------------------
+    Γ [ c ]⊢ diff ts :[ e ] treals {n} (const A) ⇒[ det ] treals ds
 
   tsolve :
     {Γ : TyEnv}
     {ts : Vector Term 3}
     {n : ℕ}
-    {c : Coeff}
+    {c d : Coeff}
     {cs : Vector Coeff n}
     {e : Eff}
-    (_ : Γ ⊢ ts ₀ :[ e ] ttup {2} (λ {₀ → treal c; ₁ → treals cs}) ⇒[ det ] treals cs)
-    (_ : Γ ⊢ ts ₁ :[ e ] treals cs)
-    (_ : Γ ⊢ ts ₂ :[ e ] treal P)
-    → --------------------------------------------------------------------------------
-    Γ ⊢ solve ts :[ e ] treals cs
+    (_ : Γ [ d ]⊢ ts ₀ :[ e ] ttup {2} (λ {₀ → treal c; ₁ → treals cs}) ⇒[ det ] treals cs)
+    (_ : Γ [ d ]⊢ ts ₁ :[ e ] treals cs)
+    (_ : Γ [ d ]⊢ ts ₂ :[ e ] treal P)
+    → -------------------------------------------------------------------------------------
+    Γ [ d ]⊢ solve ts :[ e ] treals cs
 
   tdist :
     {D : Dist}
     {Γ : TyEnv}
+    {c : Coeff}
     {cs : Vector Coeff (DistAr D)}
     {T : Type}
     {ts : Vector Term (DistAr D)}
     {e : Eff}
     (_ : DistTy D ≡ (cs , T))
     (_ : Distinct Γ)
-    (_ : (∀ i → Γ ⊢ ts i :[ e ] treal (cs i)))
-    → ----------------------------------------
-    Γ ⊢ dist D ts :[ e ] tdist T
+    (_ : (∀ i → Γ [ c ]⊢ ts i :[ e ] treal (cs i)))
+    → ---------------------------------------------
+    Γ [ c ]⊢ dist D ts :[ e ] tdist T
 
   tassume :
     {Γ : TyEnv}
+    {c : Coeff}
     {t : Vector Term 1}
     {T : Type}
-    (_ : Γ ⊢ t ₀ :[ rnd ] tdist T)
-    → ----------------------------
-    Γ ⊢ assume t :[ rnd ] T
+    (_ : Γ [ c ]⊢ t ₀ :[ rnd ] tdist T)
+    → ---------------------------------
+    Γ [ c ]⊢ assume t :[ rnd ] T
 
   tweight :
     {Γ : TyEnv}
+    {c : Coeff}
     {t : Vector Term 1}
-    (_ : Γ ⊢ t ₀ :[ rnd ] treal N)
-    → ----------------------------
-    Γ ⊢ weight t :[ rnd ] tunit
+    (_ : Γ [ c ]⊢ t ₀ :[ rnd ] treal N)
+    → ---------------------------------
+    Γ [ c ]⊢ weight t :[ rnd ] tunit
 
   texpect :
     {Γ : TyEnv}
+    {c : Coeff}
     {t : Vector Term 1}
     {e : Eff}
-    (_ : Γ ⊢ t ₀ :[ e ] tdist (treal N))
-    → ----------------------------------
-    Γ ⊢ expect t :[ e ] treal N
+    (_ : Γ [ c ]⊢ t ₀ :[ e ] tdist (treal N))
+    → ---------------------------------------
+    Γ [ c ]⊢ expect t :[ e ] treal N
 
   tinfer :
     {Γ : TyEnv}
+    {c : Coeff}
     {t : Vector Term 1}
     {e : Eff}
     {T : Type}
-    (_ : Γ ⊢ t ₀ :[ e ] tunit ⇒[ rnd ] T)
-    → -----------------------------------
-    Γ ⊢ infer t :[ e ] tdist T
+    (_ : Γ [ c ]⊢ t ₀ :[ e ] tunit ⇒[ rnd ] T)
+    → ----------------------------------------
+    Γ [ c ]⊢ infer t :[ e ] tdist T
 
-  tsub :
+  tsubeff :
     {Γ : TyEnv}
+    {c : Coeff}
     {t : Term}
     {e e′ : Eff}
-    {T T′ : Type}
-    (_ : Γ ⊢ t :[ e ] T)
+    {T : Type}
+    (_ : Γ [ c ]⊢ t :[ e ] T)
     (_ : e ≤′ e′)
-    (_ : T <: T′)
-    → ------------------
-    Γ ⊢ t :[ e′ ] T′
+    → -----------------------
+    Γ [ c ]⊢ t :[ e′ ] T
 
   tpromote :
-    {Γ Γ′ : TyEnv}
+    {Γ : TyEnv}
     {t : Term}
     {e : Eff}
-    {c : Coeff}
+    {c c′ : Coeff}
     {T : Type}
-    (_ : Γ′ ⊢ t :[ e ] T)
-    (_ : c ≤ᴱ Γ′)
-    (_ : Γ′ ⊆ Γ)
-    (_ : Distinct Γ)
-    → -------------------
-    Γ ⊢ t :[ e ] c ⊙ T
+    (_ : Γ [ c ]⊢ t :[ e ] T)
+    (_ : c′ ≤′ c)
+    → -----------------------
+    Γ [ c′ ]⊢ t :[ e ] c ⊙ T
+
+  tdemote :
+    {Γ : TyEnv}
+    {t : Term}
+    {e : Eff}
+    {c c′ : Coeff}
+    {T : Type}
+    (_ : Γ [ c′ ]⊢ t :[ e ] c ⊙ T)
+    (_ : c′ ≤′ c)
+    → ----------------------------
+    Γ [ c ]⊢ t :[ e ] T

@@ -89,29 +89,35 @@ vmap-injective f f-inj Heq =
 
 open UpperBound
 
-⊆-upper-bound-∈ :
+⊆-lub :
+  {A : Set}
+  {xs ys zs : List A}
+  → ------------------------
+  xs ⊆ zs → ys ⊆ zs → List A
+⊆-lub σ τ = theUpperBound $ ⊆-upper-bound σ τ
+
+⊆-lub-∈ :
   {A : Set}
   {x : A}
   {xs ys zs : List A}
   (σ : xs ⊆ zs)
   (τ : ys ⊆ zs)
-  → ------------------------------------------
-  let ub = ⊆-upper-bound σ τ .theUpperBound in
-  x ∈ᴱ ub → x ∈ᴱ xs ⊎ x ∈ᴱ ys
-⊆-upper-bound-∈ [] [] ()
-⊆-upper-bound-∈ (y ∷ʳ σ) (.y ∷ʳ τ) H∈ = ⊆-upper-bound-∈ σ τ H∈
-⊆-upper-bound-∈ (y ∷ʳ σ) (refl ∷ τ) (here refl) = ι₂ $ here refl
-⊆-upper-bound-∈ (y ∷ʳ σ) (refl ∷ τ) (there H∈) =
-  case (⊆-upper-bound-∈ σ τ H∈) λ where
+  → --------------------------------
+  x ∈ᴱ ⊆-lub σ τ → x ∈ᴱ xs ⊎ x ∈ᴱ ys
+⊆-lub-∈ [] [] ()
+⊆-lub-∈ (y ∷ʳ σ) (.y ∷ʳ τ) H∈ = ⊆-lub-∈ σ τ H∈
+⊆-lub-∈ (y ∷ʳ σ) (refl ∷ τ) (here refl) = ι₂ $ here refl
+⊆-lub-∈ (y ∷ʳ σ) (refl ∷ τ) (there H∈) =
+  case (⊆-lub-∈ σ τ H∈) λ where
     (ι₁ Hx) → ι₁ Hx
     (ι₂ Hy) → ι₂ $ there Hy
-⊆-upper-bound-∈ (refl ∷ σ) (_ ∷ʳ τ) (here refl) = ι₁ $ here refl
-⊆-upper-bound-∈ (refl ∷ σ) (_ ∷ʳ τ) (there H∈) =
-  case (⊆-upper-bound-∈ σ τ H∈) λ where
+⊆-lub-∈ (refl ∷ σ) (_ ∷ʳ τ) (here refl) = ι₁ $ here refl
+⊆-lub-∈ (refl ∷ σ) (_ ∷ʳ τ) (there H∈) =
+  case (⊆-lub-∈ σ τ H∈) λ where
     (ι₁ Hx) → ι₁ $ there Hx
     (ι₂ Hy) → ι₂ $ Hy
-⊆-upper-bound-∈ (refl ∷ σ) (refl ∷ τ) (here refl) = ι₁ $ here refl
-⊆-upper-bound-∈ (refl ∷ σ) (refl ∷ τ) (there H∈)  =
-  case (⊆-upper-bound-∈ σ τ H∈) λ where
+⊆-lub-∈ (refl ∷ σ) (refl ∷ τ) (here refl) = ι₁ $ here refl
+⊆-lub-∈ (refl ∷ σ) (refl ∷ τ) (there H∈)  =
+  case (⊆-lub-∈ σ τ H∈) λ where
     (ι₁ Hx) → ι₁ $ there Hx
     (ι₂ Hy) → ι₂ $ there Hy

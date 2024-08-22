@@ -61,7 +61,7 @@ TermSig : Sig
 TermSig = mkSig TermOp TermAr
   module _ where
   data TermOp : Set where
-    oabs    : Type → TermOp
+    olam    : Type → TermOp
     oapp    : TermOp
     oprim   : Prim → TermOp
     oreal   : ℝ → TermOp
@@ -76,7 +76,7 @@ TermSig = mkSig TermOp TermAr
     oinfer  : TermOp
     oexpect : TermOp
   TermAr : TermOp → Array ℕ
-  length (TermAr (oabs _))  = 1
+  length (TermAr (olam _))  = 1
   length (TermAr oapp)      = 2
   length (TermAr (oprim ϕ)) = PrimAr ϕ
   length (TermAr (oreal _)) = 0
@@ -90,7 +90,7 @@ TermSig = mkSig TermOp TermAr
   length (TermAr oweight)   = 1
   length (TermAr oinfer)    = 1
   length (TermAr oexpect)   = 1
-  index  (TermAr (oabs _))  = const 1
+  index  (TermAr (olam _))  = const 1
   index  (TermAr _)         = const 0
 
 Term : Set
@@ -111,8 +111,8 @@ tunit = ttup {0} λ()
 treals : ∀ {n} → Vector Coeff n → Type
 treals cs = ttup $ map treal cs
 
-abs : Type → Vector Term 1 → Term
-abs T t = op (oabs T , t)
+lam : Type → Vector Term 1 → Term
+lam T t = op (olam T , t)
 
 app : Vector Term 2 → Term
 app ts = op (oapp , ts)

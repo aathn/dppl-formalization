@@ -55,7 +55,7 @@ open import Data.Bool public using (true ; false ; if_then_else_ ; not)
 ----------------------------------------------------------------------
 
 open import Relation.Binary.PropositionalEquality public
-  using (_≡_ ; refl ; subst)
+  using (_≡_ ; _≢_ ; refl ; subst)
   renaming ( cong to ap ; cong₂ to ap₂ ; trans to _；_ ; sym to symm
            ; ≢-sym to symm¬≡)
 
