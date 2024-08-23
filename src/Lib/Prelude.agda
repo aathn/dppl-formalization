@@ -403,8 +403,16 @@ open import Data.Fin using (fromℕ<)
 open import Data.Fin.Properties using (toℕ<n)
 
 -- Maximum on finite enumerated sets
-_⊔′_ : ∀ {n : ℕ} → Fin n → Fin n → Fin n
-n ⊔′ m = fromℕ< (≤lub _ _ _ (toℕ<n n) (toℕ<n m))
+_⊔′_ : {n : ℕ} → Fin n → Fin n → Fin n
+m ⊔′ n = fromℕ< (≤lub _ _ _ (toℕ<n m) (toℕ<n n))
+
+m≤′n⇒m⊔′n≡n : {k : ℕ}{m n : Fin k} → m ≤′ n → m ⊔′ n ≡ n
+m≤′n⇒m⊔′n≡n {k}{m}{n} H≤ =
+  fromℕ< _ ≡[ fromℕ<-cong _ _ (m≤n⇒m⊔n≡n H≤) _ (toℕ<n n) ]
+  fromℕ< _ ≡[ fromℕ<-toℕ n _ ]
+  n        qed
+  where open Data.Nat.Properties
+        open Data.Fin.Properties
 
 -- Maximum of finitely many numbers
 Max : {n : ℕ} → Vector ℕ n → ℕ

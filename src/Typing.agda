@@ -249,15 +249,15 @@ data _⊢[_]_:[_]_ : TyEnv → Coeff → Term → Eff → Type → Set where
 
   tsub :
     {Γ : TyEnv}
-    {c c′ : Coeff}
+    {c : Coeff}
     {t : Term}
     {e e′ : Eff}
-    {T : Type}
+    {T T′ : Type}
     (_ : Γ ⊢[ c ] t :[ e ] T)
-    (_ : c′ ≤′ c)
     (_ : e ≤′ e′)
+    (_ : T <: T′)
     → -----------------------
-    Γ ⊢[ c′ ] t :[ e′ ] T
+    Γ ⊢[ c ] t :[ e′ ] T′
 
   tpromote :
     {Γ : TyEnv}

@@ -19,23 +19,45 @@ open import Lib.AbstractionConcretion
 open import Lib.BindingSignature
 open import Lib.Substitution
 
-open import Data.Fin.Properties using (toℕ<n ; toℕ-fromℕ<)
+open import Data.Fin using (toℕ ; fromℕ< ; _≤?_)
+open import Data.Fin.Properties using (toℕ<n ; toℕ-fromℕ< ; fromℕ<-toℕ)
 open import Data.List using (_++_)
-open import Data.List.Relation.Binary.Pointwise as P using (Pointwise ; [] ; _∷_)
 open import Data.List.Relation.Binary.Sublist.Propositional
-  using (_⊆_ ; [] ; _∷_ ; _∷ʳ_ ; ⊆-refl ; ⊆-trans ; lookup ; UpperBound
-        ;⊆-upper-bound ; from∈ ; to∈)
+  using (_⊆_ ; [] ; _∷_ ; _∷ʳ_ ; ⊆-refl ; ⊆-trans ; from∈ ; to∈)
 open import Data.List.Relation.Binary.Sublist.Propositional.Properties as SP using ()
 open import Data.List.Relation.Unary.Any using (here ; there)
 open import Data.List.Relation.Unary.Any.Properties as AnyP using ()
-open import Data.List.Relation.Unary.All as A using (All ; [] ; _∷_)
-open import Data.List.Relation.Unary.All.Properties as AllP using ()
 open import Data.List.Membership.Propositional using () renaming (_∈_ to _∈ᴱ_)
 open import Data.List.Membership.Propositional.Properties as MP using ()
 
 infixl 5 _&_
 _&_ : TyEnv → TyEnv → TyEnv
 Γ & Γ′ = Γ′ ++ Γ
+
+sub-refl : {T : Type} → T <: T
+sub-refl {treal c} = sreal ≤refl
+sub-refl {T ⇒[ x ] T₁} = sarr sub-refl ≤refl sub-refl
+sub-refl {ttup ts} = stup (λ i → sub-refl)
+sub-refl {tdist T} = sdist sub-refl
+
+sub-trans : {T₁ T₂ T₃ : Type} → T₁ <: T₂ → T₂ <: T₃ → T₁ <: T₃
+sub-trans (sreal H≤) (sreal H≤′) = sreal (≤trans H≤′ H≤)
+sub-trans (stup Hsubs) (stup Hsubs′) = stup (λ i → sub-trans (Hsubs i) (Hsubs′ i))
+sub-trans (sarr Hsub1 H≤ Hsub4) (sarr Hsub2 H≤′ Hsub3) =
+  sarr (sub-trans Hsub2 Hsub1) (≤trans H≤ H≤′) (sub-trans Hsub4 Hsub3)
+sub-trans (sdist Hsub1) (sdist Hsub2) = sdist (sub-trans Hsub1 Hsub2)
+
+sub-mul : {T : Type}{c : Coeff} → c ⊙ T <: T
+sub-mul {treal x} = sreal $ subst (_ ≤_) (symm $ toℕ-fromℕ< _) ≤max₂
+sub-mul {T ⇒[ x ] T₁} = sub-refl
+sub-mul {ttup ts} = stup (λ i → sub-mul)
+sub-mul {tdist T} = sub-refl
+
+mul-≤ : {T : Type}{c : Coeff} → c ≤ᶜ T → T ≡ c ⊙ T
+mul-≤ {treal c′} H≤ = ap treal $ symm $ m≤′n⇒m⊔′n≡n H≤
+mul-≤ {ttup Ts} H≤  = ap ttup $ funext $ mul-≤ ∘ H≤
+mul-≤ {_ ⇒[ _ ] _} H≤ = refl
+mul-≤ {tdist _} H≤ = refl
 
 weaken-typing :
   {Γ Γ′ : TyEnv}
@@ -85,37 +107,56 @@ weaken-typing (tsub Htype H≤₁ H≤₂) H⊆ Hd = tsub (weaken-typing Htype H
 weaken-typing (tpromote Htype H≤) H⊆ Hd = tpromote (weaken-typing Htype H⊆ Hd) H≤
 weaken-typing (tdemote Htype H≤) H⊆ Hd = tdemote (weaken-typing Htype H⊆ Hd) H≤
 
+weaken-coeff :
+  {Γ : TyEnv}
+  {c c′ : Coeff}
+  {t : Term}
+  {e : Eff}
+  {T : Type}
+  (_ : Γ ⊢[ c ] t :[ e ] T)
+  (_ : c′ ≤′ c)
+  → -----------------------
+  Γ ⊢[ c′ ] t :[ e ] T
+weaken-coeff {c = c} Htype H≤ =
+  tsub (tpromote Htype (symm $ m≤′n⇒m⊔′n≡n H≤)) ≤refl sub-mul
 
--- tabs-inv :
---   ∀ {Γ T₀ t e T e′ T₁ T₂}
---   → Γ ⊢ abs T₀ t :[ e ] T
+
+-- tlam-inv :
+--   ∀ {Γ c T₀ t e T e′ T₁ T₂}
+--   → Γ ⊢[ c ] lam T₀ t :[ e ] T
 --   → T ≡ T₁ ⇒[ e′ ] T₂
---   → ----------------------------------------------
---     И x ∶ 𝔸 , Γ , x ∶ T₁ ⊢ conc (t ₀) x :[ e′ ] T₂
--- tabs-inv (tabs Habs) refl = Habs
--- tabs-inv (tsub Htype H≤ (sarr Hsub₀ Hsub₁ He)) refl
---   with Иi As Hcof ← tabs-inv Htype refl =
---   Иi As λ x → sub-env (tsub (Hcof x) He Hsub₁) ((refl , Hsub₀) ∷ P.refl (refl , sub-refl))
--- tabs-inv (tpromote {Γ} {T = _ ⇒[ _ ] _} Htype H≤ H⊆ Hd) refl
---   with Иi As Hcof ← tabs-inv Htype refl =
---   Иi (dom Γ ∪ As) λ { x {{∉∪}} → weaken-typing (Hcof x) (refl ∷ H⊆) (it ∷ Hd) }
+--   → ---------------------------------------------------
+--     И x ∶ 𝔸 , Γ , x ∶ T₁ ⊢[ A ] conc (t ₀) x :[ e′ ] T₂
+-- tlam-inv (tlam Hlam) refl = {!!} -- Hlam
+-- tlam-inv (tsub Htype H≤ (sarr Hsub₀ He Hsub₁)) refl = {!!}
+--   -- with Иi As Hcof ← tlam-inv Htype refl =
+--   -- Иi As λ x → sub-env (tsub (Hcof x) He Hsub₁) ((refl , Hsub₀) ∷ P.refl (refl , sub-refl))
+-- tlam-inv (tpromote {Γ} {T = _ ⇒[ _ ] _} Htype H≤) refl = {!!}
+--   -- with Иi As Hcof ← tlam-inv Htype refl =
+--   -- Иi (dom Γ ∪ As) λ { x {{∉∪}} → weaken-coeff (Hcof x) {!!} }
+-- tlam-inv (tdemote {Γ} {T = _ ⇒[ _ ] _} Htype H≤) refl = {!!}
+--   -- with Иi As Hcof ← tlam-inv Htype refl =
+--   -- Иi (dom Γ ∪ As) λ { x {{∉∪}} → let foo = Hcof x in {!!} }
 
--- ttup-inv :
---   {n : ℕ}
---   {Γ : TyEnv}
---   {vs : Vector Term n}
---   {e : Eff}
---   {T : Type}
---   {Ts : Vector Type n}
---   (_ : Γ ⊢ tup vs :[ e ] T)
---   (_ : T ≡ ttup Ts)
---   → ------------------------
---   ∀ i → Γ ⊢ vs i :[ e ] Ts i
--- ttup-inv (ttup _ Hvs) refl = Hvs
--- ttup-inv (tsub Htype H≤ (stup Hsubs)) refl = λ i →
---   tsub (ttup-inv Htype refl i) H≤ (Hsubs i)
--- ttup-inv (tpromote {T = ttup _} Htype H≤ H⊆ Hd) refl = λ i →
---   tpromote (ttup-inv Htype refl i) H≤ H⊆ Hd
+ttup-inv :
+  {n : ℕ}
+  {Γ : TyEnv}
+  {c : Coeff}
+  {vs : Vector Term n}
+  {e : Eff}
+  {T : Type}
+  {Ts : Vector Type n}
+  (_ : Γ ⊢[ c ] tup vs :[ e ] T)
+  (_ : T ≡ ttup Ts)
+  → -----------------------------
+  ∀ i → Γ ⊢[ c ] vs i :[ e ] Ts i
+ttup-inv (ttup _ Hvs) refl = Hvs
+ttup-inv (tsub Htype H≤ (stup Hsubs)) refl = λ i →
+  tsub (ttup-inv Htype refl i) H≤ (Hsubs i)
+ttup-inv (tpromote {T = ttup _} Htype H≤) refl = λ i →
+  tpromote (ttup-inv Htype refl i) H≤
+ttup-inv (tdemote {T = ttup _} Htype H≤) refl = λ i →
+  tdemote (ttup-inv Htype refl i) H≤
 
 -- texpect-inv :
 --   {Γ : TyEnv}
@@ -175,6 +216,36 @@ weaken-distinct {[]} (x ∷ Hd) = Hd
 weaken-distinct {Γ′ , x′ ∶ T′} {Γ} {x} {T} (H∉ ∷ Hd)
   with ∉∪ {{q = ∉∪}} ← &-dom Γ′ H∉ =
   dom-& it ∷ weaken-distinct Hd
+
+well-typed-distinct :
+  {Γ : TyEnv}
+  {c : Coeff}
+  {t : Term}
+  {e : Eff}
+  {T : Type}
+  → ------------------------------
+  Γ ⊢[ c ] t :[ e ] T → Distinct Γ
+
+well-typed-distinct (tvar _ _ Hd) = Hd
+well-typed-distinct (tlam (Иi As Hcof))
+  with x , x∉As ← fresh As
+  with _ ∷ Hd ← well-typed-distinct (Hcof x {{x∉As}}) = Hd
+well-typed-distinct (tapp Htype Htype₁) = well-typed-distinct Htype
+well-typed-distinct (tprim Hϕ Hd Htypes) = Hd
+well-typed-distinct (treal Hd) = Hd
+well-typed-distinct (ttup Hd Htypes) = Hd
+well-typed-distinct (tproj i Htype) = well-typed-distinct Htype
+well-typed-distinct (tif Htype Htype₁ Htype₂) = well-typed-distinct Htype
+well-typed-distinct (tdiff _ Htype Htype₁) = well-typed-distinct Htype
+well-typed-distinct (tsolve Htype Htype₁ Htype₂) = well-typed-distinct Htype
+well-typed-distinct (tdist HD Hd Htypes) = Hd
+well-typed-distinct (tassume Htype) = well-typed-distinct Htype
+well-typed-distinct (tweight Htype) = well-typed-distinct Htype
+well-typed-distinct (texpect Htype) = well-typed-distinct Htype
+well-typed-distinct (tinfer Htype)  = well-typed-distinct Htype
+well-typed-distinct (tsub Htype _ _) = well-typed-distinct Htype
+well-typed-distinct (tpromote Htype _) = well-typed-distinct Htype
+well-typed-distinct (tdemote Htype _) = well-typed-distinct Htype
 
 ∈-unique :
   {Γ₂ Γ₁ : TyEnv}
@@ -259,32 +330,38 @@ substitution-pres-typing :
   {e : Eff}
   {T₁ T₂ : Type}
   (_ : Γ , x ∶ T₂ ⊢[ c ] t :[ e ] T₁)
-  (_ : Γ ⊢[ N ] u :[ det ] T₂)
+  (_ : Γ ⊢[ c ] u :[ det ] T₂)
   → ---------------------------------
   Γ ⊢[ c ] (x => u) t :[ e ] T₁
-substitution-pres-typing {Γ} {x = x} {u = u} {T₂ = T₂} Htype Hu =
+substitution-pres-typing {Γ} {x = x} {c} {u = u} {T₂ = T₂} Htype Hu =
   go {Γ′ = []} Htype
   where
   go :
     {Γ′ Γ₀ : TyEnv}
-    {c : Coeff}
+    {d : Coeff}
     {t : Term}
     {e : Eff}
     {T₁ : Type}
     {{_ : Γ₀ ≡ Γ , x ∶ T₂ & Γ′}}
-    (_ : Γ₀ ⊢[ c ] t :[ e ] T₁)
+    (_ : Γ₀ ⊢[ d ] t :[ e ] T₁)
     → --------------------------------
-    Γ & Γ′ ⊢[ c ] (x => u) t :[ e ] T₁
-  go {Γ′ = Γ′} {{refl}} (tvar {x = x₁} H∈ H≤ Hd) with x ≐ x₁
-  ... | equ with refl ← ∈-unique (distinct-∉ Hd) H∈ =
+    Γ & Γ′ ⊢[ d ] (x => u) t :[ e ] T₁
+  go {d = d} {{refl}} (tvar {x = x₁} H∈ H≤ Hd) with x ≐ x₁
+  ... | equ with refl ← ∈-unique (distinct-∉ Hd) H∈ with c ≤? d
+  ...   | yes H≤c =
     weaken-typing
-      (tsub Hu (≤-1 $ toℕ<n _) ≤refl)
+      (tdemote (subst (_ ⊢[ _ ] _ :[ _ ]_) (mul-≤ H≤) Hu) (symm $ m≤′n⇒m⊔′n≡n H≤c))
       (SP.++⁺ˡ _ ⊆-refl)
       (weaken-distinct Hd)
-  ... | neq H≢ with AnyP.++⁻ Γ′ H∈
-  ... | ι₁ H∈₁ = tvar (AnyP.++⁺ˡ H∈₁) H≤ (weaken-distinct Hd)
-  ... | ι₂ (there H∈₂) = tvar (AnyP.++⁺ʳ _ H∈₂) H≤ (weaken-distinct Hd)
-  ... | ι₂ (here refl) with () ← H≢ refl
+  ...   | no  H≰c =
+    weaken-typing
+      (weaken-coeff Hu (≤-1 $ ≤+1 $ trich' H≰c))
+      (SP.++⁺ˡ _ ⊆-refl)
+      (weaken-distinct Hd)
+  go {Γ′ = Γ′} {{refl}} (tvar {x = x₁} H∈ H≤ Hd) | neq H≢ with AnyP.++⁻ Γ′ H∈
+  ...   | ι₁ H∈₁         = tvar (AnyP.++⁺ˡ   H∈₁) H≤ (weaken-distinct Hd)
+  ...   | ι₂ (there H∈₂) = tvar (AnyP.++⁺ʳ _ H∈₂) H≤ (weaken-distinct Hd)
+  ...   | ι₂ (here refl) with () ← H≢ refl
   go {Γ′ = Γ′} {{refl}} (tlam {t = t} (Иi As Hcof)) =
     tlam $ Иi (As ∪ [ x ]) λ {y {{∉∪ {{q = H∉}}}} →
       let Heq : (x => u)((0 ~> y) (t ₀)) ≡ (0 ~> y)((x => u) (t ₀))
@@ -299,20 +376,17 @@ substitution-pres-typing {Γ} {x = x} {u = u} {T₂ = T₂} Htype Hu =
       (funext λ ()) (treal (weaken-distinct Hd))
   go {{refl}} (ttup Hd Htypes) = ttup (weaken-distinct Hd) (go ∘ Htypes)
   go (tproj i Htype) = tproj i $ go Htype
-  go (tif Htype Htype₁ Htype₂) =
-    tif (go Htype) (go Htype₁) (go Htype₂)
-  go (tdiff Hcs Htype Htype₁) =
-    tdiff Hcs (go Htype) (go Htype₁)
-  go (tsolve Htype Htype₁ Htype₂) =
-    tsolve (go Htype) (go Htype₁) (go Htype₂)
+  go (tif Htype Htype₁ Htype₂) = tif (go Htype) (go Htype₁) (go Htype₂)
+  go (tdiff Hcs Htype Htype₁) = tdiff Hcs (go Htype) (go Htype₁)
+  go (tsolve Htype Htype₁ Htype₂) = tsolve (go Htype) (go Htype₁) (go Htype₂)
   go {{refl}} (tdist HD Hd Htypes) = tdist HD (weaken-distinct Hd) (go ∘ Htypes)
   go (tassume Htype) = tassume $ go Htype
   go (tweight Htype) = tweight $ go Htype
   go (texpect Htype) = texpect $ go Htype
   go (tinfer Htype)  = tinfer  $ go Htype
   go (tsub Htype H≤₁ H≤₂) = tsub (go Htype) H≤₁ H≤₂
-  go (tpromote Htype H≤) = tpromote (go Htype) H≤
-  go (tdemote Htype H≤) = tdemote (go Htype) H≤
+  go (tpromote Htype refl) = tpromote (go Htype) refl
+  go (tdemote Htype refl) = tdemote  (go Htype) refl
 
 -- var-substitution-pres-typing
 --   : ∀ {Γ Γ′ x y T₂ t e T₁}
@@ -330,8 +404,8 @@ substitution-pres-typing {Γ} {x = x} {u = u} {T₂ = T₂} Htype Hu =
 --   go {{Heq}} (tvar {x = x₁})
 --     with refl , refl , refl ← single-inv {{Heq}}
 --     rewrite dec-equ x = Hu
---   go {Γ′} {{refl}} (tabs {t = t} (Иi As Hcof)) =
---     tabs $ Иi ([ x ] ∪ As) λ { y {{∉∪ {{∉x}}}} →
+--   go {Γ′} {{refl}} (tlam {t = t} (Иi As Hcof)) =
+--     tlam $ Иi ([ x ] ∪ As) λ { y {{∉∪ {{∉x}}}} →
 --       let Heq : (x => u)((0 ~> y) (t ₀)) ≡ (0 ~> y)((x => u) (t ₀))
 --           Heq = subst-open-comm (t ₀) (symm≠ y x (∉[]₁ ∉x)) (lc-at→≻ _ _ $ well-typed-lc Hu)
 --       in
