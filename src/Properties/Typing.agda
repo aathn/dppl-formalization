@@ -122,14 +122,14 @@ sub-env (tif Htype Htype₁ Htype₂) Hsub =
   tif (sub-env Htype Hsub) (sub-env Htype₁ Hsub) (sub-env Htype₂ Hsub)
 sub-env (tdiff Hc Htype Htype₁) Hsub =
   tdiff Hc (sub-env Htype Hsub) (sub-env Htype₁ Hsub)
-sub-env (tsolve Htype Htype₁ Htype₂) Hsub =
-  tsolve (sub-env Htype Hsub) (sub-env Htype₁ Hsub) (sub-env Htype₂ Hsub)
+sub-env (tsolve Htype Htype₁ Htype₂ H≤) Hsub =
+  tsolve (sub-env Htype Hsub) (sub-env Htype₁ Hsub) (sub-env Htype₂ Hsub) H≤
 sub-env (tdist HD Htypes Hd) Hsub =
   tdist HD (λ i → sub-env (Htypes i) Hsub) (dom-distinct (symm $ sub-dom Hsub) Hd)
 sub-env (tassume Htype) Hsub = tassume (sub-env Htype Hsub)
 sub-env (tweight Htype) Hsub = tweight (sub-env Htype Hsub)
 sub-env (texpect Htype) Hsub = texpect (sub-env Htype Hsub)
-sub-env (tinfer Htype) Hsub  = tinfer (sub-env Htype Hsub)
+sub-env (tinfer Htype H≤) Hsub  = tinfer (sub-env Htype Hsub) (≤ᴱ-<:ᴱ-trans H≤ Hsub)
 sub-env (tweaken Htype H⊆ Hd) Hsub =
   let Γ₂′ , Hsub′ , H⊆′ = sub-⊆ Hsub H⊆
   in  tweaken (sub-env Htype Hsub′) H⊆′ (dom-distinct (symm $ sub-dom Hsub) Hd)
@@ -153,12 +153,12 @@ well-typed-distinct (ttup Htypes Hd) = Hd
 well-typed-distinct (tproj i Htype) = well-typed-distinct Htype
 well-typed-distinct (tif Htype Htype₁ Htype₂) = well-typed-distinct Htype
 well-typed-distinct (tdiff _ Htype Htype₁) = well-typed-distinct Htype
-well-typed-distinct (tsolve Htype Htype₁ Htype₂) = well-typed-distinct Htype
+well-typed-distinct (tsolve Htype Htype₁ Htype₂ _) = well-typed-distinct Htype
 well-typed-distinct (tdist HD Htypes Hd) = Hd
 well-typed-distinct (tassume Htype) = well-typed-distinct Htype
 well-typed-distinct (tweight Htype) = well-typed-distinct Htype
 well-typed-distinct (texpect Htype) = well-typed-distinct Htype
-well-typed-distinct (tinfer Htype)  = well-typed-distinct Htype
+well-typed-distinct (tinfer Htype _)  = well-typed-distinct Htype
 well-typed-distinct (tweaken _ _ Hd) = Hd
 well-typed-distinct (tsub Htype _ _) = well-typed-distinct Htype
 well-typed-distinct (tpromote Htype _) = well-typed-distinct Htype
@@ -213,7 +213,7 @@ tinfer-inv :
   → T ≡ tdist T′
   → --------------------------------
     Γ ⊢ v ₀ :[ e ] tunit ⇒[ rnd ] T′
-tinfer-inv (tinfer Htype) refl = Htype
+tinfer-inv (tinfer Htype _) refl = Htype
 tinfer-inv (tweaken Htype H⊆ Hd) Heq =
   tweaken (tinfer-inv Htype Heq) H⊆ Hd
 tinfer-inv (tsub Htype H≤ (sdist Hsub)) refl =
@@ -262,7 +262,7 @@ dom-∈ {x :: Γ} (∈∪₂ x∈Γ) with T , H∈ ← dom-∈ x∈Γ = T , ther
       {{∉∪ {{p = ∉-dom-fv Htype₂ H∉}} }} }}
 ∉-dom-fv (tdiff _ Htype Htype₁) H∉ =
   ∉∪ {{p = ∉-dom-fv Htype H∉}} {{∉∪ {{p = ∉-dom-fv Htype₁ H∉}}}}
-∉-dom-fv (tsolve Htype Htype₁ Htype₂) H∉ =
+∉-dom-fv (tsolve Htype Htype₁ Htype₂ _) H∉ =
   ∉∪ {{p = ∉-dom-fv Htype H∉}}
     {{∉∪ {{p = ∉-dom-fv Htype₁ H∉}}
       {{∉∪ {{p = ∉-dom-fv Htype₂ H∉}} }} }}
@@ -270,7 +270,7 @@ dom-∈ {x :: Γ} (∈∪₂ x∈Γ) with T , H∈ ← dom-∈ x∈Γ = T , ther
 ∉-dom-fv (tassume Htype) H∉ = ∉∪ {{p = ∉-dom-fv Htype H∉}}
 ∉-dom-fv (tweight Htype) H∉ = ∉∪ {{p = ∉-dom-fv Htype H∉}}
 ∉-dom-fv (texpect Htype) H∉ = ∉∪ {{p = ∉-dom-fv Htype H∉}}
-∉-dom-fv (tinfer Htype) H∉  = ∉∪ {{p = ∉-dom-fv Htype H∉}}
+∉-dom-fv (tinfer Htype _) H∉  = ∉∪ {{p = ∉-dom-fv Htype H∉}}
 ∉-dom-fv (tweaken Htype H⊆ _) H∉ = ∉-dom-fv Htype (∉-dom-⊆ H∉ H⊆)
 ∉-dom-fv (tsub Htype _ _) H∉ = ∉-dom-fv Htype H∉
 ∉-dom-fv (tpromote Htype _) H∉ = ∉-dom-fv Htype H∉
@@ -399,7 +399,7 @@ well-typed-lc (tdiff _ Htype Htype₁) = lc-at-op λ
   { ₀ → well-typed-lc Htype
   ; ₁ → well-typed-lc Htype₁
   }
-well-typed-lc (tsolve Htype Htype₁ Htype₂) = lc-at-op λ
+well-typed-lc (tsolve Htype Htype₁ Htype₂ _) = lc-at-op λ
   { ₀ → well-typed-lc Htype
   ; ₁ → well-typed-lc Htype₁
   ; ₂ → well-typed-lc Htype₂
@@ -408,7 +408,7 @@ well-typed-lc (tdist _ Htypes _) = lc-at-op $ well-typed-lc ∘ Htypes
 well-typed-lc (tassume Htype)  = lc-at-op λ { ₀ → well-typed-lc Htype }
 well-typed-lc (tweight Htype)  = lc-at-op λ { ₀ → well-typed-lc Htype }
 well-typed-lc (texpect Htype)  = lc-at-op λ { ₀ → well-typed-lc Htype }
-well-typed-lc (tinfer Htype)   = lc-at-op λ { ₀ → well-typed-lc Htype }
+well-typed-lc (tinfer Htype _)   = lc-at-op λ { ₀ → well-typed-lc Htype }
 well-typed-lc (tweaken Htype _ _) = well-typed-lc Htype
 well-typed-lc (tsub Htype _ _)    = well-typed-lc Htype
 well-typed-lc (tpromote Htype _)  = well-typed-lc Htype
@@ -446,13 +446,13 @@ substitution-pres-typing {Γ′} {x} {u} {T₂} Htype Hu = go Htype
     tif (go Htype) (go Htype₁) (go Htype₂)
   go (tdiff Hcs Htype Htype₁) =
     tdiff Hcs (go Htype) (go Htype₁)
-  go (tsolve Htype Htype₁ Htype₂) =
-    tsolve (go Htype) (go Htype₁) (go Htype₂)
+  go (tsolve Htype Htype₁ Htype₂ H≤) =
+    tsolve (go Htype) (go Htype₁) (go Htype₂) H≤
   go {{refl}} (tdist HD Htypes Hd) = tdist HD (go ∘ Htypes) (distinct-weaken Hd)
   go (tassume Htype) = tassume $ go Htype
   go (tweight Htype) = tweight $ go Htype
   go (texpect Htype) = texpect $ go Htype
-  go (tinfer Htype)  = tinfer  $ go Htype
+  go {{refl}} (tinfer Htype H≤) = tinfer (go Htype) (all-weaken H≤)
   go {{refl}} (tweaken {Γ′ = Γ₂} {t = t} Htype H⊆ Hd) with x ∈? dom Γ₂
   ... | yes H∈ with Δ₁ , Δ₂ , [] , H⊆₁ , refl ← ⊆-split (distinct-∉ Hd) H∈ H⊆ =
     tweaken (go Htype) (++⁺ H⊆₁ []) (distinct-weaken Hd)

@@ -4,7 +4,6 @@ open import Lib.Prelude
 open import Lib.FunExt
 open import Lib.BindingSignature
 
-open import Data.Fin using () renaming (_<_ to _<ꟳ_)
 open import Data.Product using (∃ ; ∃-syntax)
 open import Data.Vec.Functional using (updateAt)
 open import Data.Vec.Functional.Properties using (updateAt-id-local)
@@ -32,8 +31,8 @@ data EvalCtx
   where
 
   ectx
-    : ∀ {o j ts}
-    → (∀ i → i <ꟳ j → Val (ts (ord i)))
+    : ∀ {o : Op Σ} {j : Fin len} {ts : Vector (Trm Σ) (length (ar Σ o))}
+    → (∀ i → i <′ j → Val (ts (ord i)))
     → ------------------------------------------------------------
       EvalCtx Val λ t → op (o , updateAt ts (ord j) (const t))
 
@@ -69,7 +68,7 @@ module CongStep
 
   cong-step
     : ∀ {a b o ts t′ n}
-    → (∀ i → i <ꟳ n → Val (ts (ord i)))
+    → (∀ i → i <′ n → Val (ts (ord i)))
     → put (ts (ord n)) a ↝ᶜ put t′ b
     → ------------------------------
       put (op (o , ts)) a ↝ᶜ

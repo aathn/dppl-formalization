@@ -73,7 +73,7 @@ module Progress (Ass : EvalAssumptions) where
           _ , cong-stepᵈ (λ {₀ (+1≤ 0≤) → Hv}) Hstep
         }
       }
-  progress-det (tsolve Htype Htype₁ Htype₂) =
+  progress-det (tsolve Htype Htype₁ Htype₂ _) =
     ι₂ $ case (progress-det Htype) λ
       { (ι₂ (t′ , Hstep)) → _ , cong-stepᵈ (λ _ ()) Hstep
       ; (ι₁ Hv) → case (progress-det Htype₁) λ
@@ -100,7 +100,7 @@ module Progress (Ass : EvalAssumptions) where
         ; (ι₂ (v , Heq , Hv)) → _ , estep (eexpectinfer Heq Hv)
         }
       }
-  progress-det (tinfer Htype) =
+  progress-det (tinfer Htype H≤) =
     case (progress-det Htype) λ
       { (ι₂ (t′ , Hstep)) → ι₂ $ _ , cong-stepᵈ (λ _ ()) Hstep
       ; (ι₁ Hv)           → ι₁ $ vinfer Hv
@@ -158,7 +158,7 @@ module Progress (Ass : EvalAssumptions) where
         ; (ι₁ Hv₁) → _ , estep (edet (ediff Hv Hv₁))
         }
       }
-  progress-rnd (tsolve Htype Htype₁ Htype₂) =
+  progress-rnd (tsolve Htype Htype₁ Htype₂ _) =
     ι₂ $ case (progress-rnd Htype) λ
       { (ι₂ (_ , Hstep)) → _ , cong-stepʳ (λ _ ()) Hstep
       ; (ι₁ Hv) → case (progress-rnd Htype₁) λ
@@ -199,7 +199,7 @@ module Progress (Ass : EvalAssumptions) where
       ; (ι₁ Hv) → case (canonical-real Htype Hv refl) λ
         { (r , Heq) → _ , estep (eweight Heq) }
       }
-  progress-rnd (tinfer Htype) =
+  progress-rnd (tinfer Htype H≤) =
     case (progress-rnd Htype) λ
       { (ι₂ (_ , Hstep)) → ι₂ $ _ , cong-stepʳ (λ _ ()) Hstep
       ; (ι₁ Hv) → ι₁ $ vinfer Hv

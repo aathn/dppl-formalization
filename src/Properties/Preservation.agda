@@ -52,14 +52,14 @@ ctx-type-inv (ectx {o} {j = j} _) Htype =
   go ₀ (tif Htype _ _) = _ , Htype
   go ₀ (tdiff _ Htype Htype₁) = _ , Htype
   go ₁ (tdiff _ Htype Htype₁) = _ , Htype₁
-  go ₀ (tsolve Htype Htype₁ Htype₂) = _ , Htype
-  go ₁ (tsolve Htype Htype₁ Htype₂) = _ , Htype₁
-  go ₂ (tsolve Htype Htype₁ Htype₂) = _ , Htype₂
+  go ₀ (tsolve Htype Htype₁ Htype₂ _) = _ , Htype
+  go ₁ (tsolve Htype Htype₁ Htype₂ _) = _ , Htype₁
+  go ₂ (tsolve Htype Htype₁ Htype₂ _) = _ , Htype₂
   go j (tdist _ Htypes _) = _ , Htypes j
   go ₀ (tassume Htype) = _ , Htype
   go ₀ (tweight Htype) = _ , Htype
   go ₀ (texpect Htype) = _ , Htype
-  go ₀ (tinfer Htype)  = _ , Htype
+  go ₀ (tinfer Htype _) = _ , Htype
   go j (tweaken Htype H⊆ Hd) = _ , tweaken (go j Htype .π₂) H⊆ Hd
   go j (tsub Htype _ _) = _ , go j Htype .π₂
   go j (tpromote Htype H≤) = _ , tpromote (go j Htype .π₂) H≤
@@ -116,15 +116,15 @@ preservation-ctx
   go ₀ (tif Htype Htype₁ Htype₂) Ht = tif (Ht Htype) Htype₁ Htype₂
   go ₀ (tdiff Hcs Htype Htype₁) Ht = tdiff Hcs (Ht Htype) Htype₁
   go ₁ (tdiff Hcs Htype Htype₁) Ht = tdiff Hcs Htype (Ht Htype₁)
-  go ₀ (tsolve Htype Htype₁ Htype₂) Ht = tsolve (Ht Htype) Htype₁ Htype₂
-  go ₁ (tsolve Htype Htype₁ Htype₂) Ht = tsolve Htype (Ht Htype₁) Htype₂
-  go ₂ (tsolve Htype Htype₁ Htype₂) Ht = tsolve Htype Htype₁ (Ht Htype₂)
+  go ₀ (tsolve Htype Htype₁ Htype₂ H≤) Ht = tsolve (Ht Htype) Htype₁ Htype₂ H≤
+  go ₁ (tsolve Htype Htype₁ Htype₂ H≤) Ht = tsolve Htype (Ht Htype₁) Htype₂ H≤
+  go ₂ (tsolve Htype Htype₁ Htype₂ H≤) Ht = tsolve Htype Htype₁ (Ht Htype₂) H≤
   go j (tdist HD Htypes Hd) Ht =
     tdist HD (updateAt-type j Htypes (Ht (Htypes j))) Hd
   go ₀ (tassume Htype) Ht = tassume (Ht Htype)
   go ₀ (tweight Htype) Ht = tweight (Ht Htype)
   go ₀ (texpect Htype) Ht = texpect (Ht Htype)
-  go ₀ (tinfer  Htype) Ht = tinfer  (Ht Htype)
+  go ₀ (tinfer Htype H≤) Ht = tinfer (Ht Htype) H≤
   go j (tweaken Htype [] Hd) Ht = tweaken (go j Htype Ht) [] Hd
   go j (tsub Htype H≤ Hsub) Ht = tsub (go j Htype Ht) H≤ Hsub
   go j (tpromote Htype H≤) Ht = tpromote (go j Htype Ht) H≤
@@ -150,7 +150,7 @@ module _ (Ass : EvalAssumptions) where
         → Γ ⊢ t₀ :[ e ] ttup {2} Ts ⇒[ det ] treals cs
         → Ts ₀ ≡ treal c → Ts ₁ ≡ treals {n} cs
         → Γ ⊢ t₁ :[ e ] treals cs
-        → Γ ⊢ t₂ :[ e ] treal P
+        → Γ ⊢ t₂ :[ e ] treal c
         → (v₀ : Value t₀) (v₁ : Value t₁) (v₂ : Value t₂)
         → -----------------------------------------------------
           Γ ⊢ Solve (_ , v₀) (_ , v₁) (_ , v₂) :[ e ] treals cs
@@ -193,7 +193,7 @@ module _ (Ass : EvalAssumptions) where
     ... | true  = Htype₂
     preservation-det-step (tdiff Hcs Htype Htype₁) (ediff Hv Hv₁) =
       DiffPres Hcs Htype Htype₁ Hv Hv₁
-    preservation-det-step (tsolve Htype Htype₁ Htype₂) (esolve Hv Hv₁ Hv₂) =
+    preservation-det-step (tsolve Htype Htype₁ Htype₂ _) (esolve Hv Hv₁ Hv₂) =
       SolvePres Htype refl refl Htype₁ Htype₂ Hv Hv₁ Hv₂
     preservation-det-step (texpect Htype) (eexpectdist Heq) =
       tsub treal 0≤ sub-refl

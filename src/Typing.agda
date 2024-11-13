@@ -153,7 +153,8 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
     : ∀ {Γ ts n c cs e}
     → Γ ⊢ ts ₀ :[ e ] ttup {2} (λ {₀ → treal c; ₁ → treals {n} cs}) ⇒[ det ] treals cs
     → Γ ⊢ ts ₁ :[ e ] treals cs
-    → Γ ⊢ ts ₂ :[ e ] treal P
+    → Γ ⊢ ts ₂ :[ e ] treal c
+    → P ≤′ c
     → -----------------------------
       Γ ⊢ solve ts :[ e ] treals cs
 
@@ -186,6 +187,7 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
   tinfer
     : ∀ {Γ t e T}
     → Γ ⊢ t ₀ :[ e ] tunit ⇒[ rnd ] T
+    → N ≤ᴱ Γ
     → -------------------------------
       Γ ⊢ infer t :[ e ] tdist T
 

@@ -398,7 +398,7 @@ wf< = <-wellFounded
 ----------------------------------------------------------------------
 open import Data.Vec.Functional as Vec public using (Vector)
 
-open import Data.Fin public using (Fin ; zero) renaming (suc to succ ; _≤_ to _≤′_)
+open import Data.Fin public using (Fin ; zero) renaming (suc to succ ; _≤_ to _≤′_ ; _<_ to _<′_)
 open import Data.Fin using (fromℕ<)
 open import Data.Fin.Properties using (toℕ<n)
 

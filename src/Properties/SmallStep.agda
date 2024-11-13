@@ -99,7 +99,7 @@ canonical-dist (tdist {ts = ts} _ Htypes _) (vdist Hvs) _ =
       Hreals = _ , funext λ i → π₂ $ canonical-real (Htypes i) (Hvs i) refl
   in
   case Hreals λ { (_ , refl) → ι₁ $ _ , _ , refl }
-canonical-dist (tinfer _) (vinfer Hv) refl = ι₂ $ _ , refl , Hv
+canonical-dist (tinfer _ _) (vinfer Hv) refl = ι₂ $ _ , refl , Hv
 canonical-dist (tweaken Htype _ _) Hval Heq =
   canonical-dist Htype Hval Heq
 canonical-dist (tsub Htype _ (sdist _)) Hval refl =
@@ -119,7 +119,7 @@ val-type-det (ttup Htypes Hd) (vtup Hvs) =
   ttup (λ i → val-type-det (Htypes i) (Hvs i)) Hd
 val-type-det (tdist HD Htypes Hd) (vdist Hvs) =
   tdist HD (λ i → val-type-det (Htypes i) (Hvs i)) Hd
-val-type-det (tinfer Htype) (vinfer Hval) = tinfer (val-type-det Htype Hval)
+val-type-det (tinfer Htype H≤) (vinfer Hval) = tinfer (val-type-det Htype Hval) H≤
 val-type-det (tweaken Htype H⊆ Hd) Hval = tweaken (val-type-det Htype Hval) H⊆ Hd
 val-type-det (tsub Htype He Hsub) Hval = tsub (val-type-det Htype Hval) 0≤ Hsub
 val-type-det (tpromote Htype H≤) Hval = tpromote (val-type-det Htype Hval) H≤
@@ -153,11 +153,16 @@ module Step (Ass : EvalAssumptions) where
     → -----------
       Value t
 
-  ctx-value-inv {E} {t} (ectx {o} {j} {ts} _) Hv
-    with ts' ← updateAt ts (ord {{eval-order {o}}} j) (const t) in HEt | Hv | HEt
-  ... | vtup  Hvs | refl = subst Value (updateAt-updates j ts) (Hvs j)
-  ... | vdist Hvs | refl = subst Value (updateAt-updates j ts) (Hvs j)
-  ... | vinfer Hv₀ | refl with ₀ ← j = Hv₀
+  ctx-value-inv (ectx _) Hv = go Hv
+    where
+    go
+      : ∀ {o t ts j}
+      → Value (op (o , updateAt ts (ord {{eval-order {o}}} j) (const t)))
+      → -----------------------------------------------------------------
+        Value t
+    go {ts = ts} {j = j} (vtup Hvs) = subst Value (updateAt-updates j ts) (Hvs j)
+    go {ts = ts} {j = j} (vdist Hvs) = subst Value (updateAt-updates j ts) (Hvs j)
+    go {j = ₀} (vinfer Hv) = Hv
 
   value-cannot-step-det
     : ∀ {t t′}
