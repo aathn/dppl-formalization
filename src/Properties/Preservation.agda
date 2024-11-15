@@ -46,8 +46,8 @@ ctx-type-inv (ectx {o} {j = j} _) Htype =
 
   go ₀ (tapp Htype Htype₁) = _ , Htype
   go ₁ (tapp Htype Htype₁) = _ , Htype₁
-  go j (tprim _ Htypes _) = _ , Htypes j
-  go j (ttup Htypes _) = _ , Htypes j
+  go j (tprim _ _ Htypes) = _ , Htypes j
+  go j (ttup _ Htypes) = _ , Htypes j
   go ₀ (tproj i Htype) = _ , Htype
   go ₀ (tif Htype _ _) = _ , Htype
   go ₀ (tdiff _ Htype Htype₁) = _ , Htype
@@ -55,7 +55,7 @@ ctx-type-inv (ectx {o} {j = j} _) Htype =
   go ₀ (tsolve Htype Htype₁ Htype₂ _) = _ , Htype
   go ₁ (tsolve Htype Htype₁ Htype₂ _) = _ , Htype₁
   go ₂ (tsolve Htype Htype₁ Htype₂ _) = _ , Htype₂
-  go j (tdist _ Htypes _) = _ , Htypes j
+  go j (tdist _ _ Htypes) = _ , Htypes j
   go ₀ (tassume Htype) = _ , Htype
   go ₀ (tweight Htype) = _ , Htype
   go ₀ (texpect Htype) = _ , Htype
@@ -108,10 +108,10 @@ preservation-ctx
 
   go ₀ (tapp Htype Htype₁) Ht = tapp (Ht Htype) Htype₁
   go ₁ (tapp Htype Htype₁) Ht = tapp Htype (Ht Htype₁)
-  go j (tprim Hϕ Htypes Hd) Ht =
-    tprim Hϕ (updateAt-type j Htypes (Ht (Htypes j))) Hd
-  go j (ttup Htypes Hd) Ht =
-    ttup (updateAt-type j Htypes (Ht (Htypes j))) Hd
+  go j (tprim Hϕ Hd Htypes) Ht =
+    tprim Hϕ Hd (updateAt-type j Htypes (Ht (Htypes j)))
+  go j (ttup Hd Htypes) Ht =
+    ttup Hd (updateAt-type j Htypes (Ht (Htypes j)))
   go ₀ (tproj i Htype) Ht = tproj i (Ht Htype)
   go ₀ (tif Htype Htype₁ Htype₂) Ht = tif (Ht Htype) Htype₁ Htype₂
   go ₀ (tdiff Hcs Htype Htype₁) Ht = tdiff Hcs (Ht Htype) Htype₁
@@ -119,8 +119,8 @@ preservation-ctx
   go ₀ (tsolve Htype Htype₁ Htype₂ H≤) Ht = tsolve (Ht Htype) Htype₁ Htype₂ H≤
   go ₁ (tsolve Htype Htype₁ Htype₂ H≤) Ht = tsolve Htype (Ht Htype₁) Htype₂ H≤
   go ₂ (tsolve Htype Htype₁ Htype₂ H≤) Ht = tsolve Htype Htype₁ (Ht Htype₂) H≤
-  go j (tdist HD Htypes Hd) Ht =
-    tdist HD (updateAt-type j Htypes (Ht (Htypes j))) Hd
+  go j (tdist HD Hd Htypes) Ht =
+    tdist HD Hd (updateAt-type j Htypes (Ht (Htypes j)))
   go ₀ (tassume Htype) Ht = tassume (Ht Htype)
   go ₀ (tweight Htype) Ht = tweight (Ht Htype)
   go ₀ (texpect Htype) Ht = texpect (Ht Htype)
@@ -233,7 +233,7 @@ module _ (Ass : EvalAssumptions) where
     preservation-rnd-step (tassume Htype) (eassumeinfer Heq Hv) rewrite Heq =
       InferPres (tinfer-inv Htype refl) Hv
     preservation-rnd-step (tweight Htype) (eweight Heq) =
-      ttup (λ()) []
+      ttup [] (λ())
     preservation-rnd-step (tweaken Htype [] Hd) Hstep =
       preservation-rnd-step Htype Hstep
     preservation-rnd-step (tsub Htype H≤ Hsub) Hstep =

@@ -144,13 +144,13 @@ module Eval (Ass : EvalAssumptions) where
       : ∀ {t D rs w p s}
       → t ₀ ≡ dist D (map real rs)
       → ------------------------------------------------------
-        (assume t , w , p :: s) →ʳ (Sample D rs p .π₁ , w , s)
+        (assume t , w , p ∷ s) →ʳ (Sample D rs p .π₁ , w , s)
 
     eassumeinfer
       : ∀ {t t′ w p s}
       → t ₀ ≡ infer t′ → (v : Value (t′ ₀))
       → ---------------------------------------------------------
-        (assume t , w , p :: s) →ʳ (Infer (_ , v) p .π₁ , w , s)
+        (assume t , w , p ∷ s) →ʳ (Infer (_ , v) p .π₁ , w , s)
 
 
   -- Full evaluation relations

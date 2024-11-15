@@ -61,7 +61,7 @@ sub-⊆ (Hsub ∷ Hsubs) (y ∷ʳ H⊆) =
   in  Γ₂′ , Hsub′ , _ ∷ʳ H⊆′
 sub-⊆ (Hsub ∷ Hsubs) (refl ∷ H⊆) =
   let Γ₂′ , Hsub′ , H⊆′ = sub-⊆ Hsubs H⊆
-  in  _ :: Γ₂′ , Hsub ∷ Hsub′ , refl ∷ H⊆′
+  in  _ ∷ Γ₂′ , Hsub ∷ Hsub′ , refl ∷ H⊆′
 
 sub-dom
   : ∀ {Γ₁ Γ₂}
@@ -77,7 +77,7 @@ dom-distinct
   → -------------------------
     Distinct Γ₁ → Distinct Γ₂
 dom-distinct {Γ₂ = []} Hdom [] = []
-dom-distinct {Γ₂ = (y , T) :: Γ₂} Hdom (H∉ ∷ Hd) with refl ← ∪inj₁ Hdom =
+dom-distinct {Γ₂ = (y , T) ∷ Γ₂} Hdom (H∉ ∷ Hd) with refl ← ∪inj₁ Hdom =
   subst (y ∉_) (∪inj₂ Hdom) H∉ ∷ dom-distinct (∪inj₂ Hdom) Hd
 
 ≤ᶜ-<:-trans
@@ -112,11 +112,11 @@ sub-env (tabs (Иi As Hcof)) Hsub =
   tabs $ Иi As λ y → sub-env (Hcof y) ((refl , sub-refl) ∷ Hsub)
 sub-env (tapp Htype Htype₁) Hsub =
   tapp (sub-env Htype Hsub) (sub-env Htype₁ Hsub)
-sub-env (tprim Hϕ Htypes Hd) Hsub =
-  tprim Hϕ (λ i → sub-env (Htypes i) Hsub) (dom-distinct (symm $ sub-dom Hsub) Hd)
+sub-env (tprim Hϕ Hd Htypes) Hsub =
+  tprim Hϕ (dom-distinct (symm $ sub-dom Hsub) Hd) λ i → sub-env (Htypes i) Hsub
 sub-env treal [] = treal
-sub-env (ttup Htypes Hd) Hsub =
-  ttup (λ i → sub-env (Htypes i) Hsub) (dom-distinct (symm $ sub-dom Hsub) Hd)
+sub-env (ttup Hd Htypes) Hsub =
+  ttup (dom-distinct (symm $ sub-dom Hsub) Hd) λ i → sub-env (Htypes i) Hsub
 sub-env (tproj i Htype) Hsub = tproj i (sub-env Htype Hsub)
 sub-env (tif Htype Htype₁ Htype₂) Hsub =
   tif (sub-env Htype Hsub) (sub-env Htype₁ Hsub) (sub-env Htype₂ Hsub)
@@ -124,8 +124,8 @@ sub-env (tdiff Hc Htype Htype₁) Hsub =
   tdiff Hc (sub-env Htype Hsub) (sub-env Htype₁ Hsub)
 sub-env (tsolve Htype Htype₁ Htype₂ H≤) Hsub =
   tsolve (sub-env Htype Hsub) (sub-env Htype₁ Hsub) (sub-env Htype₂ Hsub) H≤
-sub-env (tdist HD Htypes Hd) Hsub =
-  tdist HD (λ i → sub-env (Htypes i) Hsub) (dom-distinct (symm $ sub-dom Hsub) Hd)
+sub-env (tdist HD Hd Htypes) Hsub =
+  tdist HD (dom-distinct (symm $ sub-dom Hsub) Hd) λ i → sub-env (Htypes i) Hsub
 sub-env (tassume Htype) Hsub = tassume (sub-env Htype Hsub)
 sub-env (tweight Htype) Hsub = tweight (sub-env Htype Hsub)
 sub-env (texpect Htype) Hsub = texpect (sub-env Htype Hsub)
@@ -147,14 +147,14 @@ well-typed-distinct (tabs (Иi As Hcof))
   with x , x∉As ← fresh As
   with _ ∷ Hd ← well-typed-distinct (Hcof x {{x∉As}}) = Hd
 well-typed-distinct (tapp Htype Htype₁) = well-typed-distinct Htype
-well-typed-distinct (tprim Hϕ Htypes Hd) = Hd
+well-typed-distinct (tprim Hϕ Hd _) = Hd
 well-typed-distinct treal = []
-well-typed-distinct (ttup Htypes Hd) = Hd
+well-typed-distinct (ttup Hd _) = Hd
 well-typed-distinct (tproj i Htype) = well-typed-distinct Htype
 well-typed-distinct (tif Htype Htype₁ Htype₂) = well-typed-distinct Htype
 well-typed-distinct (tdiff _ Htype Htype₁) = well-typed-distinct Htype
 well-typed-distinct (tsolve Htype Htype₁ Htype₂ _) = well-typed-distinct Htype
-well-typed-distinct (tdist HD Htypes Hd) = Hd
+well-typed-distinct (tdist HD Hd _) = Hd
 well-typed-distinct (tassume Htype) = well-typed-distinct Htype
 well-typed-distinct (tweight Htype) = well-typed-distinct Htype
 well-typed-distinct (texpect Htype) = well-typed-distinct Htype
@@ -185,7 +185,7 @@ ttup-inv :
   → T ≡ ttup Ts
   → --------------------------
     ∀ i → Γ ⊢ vs i :[ e ] Ts i
-ttup-inv (ttup Hvs _) refl = Hvs
+ttup-inv (ttup _ Hvs) refl = Hvs
 ttup-inv (tweaken Htype H⊆ Hd) Heq = λ i →
   tweaken (ttup-inv Htype Heq i) H⊆ Hd
 ttup-inv (tsub Htype H≤ (stup Hsubs)) refl = λ i →
@@ -222,12 +222,12 @@ tinfer-inv (tpromote {T = tdist _} Htype H≤) refl =
   tpromote (tinfer-inv Htype refl) H≤
 
 dom-∈ : ∀ {Γ x} → x ∈ dom Γ → ∃[ T ] (x , T) ∈ˡ Γ
-dom-∈ {x :: Γ} (∈∪₁ ∈[]) = _ , here refl
-dom-∈ {x :: Γ} (∈∪₂ x∈Γ) with T , H∈ ← dom-∈ x∈Γ = T , there H∈
+dom-∈ {x ∷ Γ} (∈∪₁ ∈[]) = _ , here refl
+dom-∈ {x ∷ Γ} (∈∪₂ x∈Γ) with T , H∈ ← dom-∈ x∈Γ = T , there H∈
 
 ∈-dom : ∀ {Γ x T} → (x , T) ∈ˡ Γ → x ∈ dom Γ
-∈-dom {x :: Γ} (here refl) = ∈∪₁ ∈[]
-∈-dom {x :: Γ} (there H∈)  = ∈∪₂ (∈-dom H∈)
+∈-dom {x ∷ Γ} (here refl) = ∈∪₁ ∈[]
+∈-dom {x ∷ Γ} (there H∈)  = ∈∪₂ (∈-dom H∈)
 
 ∉-dom-⊆
   : ∀ {Δ Γ x}
@@ -236,8 +236,8 @@ dom-∈ {x :: Γ} (∈∪₂ x∈Γ) with T , H∈ ← dom-∈ x∈Γ = T , ther
   → ---------
     x ∉ dom Δ
 ∉-dom-⊆ {[]} H∉ H⊆ = ∉Ø
-∉-dom-⊆ {_ :: Δ} ∉∪ (_ ∷ʳ H⊆) = ∉-dom-⊆ it H⊆
-∉-dom-⊆ {y :: Δ} (∉∪ {{p}}) (refl ∷ H⊆) = ∉∪ {{p = p}} {{∉-dom-⊆ it H⊆}}
+∉-dom-⊆ {_ ∷ Δ} ∉∪ (_ ∷ʳ H⊆) = ∉-dom-⊆ it H⊆
+∉-dom-⊆ {y ∷ Δ} (∉∪ {{p}}) (refl ∷ H⊆) = ∉∪ {{p = p}} {{∉-dom-⊆ it H⊆}}
 
 ∉-dom-fv
   : ∀ {x Γ t e T}
@@ -252,9 +252,9 @@ dom-∈ {x :: Γ} (∈∪₂ x∈Γ) with T , H∈ ← dom-∈ x∈Γ = T , ther
   ∉∪ {{p = open-notin (t ₀) Hnin}}
 ∉-dom-fv (tapp Htype Htype₁) H∉ =
   ∉∪ {{p = ∉-dom-fv Htype H∉}} {{∉∪ {{p = ∉-dom-fv Htype₁ H∉}}}}
-∉-dom-fv (tprim _ Htypes _) H∉ = ∉⋃′ _ λ i → ∉-dom-fv (Htypes i) H∉
+∉-dom-fv (tprim _ _ Htypes) H∉ = ∉⋃′ _ λ i → ∉-dom-fv (Htypes i) H∉
 ∉-dom-fv treal H∉ = ∉Ø
-∉-dom-fv (ttup Htypes _) H∉ = ∉⋃′ _ λ i → ∉-dom-fv (Htypes i) H∉
+∉-dom-fv (ttup _ Htypes) H∉ = ∉⋃′ _ λ i → ∉-dom-fv (Htypes i) H∉
 ∉-dom-fv (tproj i Htype) H∉ = ∉∪ {{p = ∉-dom-fv Htype H∉}}
 ∉-dom-fv (tif Htype Htype₁ Htype₂) H∉ =
   ∉∪ {{p = ∉-dom-fv Htype H∉}}
@@ -266,7 +266,7 @@ dom-∈ {x :: Γ} (∈∪₂ x∈Γ) with T , H∈ ← dom-∈ x∈Γ = T , ther
   ∉∪ {{p = ∉-dom-fv Htype H∉}}
     {{∉∪ {{p = ∉-dom-fv Htype₁ H∉}}
       {{∉∪ {{p = ∉-dom-fv Htype₂ H∉}} }} }}
-∉-dom-fv (tdist _ Htypes _) H∉ = ∉⋃′ _ λ i → ∉-dom-fv (Htypes i) H∉
+∉-dom-fv (tdist _ _ Htypes) H∉ = ∉⋃′ _ λ i → ∉-dom-fv (Htypes i) H∉
 ∉-dom-fv (tassume Htype) H∉ = ∉∪ {{p = ∉-dom-fv Htype H∉}}
 ∉-dom-fv (tweight Htype) H∉ = ∉∪ {{p = ∉-dom-fv Htype H∉}}
 ∉-dom-fv (texpect Htype) H∉ = ∉∪ {{p = ∉-dom-fv Htype H∉}}
@@ -277,12 +277,12 @@ dom-∈ {x :: Γ} (∈∪₂ x∈Γ) with T , H∈ ← dom-∈ x∈Γ = T , ther
 
 ++-dom : ∀ {Γ x} Γ′ → x ∉ dom (Γ′ ++ Γ) → x ∉ dom Γ′ ∪ dom Γ
 ++-dom [] H∉ = ∉∪ {{q = H∉}}
-++-dom ((y , T) :: Γ′) (∉∪ {{p = H∉₁}} {{H∉₂}}) with ∉∪ ← ++-dom Γ′ H∉₂ =
+++-dom ((y , T) ∷ Γ′) (∉∪ {{p = H∉₁}} {{H∉₂}}) with ∉∪ ← ++-dom Γ′ H∉₂ =
   ∉∪ {{p = ∉∪ {{p = H∉₁}}}}
 
 dom-++ : ∀ {Γ′ Γ x} → x ∉ dom Γ′ ∪ dom Γ → x ∉ dom (Γ′ ++ Γ)
 dom-++ {[]} ∉∪ = it
-dom-++ {_ :: Γ′} {Γ} {x} (∉∪ {{∉∪ {{p = H∉}}}}) = ∉∪ {{p = H∉}} {{dom-++ it}}
+dom-++ {_ ∷ Γ′} {Γ} {x} (∉∪ {{∉∪ {{p = H∉}}}}) = ∉∪ {{p = H∉}} {{dom-++ it}}
 
 distinct-weaken
   : ∀ {Γ′ Γ x T}
@@ -302,8 +302,8 @@ distinct-weaken {Γ′ , x′ ∶ T′} {Γ} {x} {T} (H∉ ∷ Hd)
     Γ ⊆ Γ₁ & Γ₂
 ⊆-strengthen {[]} H∉ (.(_ , _) ∷ʳ H⊆) = H⊆
 ⊆-strengthen {[]} {x = x} (∉∪ {{∉[]}}) (refl ∷ H⊆) with () ← ¬≠ x it
-⊆-strengthen {x :: Γ₂} H∉ (.x ∷ʳ H⊆) = x ∷ʳ (⊆-strengthen H∉ H⊆)
-⊆-strengthen {x :: Γ₂} ∉∪ (x₁ ∷ H⊆) = x₁ ∷ (⊆-strengthen it H⊆)
+⊆-strengthen {x ∷ Γ₂} H∉ (.x ∷ʳ H⊆) = x ∷ʳ (⊆-strengthen H∉ H⊆)
+⊆-strengthen {x ∷ Γ₂} ∉∪ (x₁ ∷ H⊆) = x₁ ∷ (⊆-strengthen it H⊆)
 
 ⊆-dom
   : ∀ {Δ Γ x}
@@ -323,8 +323,8 @@ distinct-weaken {Γ′ , x′ ∶ T′} {Γ} {x} {T} (H∉ ∷ Hd)
   → ----------
     Distinct Δ
 ⊆-distinct {[]} Hd H⊆ = []
-⊆-distinct {_ :: Δ} (_ ∷ Hd) (_ ∷ʳ H⊆) = ⊆-distinct Hd H⊆
-⊆-distinct {x :: Δ} (H∉ ∷ Hd) (refl ∷ H⊆) =
+⊆-distinct {_ ∷ Δ} (_ ∷ Hd) (_ ∷ʳ H⊆) = ⊆-distinct Hd H⊆
+⊆-distinct {x ∷ Δ} (H∉ ∷ Hd) (refl ∷ H⊆) =
   ⊆-dom H⊆ H∉ ∷ ⊆-distinct Hd H⊆
 
 ⊆-split
@@ -339,12 +339,12 @@ distinct-weaken {Γ′ , x′ ∶ T′} {Γ} {x} {T} (H∉ ∷ Hd)
 ⊆-split {[]} ∉∪ H∈ (.(_ , _) ∷ʳ Hsub) with _ , H∈′ ← dom-∈ H∈
   with () ← ∉→¬∈ (∈-dom $ lookup Hsub H∈′)
 ⊆-split {[]} ∉∪ H∈ (refl ∷ Hsub) = _ , _ , Hsub , [] , refl
-⊆-split {x :: Γ₂} (∉∪ {{q = ∉∪}}) H∈ (.x ∷ʳ Hsub)
+⊆-split {x ∷ Γ₂} (∉∪ {{q = ∉∪}}) H∈ (.x ∷ʳ Hsub)
   with  Δ₁ , Δ₂ , Hsub1 , Hsub2 , Heq ← ⊆-split ∉∪ H∈ Hsub =
   Δ₁ , Δ₂ , Hsub1 , x ∷ʳ Hsub2 , Heq
-⊆-split {x :: Γ₂} (∉∪ {{ q = ∉∪ }}) (∈∪₂ H∈) (refl ∷ Hsub)
+⊆-split {x ∷ Γ₂} (∉∪ {{ q = ∉∪ }}) (∈∪₂ H∈) (refl ∷ Hsub)
   with Δ₁ , Δ₂ , Hsub1 , Hsub2 , refl ← ⊆-split ∉∪ H∈ Hsub =
-  Δ₁ , x :: Δ₂ , Hsub1 , refl ∷ Hsub2 , refl
+  Δ₁ , x ∷ Δ₂ , Hsub1 , refl ∷ Hsub2 , refl
 ⊆-split {Γ₂ , x ∶ _} (∉∪ {{ q = ∉∪ {{ p = ∉[] }} }}) (∈∪₁ ∈[]) (refl ∷ Hsub)
   with () ← ¬≠ x it
 
@@ -354,7 +354,7 @@ distinct-∉
   → --------------------------
     x ∉ dom Γ₁ ∪ dom Γ₂
 distinct-∉ {[]} {Γ₁} {x} (H∉ ∷ _) = ∉∪ {{p = H∉}}
-distinct-∉ {(y , _) :: Γ₂} {Γ₁} {x} {T} (H∉ ∷ Hd)
+distinct-∉ {(y , _) ∷ Γ₂} {Γ₁} {x} {T} (H∉ ∷ Hd)
   with ∉∪ {{q = ∉∪ {{∉[]}}}} ← ++-dom Γ₂ H∉ | ∉∪ ← distinct-∉ Hd = it
   where instance
   _ : x ≠ y
@@ -362,11 +362,11 @@ distinct-∉ {(y , _) :: Γ₂} {Γ₁} {x} {T} (H∉ ∷ Hd)
 
 all-weaken
   : ∀ {A : Set} {P : A → Set} {l₁ l₂ x}
-  → All P (l₁ ++ x :: l₂)
+  → All P (l₁ ++ x ∷ l₂)
   → ---------------------
     All P (l₁ ++ l₂)
 all-weaken {l₁ = []} (px ∷ Hall) = Hall
-all-weaken {l₁ = x :: l₁} (px ∷ Hall) = px ∷ all-weaken Hall
+all-weaken {l₁ = x ∷ l₁} (px ∷ Hall) = px ∷ all-weaken Hall
 
 open LocalClosed
 open Body
@@ -386,9 +386,9 @@ well-typed-lc (tapp Htype Htype₁) = lc-at-op λ
   { ₀ → well-typed-lc Htype
   ; ₁ → well-typed-lc Htype₁
   }
-well-typed-lc (tprim _ Htypes _) = lc-at-op $ well-typed-lc ∘ Htypes
+well-typed-lc (tprim _ _ Htypes) = lc-at-op $ well-typed-lc ∘ Htypes
 well-typed-lc treal              = lc-at-op λ()
-well-typed-lc (ttup Htypes _)    = lc-at-op $ well-typed-lc ∘ Htypes
+well-typed-lc (ttup _ Htypes)    = lc-at-op $ well-typed-lc ∘ Htypes
 well-typed-lc (tproj i Htype)    = lc-at-op λ { ₀ → well-typed-lc Htype }
 well-typed-lc (tif Htype Htype₁ Htype₂) = lc-at-op λ
   { ₀ → well-typed-lc Htype
@@ -404,7 +404,7 @@ well-typed-lc (tsolve Htype Htype₁ Htype₂ _) = lc-at-op λ
   ; ₁ → well-typed-lc Htype₁
   ; ₂ → well-typed-lc Htype₂
   }
-well-typed-lc (tdist _ Htypes _) = lc-at-op $ well-typed-lc ∘ Htypes
+well-typed-lc (tdist _ _ Htypes) = lc-at-op $ well-typed-lc ∘ Htypes
 well-typed-lc (tassume Htype)  = lc-at-op λ { ₀ → well-typed-lc Htype }
 well-typed-lc (tweight Htype)  = lc-at-op λ { ₀ → well-typed-lc Htype }
 well-typed-lc (texpect Htype)  = lc-at-op λ { ₀ → well-typed-lc Htype }
@@ -438,9 +438,9 @@ substitution-pres-typing {Γ′} {x} {u} {T₂} Htype Hu = go Htype
       subst (λ x → _ ⊢ x :[ _ ] _) Heq $ go {Γ′ , y ∶ _} (Hcof y)
     }
   go (tapp Htype Htype₁) = tapp (go Htype) (go Htype₁)
-  go {{refl}} (tprim Hϕ Htypes Hd) = tprim Hϕ (go ∘ Htypes) (distinct-weaken Hd)
+  go {{refl}} (tprim Hϕ Hd Htypes) = tprim Hϕ (distinct-weaken Hd) (go ∘ Htypes)
   go {Γ′} treal with () ← ++-conicalʳ Γ′ _ $ symm it
-  go {{refl}} (ttup Htypes Hd) = ttup (go ∘ Htypes) (distinct-weaken Hd)
+  go {{refl}} (ttup Hd Htypes) = ttup (distinct-weaken Hd) (go ∘ Htypes)
   go (tproj i Htype) = tproj i $ go Htype
   go (tif Htype Htype₁ Htype₂) =
     tif (go Htype) (go Htype₁) (go Htype₂)
@@ -448,7 +448,7 @@ substitution-pres-typing {Γ′} {x} {u} {T₂} Htype Hu = go Htype
     tdiff Hcs (go Htype) (go Htype₁)
   go (tsolve Htype Htype₁ Htype₂ H≤) =
     tsolve (go Htype) (go Htype₁) (go Htype₂) H≤
-  go {{refl}} (tdist HD Htypes Hd) = tdist HD (go ∘ Htypes) (distinct-weaken Hd)
+  go {{refl}} (tdist HD Hd Htypes) = tdist HD (distinct-weaken Hd) (go ∘ Htypes)
   go (tassume Htype) = tassume $ go Htype
   go (tweight Htype) = tweight $ go Htype
   go (texpect Htype) = texpect $ go Htype

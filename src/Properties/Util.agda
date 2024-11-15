@@ -45,36 +45,12 @@ all-⊎ {n +1} f =
 
 single-inv
   : ∀ {A : Set} {x y : A} {ys ys′}
-  → {{x :: [] ≡ ys ++ y :: ys′}}
+  → {{x ∷ [] ≡ ys ++ y ∷ ys′}}
   → ----------------------------
     [] ≡ ys × x ≡ y × [] ≡ ys′
 
 single-inv {ys = []} = refl , ∷-injective it
-single-inv {ys = _ :: ys} with () ← ++-conicalʳ ys _ $ symm (∷-injectiveʳ it) 
-
-map-::-inv
-  : ∀ {A B : Set} {Γ : List A} {Γ₁ : List B} {x : B} {f}
-  → x :: Γ₁ ≡ map f Γ
-  → -----------------
-    ∃[ y ] ∃[ Γ₁′ ]
-    y :: Γ₁′ ≡ Γ × x ≡ f y × Γ₁ ≡ map f Γ₁′
-
-map-::-inv {Γ = y :: Γ′} refl = y , Γ′ , refl , refl , refl
-
-map-++-inv
-  : ∀ {A B : Set} {Γ : List A} {Γ₁ Γ₂} {f : A → B}
-  → Γ₁ ++ Γ₂ ≡ map f Γ
-  → ------------------
-    ∃[ Γ₁′ ] ∃[ Γ₂′ ]
-    Γ₁′ ++ Γ₂′ ≡ Γ × Γ₁ ≡ map f Γ₁′ × Γ₂ ≡ map f Γ₂′
-
-map-++-inv {Γ = Γ} {[]} Heq = [] , Γ , refl , refl , Heq
-map-++-inv {Γ = x₁ :: Γ} {x :: Γ₁} Heq =
-  let Γ₁′ , Γ₂′ , Heq₀ , Heq₁ , Heq₂ = map-++-inv {Γ = Γ} {Γ₁} (∷-injectiveʳ Heq)
-  in  x₁ :: Γ₁′ , Γ₂′
-    , ap (x₁ ::_) Heq₀
-    , ap₂ (_::_) (∷-injectiveˡ Heq) Heq₁
-    , Heq₂
+single-inv {ys = _ ∷ ys} with () ← ++-conicalʳ ys _ $ symm (∷-injectiveʳ it) 
 
 vmap-injective
   : ∀ {n} {A B : Set} {xs ys : Vector A n}
@@ -85,11 +61,3 @@ vmap-injective
 
 vmap-injective f f-inj Heq =
   funext λ i → f-inj $ ap (_$ i) Heq
-
-[]-⊆
-  : ∀ {A : Set} {l : List A}
-  → ------
-    [] ⊆ l
-
-[]-⊆ {l = []} = []
-[]-⊆ {l = x :: l} = x ∷ʳ []-⊆

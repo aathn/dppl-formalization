@@ -18,8 +18,9 @@ open import Data.List.Relation.Unary.All using (All)
 TyEnv : Set
 TyEnv = List (𝔸 × Type)
 
-pattern [_∶_]   x T = (x , T) :: []
-pattern _,_∶_ Γ x T = (x , T) :: Γ
+infixl 5 _,_∶_
+pattern [_∶_]   x T = (x , T) ∷ []
+pattern _,_∶_ Γ x T = (x , T) ∷ Γ
 
 dom : TyEnv → Fset 𝔸
 dom [] = Ø
@@ -110,8 +111,8 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
   tprim
     : ∀ {ϕ Γ cs c ts e}
     → PrimTy ϕ ≡ (cs , c)
-    → (∀ i → Γ ⊢ ts i :[ e ] treal (cs i))
     → Distinct Γ
+    → (∀ i → Γ ⊢ ts i :[ e ] treal (cs i))
     → ------------------------------------
       Γ ⊢ prim ϕ ts :[ e ] treal c
 
@@ -122,8 +123,8 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
 
   ttup
     : ∀ {n Γ Ts ts e}
-    → (∀ i → Γ ⊢ ts i :[ e ] Ts i)
     → Distinct Γ
+    → (∀ i → Γ ⊢ ts i :[ e ] Ts i)
     → -----------------------------
       Γ ⊢ tup {n} ts :[ e ] ttup Ts
 
@@ -161,8 +162,8 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
   tdist
     : ∀ {D Γ cs T ts e}
     → DistTy D ≡ (cs , T)
-    → (∀ i → Γ ⊢ ts i :[ e ] treal (cs i))
     → Distinct Γ
+    → (∀ i → Γ ⊢ ts i :[ e ] treal (cs i))
     → ------------------------------------
       Γ ⊢ dist D ts :[ e ] tdist T
 
