@@ -30,7 +30,7 @@ pattern rnd = succ {n = 1} zero
 data Type : Set where
   treal   : Coeff → Type
   _⇒[_]_  : Type → Eff → Type → Type
-  ttup    : ∀ {n} → Vector Type n → Type
+  ttup    : (n : ℕ) → Vector Type n → Type
   tdist   : Type → Type
 
 -- Terms
@@ -61,37 +61,35 @@ TermSig : Sig
 TermSig = mkSig TermOp TermAr
   module _ where
   data TermOp : Set where
-    oabs    : Type → TermOp
-    oapp    : TermOp
-    oprim   : Prim → TermOp
-    oreal   : ℝ → TermOp
-    otup    : ℕ → TermOp
-    oproj   : (n : ℕ) → Fin n → TermOp
-    oif     : TermOp
-    odiff   : TermOp
-    osolve  : TermOp
-    odist   : Dist → TermOp
-    oassume : TermOp
-    oweight : TermOp
-    oinfer  : TermOp
-    oexpect : TermOp
+    abs    : Type → TermOp
+    app    : TermOp
+    prim   : Prim → TermOp
+    oreal  : ℝ → TermOp
+    tup    : ℕ → TermOp
+    proj   : (n : ℕ) → Fin n → TermOp
+    if     : TermOp
+    diff   : TermOp
+    solve  : TermOp
+    dist   : Dist → TermOp
+    assume : TermOp
+    weight : TermOp
+    infer  : TermOp
   TermAr : TermOp → Array ℕ
-  length (TermAr (oabs _))  = 1
-  length (TermAr oapp)      = 2
-  length (TermAr (oprim ϕ)) = PrimAr ϕ
-  length (TermAr (oreal _)) = 0
-  length (TermAr (otup n))  = n
-  length (TermAr (oproj _ _)) = 1
-  length (TermAr oif)       = 3
-  length (TermAr odiff)     = 2
-  length (TermAr osolve)    = 3
-  length (TermAr (odist D)) = DistAr D
-  length (TermAr oassume)   = 1
-  length (TermAr oweight)   = 1
-  length (TermAr oinfer)    = 1
-  length (TermAr oexpect)   = 1
-  index  (TermAr (oabs _))  = const 1
-  index  (TermAr _)         = const 0
+  length (TermAr (abs _))    = 1
+  length (TermAr app)        = 2
+  length (TermAr (prim ϕ))   = PrimAr ϕ
+  length (TermAr (oreal _))  = 0
+  length (TermAr (tup n))    = n
+  length (TermAr (proj _ _)) = 1
+  length (TermAr if)         = 3
+  length (TermAr diff)       = 2
+  length (TermAr solve)      = 3
+  length (TermAr (dist D))   = DistAr D
+  length (TermAr assume)     = 1
+  length (TermAr weight)     = 1
+  length (TermAr infer)      = 1
+  index  (TermAr (abs _))    = const 1
+  index  (TermAr _)          = const 0
 
 Term : Set
 Term = Trm TermSig
@@ -105,53 +103,17 @@ pattern ₀ = zero
 pattern ₁ = succ zero
 pattern ₂ = succ (succ zero)
 
+infix 25 _▸_
+pattern _▸_ x y = op (x , y)
+
 tunit : Type
-tunit = ttup {0} λ()
+tunit = ttup 0 λ()
 
-treals : ∀ {n} → Vector Coeff n → Type
-treals cs = ttup $ map treal cs
-
-abs : Type → Vector Term 1 → Term
-abs T t = op (oabs T , t)
-
-app : Vector Term 2 → Term
-app ts = op (oapp , ts)
-
-prim : (ϕ : Prim) → Vector Term (PrimAr ϕ) → Term
-prim ϕ ts = op (oprim ϕ , ts)
-
-real : ℝ → Term
-real r = op (oreal r , λ ())
-
-tup : ∀ {n} → Vector Term n → Term
-tup ts = op (otup _ , ts)
-
-proj : ∀ {n} → Fin n → Vector Term 1 → Term
-proj {n} i t = op (oproj n i , t)
-
-if : Vector Term 3 → Term
-if ts = op (oif , ts)
-
-diff : Vector Term 2 → Term
-diff ts = op (odiff , ts)
-
-solve : Vector Term 3 → Term
-solve ts = op (osolve , ts)
-
-dist : (D : Dist) → Vector Term (DistAr D) → Term
-dist D ts = op (odist D , ts)
-
-assume : Vector Term 1 → Term
-assume t = op (oassume , t)
-
-weight : Vector Term 1 → Term
-weight t = op (oweight , t)
-
-expect : Vector Term 1 → Term
-expect t = op (oexpect , t)
-
-infer : Vector Term 1 → Term
-infer t = op (oinfer , t)
+treals : (n : ℕ) → Vector Coeff n → Type
+treals n cs = ttup n $ map treal cs
 
 unit : Term
-unit = tup {0} λ()
+unit = tup 0 ▸ λ()
+
+real : ℝ → Term
+real r = oreal r ▸ λ ()

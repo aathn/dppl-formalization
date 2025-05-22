@@ -43,12 +43,12 @@ DistTy dwiener = (λ()) , (treal N ⇒[ det ] treal N)
 
 _⊙_ : Coeff → Type → Type
 c ⊙ (treal c′) = treal (c ⊔′ c′)
-c ⊙ (ttup Ts)  = ttup $ c ⊙_ ∘ Ts
+c ⊙ (ttup n Ts) = ttup n $ c ⊙_ ∘ Ts
 c ⊙ T          = T
 
 _≤ᶜ_ : Coeff → Type → Set
 c ≤ᶜ treal d = c ≤′ d
-c ≤ᶜ ttup Ts = ∀ i → c ≤ᶜ Ts i
+c ≤ᶜ ttup n Ts = ∀ i → c ≤ᶜ Ts i
 c ≤ᶜ T = 𝟙
 
 _≤ᴱ_ : Coeff → TyEnv → Set
@@ -68,7 +68,7 @@ data _<:_ : Type → Type → Set where
     : ∀ {n Ts Ts′}
     → (∀ i → Ts i <: Ts′ i)
     → -----------------------
-      ttup {n} Ts <: ttup Ts′
+      ttup n Ts <: ttup n Ts′
 
   sarr
     : ∀ {T₁ T₁′ T₂ T₂′ e e′}
@@ -99,14 +99,14 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
     : ∀ {Γ T₁ T₂ t e}
     → И x ∶ 𝔸 , Γ , x ∶ T₁ ⊢ conc (t ₀) x :[ e ] T₂
     → ---------------------------------------------
-      Γ ⊢ abs T₁ t :[ det ] T₁ ⇒[ e ] T₂
+      Γ ⊢ abs T₁ ▸ t :[ det ] T₁ ⇒[ e ] T₂
 
   tapp
     : ∀ {Γ ts e T₁ T₂}
     → Γ ⊢ ts ₀ :[ e ] T₁ ⇒[ e ] T₂
     → Γ ⊢ ts ₁ :[ e ] T₁
     → --------------------
-      Γ ⊢ app ts :[ e ] T₂
+      Γ ⊢ app ▸ ts :[ e ] T₂
 
   tprim
     : ∀ {ϕ Γ cs c ts e}
@@ -114,7 +114,7 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
     → Distinct Γ
     → (∀ i → Γ ⊢ ts i :[ e ] treal (cs i))
     → ------------------------------------
-      Γ ⊢ prim ϕ ts :[ e ] treal c
+      Γ ⊢ prim ϕ ▸ ts :[ e ] treal c
 
   treal
     : ∀ {r}
@@ -126,13 +126,13 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
     → Distinct Γ
     → (∀ i → Γ ⊢ ts i :[ e ] Ts i)
     → -----------------------------
-      Γ ⊢ tup {n} ts :[ e ] ttup Ts
+      Γ ⊢ tup n ▸ ts :[ e ] ttup n Ts
 
   tproj
     : ∀ {n Ts Γ t e} i
-    → Γ ⊢ t ₀ :[ e ] ttup Ts
+    → Γ ⊢ t ₀ :[ e ] ttup n Ts
     → ----------------------------
-      Γ ⊢ proj {n} i t :[ e ] Ts i
+      Γ ⊢ proj n i ▸ t :[ e ] Ts i
 
   tif
     : ∀ {Γ ts e T}
@@ -140,24 +140,24 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
     → Γ ⊢ ts ₁ :[ e ] T
     → Γ ⊢ ts ₂ :[ e ] T
     → ------------------
-      Γ ⊢ if ts :[ e ] T
+      Γ ⊢ if ▸ ts :[ e ] T
 
   tdiff
     : ∀ {Γ ts n m cs ds e}
     → (∀ i → cs i ≤′ P)
-    → Γ ⊢ ts ₀ :[ e ] treals {n} cs ⇒[ det ] treals {m} ds
-    → Γ ⊢ ts ₁ :[ e ] treals cs
+    → Γ ⊢ ts ₀ :[ e ] treals n cs ⇒[ det ] treals m ds
+    → Γ ⊢ ts ₁ :[ e ] treals n cs
     → -----------------------------------------------------------
-      Γ ⊢ diff ts :[ e ] treals {n} (const A) ⇒[ det ] treals ds
+      Γ ⊢ diff ▸ ts :[ e ] treals n (const A) ⇒[ det ] treals m ds
 
   tsolve
     : ∀ {Γ ts n c cs e}
-    → Γ ⊢ ts ₀ :[ e ] ttup {2} (λ {₀ → treal c; ₁ → treals {n} cs}) ⇒[ det ] treals cs
-    → Γ ⊢ ts ₁ :[ e ] treals cs
+    → Γ ⊢ ts ₀ :[ e ] ttup 2 (λ {₀ → treal c; ₁ → treals n cs}) ⇒[ det ] treals n cs
+    → Γ ⊢ ts ₁ :[ e ] treals n cs
     → Γ ⊢ ts ₂ :[ e ] treal c
     → P ≤′ c
-    → -----------------------------
-      Γ ⊢ solve ts :[ e ] treals cs
+    → ---------------------------------
+      Γ ⊢ solve ▸ ts :[ e ] treals n cs
 
   tdist
     : ∀ {D Γ cs T ts e}
@@ -165,32 +165,26 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
     → Distinct Γ
     → (∀ i → Γ ⊢ ts i :[ e ] treal (cs i))
     → ------------------------------------
-      Γ ⊢ dist D ts :[ e ] tdist T
+      Γ ⊢ dist D ▸ ts :[ e ] tdist T
 
   tassume
     : ∀ {Γ t T}
     → Γ ⊢ t ₀ :[ rnd ] tdist T
     → -----------------------
-      Γ ⊢ assume t :[ rnd ] T
+      Γ ⊢ assume ▸ t :[ rnd ] T
 
   tweight
     : ∀ {Γ t}
     → Γ ⊢ t ₀ :[ rnd ] treal N
     → ---------------------------
-      Γ ⊢ weight t :[ rnd ] tunit
-
-  texpect
-    : ∀ {Γ t e}
-    → Γ ⊢ t ₀ :[ e ] tdist (treal N)
-    → -----------------------------
-      Γ ⊢ expect t :[ e ] treal N
+      Γ ⊢ weight ▸ t :[ rnd ] tunit
 
   tinfer
     : ∀ {Γ t e T}
     → Γ ⊢ t ₀ :[ e ] tunit ⇒[ rnd ] T
     → N ≤ᴱ Γ
     → -------------------------------
-      Γ ⊢ infer t :[ e ] tdist T
+      Γ ⊢ infer ▸ t :[ e ] tdist T
 
   tweaken
     : ∀ {Γ Γ′ t e T}
