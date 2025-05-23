@@ -122,6 +122,9 @@ real r = oreal r ▸ λ ()
 
 variable
   m n  : ℕ
+  r    : ℝ
+  ϕ    : Prim
+  D    : Dist
   T T′ : Type
   e e′ : Eff
   c c′ : Coeff

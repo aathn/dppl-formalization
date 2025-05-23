@@ -114,7 +114,6 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
     Γ ⊢ app ▸ ts :[ e ] T₂
 
   tprim :
-    {ϕ : Prim}
     {cs : Vector Coeff (PrimAr ϕ)}
     {ts : Vector Term (PrimAr ϕ)}
     (_ : PrimTy ϕ ≡ (cs , c))
@@ -124,8 +123,7 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
     Γ ⊢ prim ϕ ▸ ts :[ e ] treal c
 
   treal :
-    {r : ℝ}
-    → --------------------------
+    --------------------------
     [] ⊢ real r :[ det ] treal N
 
   ttup :
@@ -173,7 +171,6 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
     Γ ⊢ solve ▸ ts :[ e ] treals n cs
 
   tdist :
-    {D : Dist}
     {cs : Vector Coeff (DistAr D)}
     {ts : Vector Term (DistAr D)}
     (_ : DistTy D ≡ (cs , T))

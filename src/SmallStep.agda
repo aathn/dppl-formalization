@@ -19,42 +19,41 @@ open import Relation.Binary.Construct.Closure.ReflexiveTransitive using (Star)
 
 instance
   eval-order : EvalOrder TermSig
-  eval-order {oabs _} =
+  eval-order {abs _} =
     record {len = 0 ; ord = λ() ; inj = λ where {()} }
-  eval-order {oif} =
+  eval-order {if} =
     record {len = 1 ; ord = λ {₀ → ₀} ; inj = λ where {₀} {₀} _ → refl}
   eval-order {o} =
     record {len = length (TermAr o) ; ord = id ; inj = id}
 
 data IsValue : Pred Term ℓ₀ where
 
-  vabs
-    : ∀ {T t}
+  vabs :
+    {t : Vector Term 1}
     → -----------------
-      IsValue (abs T ▸ t)
+    IsValue (abs T ▸ t)
 
-  vreal
-    : ∀ {r}
-    → --------------
-      IsValue (real r)
+  vreal :
+    --------------
+    IsValue (real r)
 
-  vtup
-    : ∀ {n vs}
-    → (∀ i → IsValue (vs i))
-    → --------------------
-      IsValue (tup n ▸ vs)
+  vtup :
+    {vs : Vector Term n}
+    (_ : ∀ i → IsValue (vs i))
+    → ------------------------
+    IsValue (tup n ▸ vs)
 
-  vdist
-    : ∀ {D vs}
-    → (∀ i → IsValue (vs i))
-    → --------------------
-      IsValue (dist D ▸ vs)
+  vdist :
+    {vs : Vector Term (DistAr D)}
+    (_ : ∀ i → IsValue (vs i))
+    → ---------------------------
+    IsValue (dist D ▸ vs)
 
-  vinfer
-    : ∀ {v}
-    → IsValue (v ₀)
+  vinfer :
+    {v : Vector Term 1}
+    (_ : IsValue (v ₀))
     → -----------------
-      IsValue (infer ▸ v)
+    IsValue (infer ▸ v)
 
 Value : Set _
 Value = ∃ IsValue
@@ -80,67 +79,83 @@ module Eval (Ass : EvalAssumptions) where
 
   data _→ᵈ_ : Rel Term ℓ₀ where
  
-    eapp
-      : ∀ {ts T t}
-      → ts ₀ ≡ abs T ▸ t → IsValue (ts ₁)
+    eapp :
+      {ts : Vector Term 2}
+      {t : Vector Term 1}
+      (_ : ts ₀ ≡ abs T ▸ t)
+      (_ : IsValue (ts ₁))
+      → ---------------------------
+      app ▸ ts →ᵈ (0 ≈> ts ₁) (t ₀)
+  
+    eprim :
+      {vs : Vector Term (PrimAr ϕ)}
+      {rs : Vector ℝ (PrimAr ϕ)}
+      (_ : vs ≡ map real rs)
       → -------------------------------
-        app ▸ ts →ᵈ (0 ≈> ts ₁) (t ₀)
+      prim ϕ ▸ vs →ᵈ real (PrimEv ϕ rs)
   
-    eprim
-      : ∀ {ϕ vs rs}
-      → vs ≡ map real rs
+    eproj :
+      {ts : Vector Term n}
+      {t : Vector Term 1}
+      (i : Fin n)
+      (_ : t ₀ ≡ tup n ▸ ts)
+      (_ : ∀ j → IsValue (ts j))
+      → ------------------------
+      proj n i ▸ t →ᵈ ts i
+
+    eif :
+      {ts : Vector Term 3}
+      (_ : ts ₀ ≡ real r)
+      → -----------------------------------------
+      if ▸ ts →ᵈ (if r ≲? 0ᴿ then ts ₂ else ts ₁)
+
+    ediff :
+      {ts : Vector Term 2}
+      (v₀ : IsValue (ts ₀))
+      (v₁ : IsValue (ts ₁))
       → ---------------------------------
-        prim ϕ ▸ vs →ᵈ real (PrimEv ϕ rs)
-  
-    eproj
-      : ∀ {n t ts} i
-      → t ₀ ≡ tup n ▸ ts → (∀ j → IsValue (ts j))
-      → ---------------------------------------
-        proj n i ▸ t →ᵈ ts i
+      diff ▸ ts →ᵈ Diff (_ , v₀) (_ , v₁)
 
-    eif
-      : ∀ {r ts}
-      → ts ₀ ≡ real r
-      → -------------------------------------------
-        if ▸ ts →ᵈ (if r ≲? 0ᴿ then ts ₂ else ts ₁)
+    esolve :
+      {ts : Vector Term 3}
+      (v₀ : IsValue (ts ₀))
+      (v₁ : IsValue (ts ₁))
+      (v₂ : IsValue (ts ₂))
+      → --------------------------------------------
+      solve ▸ ts →ᵈ Solve (_ , v₀) (_ , v₁) (_ , v₂)
 
-    ediff
-      : ∀ {ts}
-      → (v₀ : IsValue (ts ₀)) (v₁ : IsValue (ts ₁))
-      → ---------------------------------------
-        diff ▸ ts →ᵈ Diff (_ , v₀) (_ , v₁)
-
-    esolve
-      : ∀ {ts}
-      → (v₀ : IsValue (ts ₀)) (v₁ : IsValue (ts ₁)) (v₂ : IsValue (ts ₂))
-      → -----------------------------------------------------------
-        solve ▸ ts →ᵈ Solve (_ , v₀) (_ , v₁) (_ , v₂)
-
+  variable
+    w : ℝ
+    p : 𝕀
+    s : List 𝕀
 
   data _→ʳ_ : Rel (Term × ℝ × List 𝕀) ℓ₀ where
 
-    edet
-      : ∀ {t₁ t₂ w s}
-      → t₁ →ᵈ t₂
-      → (t₁ , w , s) →ʳ (t₂ , w , s)
+    edet :
+      {t₁ t₂ : Term}
+      (_ : t₁ →ᵈ t₂)
+      → --------------------------
+      (t₁ , w , s) →ʳ (t₂ , w , s)
 
-    eweight
-      : ∀ {t r w s}
-      → t ₀ ≡ real r
-      → --------------------------------------------------------------------
-        (weight ▸ t , w , s) →ʳ (unit , (if r ≲? 0ᴿ then 0ᴿ else r * w) , s)
+    eweight :
+      {t : Vector Term 1}
+      (_ : t ₀ ≡ real r)
+      → ------------------------------------------------------------------
+      (weight ▸ t , w , s) →ʳ (unit , (if r ≲? 0ᴿ then 0ᴿ else r * w) , s)
 
-    eassumedist
-      : ∀ {t D rs w p s}
-      → t ₀ ≡ dist D ▸ (map real rs)
+    eassumedist :
+      {t : Vector Term 1}
+      {rs : Vector ℝ (DistAr D)}
+      (_ : t ₀ ≡ dist D ▸ map real rs)
+      → -----------------------------------------------------
+      (assume ▸ t , w , p ∷ s) →ʳ (Sample D rs p .π₁ , w , s)
+
+    eassumeinfer :
+      {t t′ : Vector Term 1}
+      (_ : t ₀ ≡ infer ▸ t′)
+      (v : IsValue (t′ ₀))
       → -------------------------------------------------------
-        (assume ▸ t , w , p ∷ s) →ʳ (Sample D rs p .π₁ , w , s)
-
-    eassumeinfer
-      : ∀ {t t′ w p s}
-      → t ₀ ≡ infer ▸ t′ → (v : IsValue (t′ ₀))
-      → ---------------------------------------------------------
-        (assume ▸ t , w , p ∷ s) →ʳ (Infer (_ , v) p .π₁ , w , s)
+      (assume ▸ t , w , p ∷ s) →ʳ (Infer (_ , v) p .π₁ , w , s)
 
 
   -- Full evaluation relations
