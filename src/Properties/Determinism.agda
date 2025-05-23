@@ -55,8 +55,8 @@ module _ (Ass : EvalAssumptions) where
     : ∀ {E E′ t u}
     → DetCtx E
     → DetCtx E′
-    → ¬ Value t
-    → ¬ Value u
+    → ¬ IsValue t
+    → ¬ IsValue u
     → E t ≡ E′ u
     → --------------
       E ≡ E′ × t ≡ u
@@ -64,7 +64,7 @@ module _ (Ass : EvalAssumptions) where
   DetCtx-unique {t = t} {u = u} (ectx {o} {i} {ts} Hvs) (ectx {j = j} {ts′} Hvs′) Ht Hu Heq
     with refl , Heq′ ← op-injective Heq with <-cmp i j
   ... | tri< H< H≢ _ =
-        𝟘e $ Ht (subst Value Heqt (Hvs′ i H<))
+        𝟘e $ Ht (subst IsValue Heqt (Hvs′ i H<))
     where
     H≢′ : ¬ ord {o = o} i ≡ ord {o = o} j
     H≢′ = H≢ ∘ inj {o = o}
@@ -74,7 +74,7 @@ module _ (Ass : EvalAssumptions) where
            ≡[ updateAt-updates _ ts ]               t
            qed
   ... | tri> _ H≢ H> =
-        𝟘e $ Hu (subst Value Heqt (Hvs j H>))
+        𝟘e $ Hu (subst IsValue Heqt (Hvs j H>))
     where
     H≢′ : ¬ ord {o = o} j ≡ ord {o = o} i
     H≢′ = H≢ ∘ inj {o = o} ∘ symm
@@ -100,14 +100,14 @@ module _ (Ass : EvalAssumptions) where
   DetCtx-cannot-step
     : ∀ {E t u}
     → DetCtx E
-    → ¬ Value t
+    → ¬ IsValue t
     → ----------
       ¬ E t →ᵈ u
 
   DetCtx-cannot-step (ectx {j = ₀} _) Ht (eapp refl _) = Ht vabs
   DetCtx-cannot-step (ectx {j = ₁} _) Ht (eapp _ Hv) = Ht Hv
   DetCtx-cannot-step {t = t} (ectx {j = j} {ts} _) Ht (eprim {rs = rs} Heq) =
-    Ht (subst Value Heq′ (vreal {rs j}))
+    Ht (subst IsValue Heq′ (vreal {rs j}))
     where Heq′ = proof                      real (rs j)
                  ≡[ symm $ ap (_$ j) Heq ]  updateAt ts j (const t) j
                  ≡[ updateAt-updates j ts ] t
@@ -157,8 +157,8 @@ module _ (Ass : EvalAssumptions) where
     : ∀ {E E′ t u}
     → RndCtx E
     → RndCtx E′
-    → ¬ Value (t .π₁)
-    → ¬ Value (u .π₁)
+    → ¬ IsValue (t .π₁)
+    → ¬ IsValue (u .π₁)
     → E t ≡ E′ u
     → --------------
       E ≡ E′ × t ≡ u
@@ -170,7 +170,7 @@ module _ (Ass : EvalAssumptions) where
   RndCtx-cannot-step
     : ∀ {E t u}
     → RndCtx E
-    → ¬ Value (t .π₁)
+    → ¬ IsValue (t .π₁)
     → ---------------
       ¬ E t →ʳ u
 

@@ -26,39 +26,41 @@ instance
   eval-order {o} =
     record {len = length (TermAr o) ; ord = id ; inj = id}
 
-data Value : Pred Term ℓ₀ where
+data IsValue : Pred Term ℓ₀ where
 
   vabs
     : ∀ {T t}
-    → ---------------
-      Value (abs T t)
+    → -----------------
+      IsValue (abs T ▸ t)
 
   vreal
     : ∀ {r}
     → --------------
-      Value (real r)
+      IsValue (real r)
 
   vtup
     : ∀ {n vs}
-    → (∀ i → Value (vs i))
+    → (∀ i → IsValue (vs i))
     → --------------------
-      Value (tup {n} vs)
+      IsValue (tup n ▸ vs)
 
   vdist
     : ∀ {D vs}
-    → (∀ i → Value (vs i))
+    → (∀ i → IsValue (vs i))
     → --------------------
-      Value (dist D vs)
+      IsValue (dist D ▸ vs)
 
   vinfer
     : ∀ {v}
-    → Value (v ₀)
-    → ---------------
-      Value (infer v)
+    → IsValue (v ₀)
+    → -----------------
+      IsValue (infer ▸ v)
 
+Value : Set _
+Value = ∃ IsValue
 
 DetCtx : Pred (Term → Term) _
-DetCtx = EvalCtx Value
+DetCtx = EvalCtx IsValue
 
 RndCtx : Pred (Term × ℝ × List 𝕀 → Term × ℝ × List 𝕀) _
 RndCtx E = ∃ λ E′ → DetCtx E′ × E ≡ map₁ E′
@@ -66,11 +68,11 @@ RndCtx E = ∃ λ E′ → DetCtx E′ × E ≡ map₁ E′
 record EvalAssumptions : Set where
   field
     PrimEv : (ϕ : Prim) → Vector ℝ (PrimAr ϕ) → ℝ
-    Sample : (D : Dist) → Vector ℝ (DistAr D) → 𝕀 → ∃ Value
-    Infer  : ∃ Value → 𝕀 → ∃ Value
-    Expect : (𝕀 → ∃ Value) → ℝ
-    Diff  : ∃ Value → ∃ Value → Term
-    Solve : ∃ Value → ∃ Value → ∃ Value → Term
+    Sample : (D : Dist) → Vector ℝ (DistAr D) → 𝕀 → Value
+    Infer  : Value → 𝕀 → Value
+    Expect : (𝕀 → Value) → ℝ
+    Diff  : Value → Value → Term
+    Solve : Value → Value → Value → Term
 
 
 module Eval (Ass : EvalAssumptions) where
@@ -80,51 +82,39 @@ module Eval (Ass : EvalAssumptions) where
  
     eapp
       : ∀ {ts T t}
-      → ts ₀ ≡ abs T t → Value (ts ₁)
-      → -----------------------------
-        app ts →ᵈ (0 ≈> ts ₁) (t ₀)
+      → ts ₀ ≡ abs T ▸ t → IsValue (ts ₁)
+      → -------------------------------
+        app ▸ ts →ᵈ (0 ≈> ts ₁) (t ₀)
   
     eprim
       : ∀ {ϕ vs rs}
       → vs ≡ map real rs
-      → -------------------------------
-        prim ϕ vs →ᵈ real (PrimEv ϕ rs)
+      → ---------------------------------
+        prim ϕ ▸ vs →ᵈ real (PrimEv ϕ rs)
   
     eproj
       : ∀ {n t ts} i
-      → t ₀ ≡ tup ts → (∀ j → Value (ts j))
-      → -----------------------------------
-        proj {n} i t →ᵈ ts i
+      → t ₀ ≡ tup n ▸ ts → (∀ j → IsValue (ts j))
+      → ---------------------------------------
+        proj n i ▸ t →ᵈ ts i
 
     eif
       : ∀ {r ts}
       → ts ₀ ≡ real r
-      → ------------------------------------------
-        if ts →ᵈ (if r ≲? 0ᴿ then ts ₂ else ts ₁)
+      → -------------------------------------------
+        if ▸ ts →ᵈ (if r ≲? 0ᴿ then ts ₂ else ts ₁)
 
     ediff
       : ∀ {ts}
-      → (v₀ : Value (ts ₀)) (v₁ : Value (ts ₁))
+      → (v₀ : IsValue (ts ₀)) (v₁ : IsValue (ts ₁))
       → ---------------------------------------
-        diff ts →ᵈ Diff (_ , v₀) (_ , v₁)
+        diff ▸ ts →ᵈ Diff (_ , v₀) (_ , v₁)
 
     esolve
       : ∀ {ts}
-      → (v₀ : Value (ts ₀)) (v₁ : Value (ts ₁)) (v₂ : Value (ts ₂))
+      → (v₀ : IsValue (ts ₀)) (v₁ : IsValue (ts ₁)) (v₂ : IsValue (ts ₂))
       → -----------------------------------------------------------
-        solve ts →ᵈ Solve (_ , v₀) (_ , v₁) (_ , v₂)
-
-    eexpectdist
-      : ∀ {D rs t}
-      → t ₀ ≡ dist D (map real rs)
-      → ---------------------------------------
-        expect t →ᵈ real (Expect (Sample D rs))
-
-    eexpectinfer
-      : ∀ {t t′}
-      → t ₀ ≡ infer t′ → (v : Value (t′ ₀))
-      → -----------------------------------------
-        expect t →ᵈ real (Expect (Infer (_ , v)))
+        solve ▸ ts →ᵈ Solve (_ , v₀) (_ , v₁) (_ , v₂)
 
 
   data _→ʳ_ : Rel (Term × ℝ × List 𝕀) ℓ₀ where
@@ -138,19 +128,19 @@ module Eval (Ass : EvalAssumptions) where
       : ∀ {t r w s}
       → t ₀ ≡ real r
       → --------------------------------------------------------------------
-        (weight t , w , s) →ʳ (unit , (if r ≲? 0ᴿ then 0ᴿ else r * w) , s)
+        (weight ▸ t , w , s) →ʳ (unit , (if r ≲? 0ᴿ then 0ᴿ else r * w) , s)
 
     eassumedist
       : ∀ {t D rs w p s}
-      → t ₀ ≡ dist D (map real rs)
-      → ------------------------------------------------------
-        (assume t , w , p ∷ s) →ʳ (Sample D rs p .π₁ , w , s)
+      → t ₀ ≡ dist D ▸ (map real rs)
+      → -------------------------------------------------------
+        (assume ▸ t , w , p ∷ s) →ʳ (Sample D rs p .π₁ , w , s)
 
     eassumeinfer
       : ∀ {t t′ w p s}
-      → t ₀ ≡ infer t′ → (v : Value (t′ ₀))
+      → t ₀ ≡ infer ▸ t′ → (v : IsValue (t′ ₀))
       → ---------------------------------------------------------
-        (assume t , w , p ∷ s) →ʳ (Infer (_ , v) p .π₁ , w , s)
+        (assume ▸ t , w , p ∷ s) →ʳ (Infer (_ , v) p .π₁ , w , s)
 
 
   -- Full evaluation relations

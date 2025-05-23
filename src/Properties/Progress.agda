@@ -25,7 +25,7 @@ module Progress (Ass : EvalAssumptions) where
     : ∀ {t T}
     → [] ⊢ t :[ det ] T
     → ------------------------------
-      Value t ⊎ ∃ (t →det_)
+      IsValue t ⊎ ∃ (t →det_)
 
   progress-det (tabs _) = ι₁ vabs
   progress-det treal    = ι₁ vreal

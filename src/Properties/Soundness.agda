@@ -26,7 +26,7 @@ module Soundness (Ass : EvalAssumptions) (PAss : PresAssumptions Ass) where
     → t →det* t′
     → (∀ {z} → ¬ t′ →det z)
     → ---------------------
-      Value t′
+      IsValue t′
 
   type-system-sound-det Htype ε Hirred =
     case (progress-det Htype) λ where
@@ -41,7 +41,7 @@ module Soundness (Ass : EvalAssumptions) (PAss : PresAssumptions Ass) where
     → (t , ws) →rnd* (t′ , ws′)
     → (∀ {ws z} → ¬ (t′ , ws) →rnd z)
     → -------------------------------
-      Value t′
+      IsValue t′
 
   type-system-sound-rnd {ws = w , s} Htype ε Hirred =
     case (progress-rnd {w = w} {0ᴵ} {s} Htype) λ where

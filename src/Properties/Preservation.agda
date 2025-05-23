@@ -141,7 +141,7 @@ module _ (Ass : EvalAssumptions) where
         → (∀ i → cs i ≤′ P)
         → Γ ⊢ t₀ :[ e ] treals {n} cs ⇒[ det ] treals {m} ds
         → Γ ⊢ t₁ :[ e ] treals cs
-        → (v₀ : Value t₀) (v₁ : Value t₁)
+        → (v₀ : IsValue t₀) (v₁ : IsValue t₁)
         → --------------------------------------------------------------------------
           Γ ⊢ Diff (_ , v₀) (_ , v₁) :[ e ] treals {n} (const A) ⇒[ det ] treals ds
 
@@ -151,7 +151,7 @@ module _ (Ass : EvalAssumptions) where
         → Ts ₀ ≡ treal c → Ts ₁ ≡ treals {n} cs
         → Γ ⊢ t₁ :[ e ] treals cs
         → Γ ⊢ t₂ :[ e ] treal c
-        → (v₀ : Value t₀) (v₁ : Value t₁) (v₂ : Value t₂)
+        → (v₀ : IsValue t₀) (v₁ : IsValue t₁) (v₂ : IsValue t₂)
         → -----------------------------------------------------
           Γ ⊢ Solve (_ , v₀) (_ , v₁) (_ , v₂) :[ e ] treals cs
 
@@ -164,7 +164,7 @@ module _ (Ass : EvalAssumptions) where
       InferPres
         : ∀ {Γ t e T p}
         → Γ ⊢ t :[ e ] tunit ⇒[ rnd ] T
-        → (v : Value t)
+        → (v : IsValue t)
         → --------------------------------
           Γ ⊢ Infer (_ , v) p .π₁ :[ e ] T
 

@@ -24,7 +24,7 @@ open import SmallStep R
 value-irrelevant
   : ∀ {t}
   → --------------------
-    Irrelevant (Value t)
+    Irrelevant (IsValue t)
 
 value-irrelevant vabs vabs = refl
 value-irrelevant vreal vreal = refl
@@ -40,7 +40,7 @@ value-irrelevant (vinfer v) (vinfer v′) =
 canonical-⇒
   : ∀ {Γ t e e′ T T₁ T₂}
   → Γ ⊢ t :[ e ] T
-  → Value t
+  → IsValue t
   → T ≡ T₁ ⇒[ e′ ] T₂
   → ---------------------------------
     ∃ λ T′ → ∃ λ t′ → t ≡ abs T′ ▸ t′
@@ -56,7 +56,7 @@ canonical-⇒ (tpromote {T = _ ⇒[ _ ] _} Htype H≤) Hval Heq =
 canonical-real
   : ∀ {Γ t e T c}
   → Γ ⊢ t :[ e ] T
-  → Value t
+  → IsValue t
   → T ≡ treal c
   → -----------------
     ∃ λ r → t ≡ real r
@@ -72,10 +72,10 @@ canonical-real (tpromote {T = treal _} Htype H≤) Hval refl =
 canonical-tup
   : ∀ {Γ t e T n Ts}
   → Γ ⊢ t :[ e ] T
-  → Value t
   → T ≡ ttup {n} Ts
+  → IsValue t
   → -------------------------------------------
-    ∃ λ ts → t ≡ tup n ▸ ts × ∀ i → Value (ts i)
+    ∃ λ ts → t ≡ tup n ▸ ts × ∀ i → IsValue (ts i)
 
 canonical-tup (ttup _ _) (vtup Hvs) refl = _ , refl , Hvs
 canonical-tup (tweaken Htype _ _) Hval Heq =
@@ -88,11 +88,11 @@ canonical-tup (tpromote {T = ttup _} Htype H≤) Hval refl =
 canonical-dist
   : ∀ {Γ t e T T′}
   → Γ ⊢ t :[ e ] T
-  → Value t
+  → IsValue t
   → T ≡ tdist T′
   → ---------------------------------------------
     (∃ λ D → ∃ λ rs → t ≡ dist D ▸ (map real rs))
-  ⊎ (∃ λ v → t ≡ infer ▸ v × Value (v ₀))
+  ⊎ (∃ λ v → t ≡ infer ▸ v × IsValue (v ₀))
 
 canonical-dist (tdist {ts = ts} _ _ Htypes) (vdist Hvs) _ =
   let Hreals : ∃ λ rs → ts ≡ map real rs
@@ -110,7 +110,7 @@ canonical-dist (tpromote {T = tdist _} Htype H≤) Hval Heq =
 val-type-det
   : ∀ {Γ t e T}
   → Γ ⊢ t :[ e ] T
-  → Value t
+  → IsValue t
   → ----------------
     Γ ⊢ t :[ det ] T
 val-type-det (tabs Htype) _ = tabs Htype
@@ -149,24 +149,24 @@ module Step (Ass : EvalAssumptions) where
   ctx-value-inv
     : ∀ {E t}
     → DetCtx E
-    → Value (E t)
+    → IsValue (E t)
     → -----------
-      Value t
+      IsValue t
 
   ctx-value-inv (ectx _) Hv = go Hv
     where
     go
       : ∀ {o t ts j}
-      → Value (op (o , updateAt ts (ord {{eval-order {o}}} j) (const t)))
+      → IsValue (op (o , updateAt ts (ord {{eval-order {o}}} j) (const t)))
       → -----------------------------------------------------------------
-        Value t
-    go {ts = ts} {j = j} (vtup Hvs) = subst Value (updateAt-updates j ts) (Hvs j)
-    go {ts = ts} {j = j} (vdist Hvs) = subst Value (updateAt-updates j ts) (Hvs j)
+        IsValue t
+    go {ts = ts} {j = j} (vtup Hvs) = subst IsValue (updateAt-updates j ts) (Hvs j)
+    go {ts = ts} {j = j} (vdist Hvs) = subst IsValue (updateAt-updates j ts) (Hvs j)
     go {j = ₀} (vinfer Hv) = Hv
 
   value-cannot-step-det
     : ∀ {t t′}
-    → Value t
+    → IsValue t
     → ------------
       ¬ t →det t′
 
@@ -176,7 +176,7 @@ module Step (Ass : EvalAssumptions) where
 
   value-cannot-step-rnd
     : ∀ {t t′}
-    → Value (t .π₁)
+    → IsValue (t .π₁)
     → -------------
       ¬ t →rnd t′
 
