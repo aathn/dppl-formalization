@@ -712,7 +712,7 @@ ordinal (n +1) = ordinal n ∪ [ n ]
 -- Dependent product
 -- Cartesian product
 ----------------------------------------------------------------------
-open import Data.Product using (_,_ ; _×_)
+open import Data.Product using (_,_ ; _×_ ; ∃)
   renaming (Σ to ∑ ; proj₁ to π₁ ; proj₂ to π₂)
   public
 

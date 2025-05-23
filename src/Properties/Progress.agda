@@ -15,7 +15,6 @@ open import Lib.FunExt
 open import Lib.EvalCtx
 
 open import Data.List.Relation.Binary.Sublist.Propositional using ([])
-open import Data.Product using (∃-syntax)
 open import Data.Vec.Functional using (map)
 
 module Progress (Ass : EvalAssumptions) where
@@ -26,7 +25,7 @@ module Progress (Ass : EvalAssumptions) where
     : ∀ {t T}
     → [] ⊢ t :[ det ] T
     → ------------------------------
-      Value t ⊎ ∃[ t′ ] t →det t′
+      Value t ⊎ ∃ (t →det_)
 
   progress-det (tabs _) = ι₁ vabs
   progress-det treal    = ι₁ vreal

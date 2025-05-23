@@ -29,7 +29,6 @@ open import Data.List.Relation.Unary.AllPairs using ([] ; _∷_)
 open import Data.List.Membership.Propositional using () renaming (_∈_ to _∈ˡ_)
 open import Data.List.Membership.Propositional.Properties using (∈-∃++)
 open import Data.Nat.Properties using (m≤n⇒m⊔n≡n)
-open import Data.Product using (∃-syntax)
 import Relation.Binary.PropositionalEquality as ≡
 
 infixl 5 _&_
@@ -53,8 +52,8 @@ sub-⊆
   : ∀ {Γ₁ Γ₂ Γ₁′}
   → Γ₂ <:ᴱ Γ₁
   → Γ₁′ ⊆ Γ₁
-  → -------------------------------
-    ∃[ Γ₂′ ] Γ₂′ <:ᴱ Γ₁′ × Γ₂′ ⊆ Γ₂
+  → --------------------------------
+    ∃ λ Γ₂′ → Γ₂′ <:ᴱ Γ₁′ × Γ₂′ ⊆ Γ₂
 sub-⊆ [] [] = [] , [] , []
 sub-⊆ (Hsub ∷ Hsubs) (y ∷ʳ H⊆) =
   let Γ₂′ , Hsub′ , H⊆′ = sub-⊆ Hsubs H⊆

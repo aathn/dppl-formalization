@@ -10,7 +10,7 @@ open import Lib.BindingSignature
 open import Lib.EvalCtx
 
 import Data.List as L
-open import Data.Product using (∃-syntax ; map₁)
+open import Data.Product using (map₁)
 open import Data.Vec.Functional using (map ; updateAt)
 open import Data.Vec.Functional.Properties using (updateAt-updates)
 open import Relation.Nullary using (Irrelevant)
@@ -42,8 +42,8 @@ canonical-⇒
   → Γ ⊢ t :[ e ] T
   → Value t
   → T ≡ T₁ ⇒[ e′ ] T₂
-  → -----------------------------
-    ∃[ T′ ] ∃[ t′ ] t ≡ abs T′ t′
+  → ---------------------------------
+    ∃ λ T′ → ∃ λ t′ → t ≡ abs T′ ▸ t′
 
 canonical-⇒ (tabs _) _ refl = _ , _ , refl
 canonical-⇒ (tweaken Htype _ _) Hval Heq =
@@ -59,7 +59,7 @@ canonical-real
   → Value t
   → T ≡ treal c
   → -----------------
-    ∃[ r ] t ≡ real r
+    ∃ λ r → t ≡ real r
 
 canonical-real treal _ _ = _ , refl
 canonical-real (tweaken Htype _ _) Hval Heq =
@@ -75,7 +75,7 @@ canonical-tup
   → Value t
   → T ≡ ttup {n} Ts
   → -------------------------------------------
-    ∃[ ts ] t ≡ tup {n} ts × ∀ i → Value (ts i)
+    ∃ λ ts → t ≡ tup n ▸ ts × ∀ i → Value (ts i)
 
 canonical-tup (ttup _ _) (vtup Hvs) refl = _ , refl , Hvs
 canonical-tup (tweaken Htype _ _) Hval Heq =
@@ -90,12 +90,12 @@ canonical-dist
   → Γ ⊢ t :[ e ] T
   → Value t
   → T ≡ tdist T′
-  → -----------------------------------------
-    (∃[ D ] ∃[ rs ] t ≡ dist D (map real rs))
-  ⊎ (∃[ v ] t ≡ infer v × Value (v ₀))
+  → ---------------------------------------------
+    (∃ λ D → ∃ λ rs → t ≡ dist D ▸ (map real rs))
+  ⊎ (∃ λ v → t ≡ infer ▸ v × Value (v ₀))
 
 canonical-dist (tdist {ts = ts} _ _ Htypes) (vdist Hvs) _ =
-  let Hreals : ∃[ rs ] ts ≡ map real rs
+  let Hreals : ∃ λ rs → ts ≡ map real rs
       Hreals = _ , funext λ i → π₂ $ canonical-real (Htypes i) (Hvs i) refl
   in
   case Hreals λ { (_ , refl) → ι₁ $ _ , _ , refl }

@@ -12,7 +12,7 @@ open import Lib.EvalCtx
 open import Lib.Substitution
 
 open import Data.Vec.Functional using (map)
-open import Data.Product using (∃ ; ∃-syntax ; map₁)
+open import Data.Product using (map₁)
 open import Relation.Unary using (Pred)
 open import Relation.Binary using (Rel)
 open import Relation.Binary.Construct.Closure.ReflexiveTransitive using (Star)
@@ -61,7 +61,7 @@ DetCtx : Pred (Term → Term) _
 DetCtx = EvalCtx Value
 
 RndCtx : Pred (Term × ℝ × List 𝕀 → Term × ℝ × List 𝕀) _
-RndCtx E = ∃[ E′ ] DetCtx E′ × E ≡ map₁ E′
+RndCtx E = ∃ λ E′ → DetCtx E′ × E ≡ map₁ E′
 
 record EvalAssumptions : Set where
   field

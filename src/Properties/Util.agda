@@ -1,12 +1,11 @@
 module Properties.Util where
 
--- Utility lemmas
 
+-- Utility lemmas
 open import Lib.Prelude
 open import Lib.FunExt
 
 open import Data.Fin using () renaming (_<_ to _<ꟳ_)
-open import Data.Product using (∃-syntax)
 open import Data.List using (_++_ ; map)
 open import Data.List.Properties
   using (++-conicalʳ ; ∷-injective ; ∷-injectiveˡ ; ∷-injectiveʳ)
@@ -28,8 +27,8 @@ x ∈? (xs ∪ xs₁) with x ∈? xs
 all-⊎
   : ∀ {n} {A B : Fin n → Set}
   → (∀ i → A i ⊎ B i)
-  → -------------------------------------------------------
-    (∀ i → A i) ⊎ ∃[ j ] B j × ∀ (i : Fin n) → i <ꟳ j → A i
+  → --------------------------------------------------------
+    (∀ i → A i) ⊎ ∃ λ j → B j × ∀ (i : Fin n) → i <ꟳ j → A i
 
 all-⊎ {zero} f = ι₁ λ()
 all-⊎ {n +1} f =

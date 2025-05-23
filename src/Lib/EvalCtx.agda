@@ -4,7 +4,6 @@ open import Lib.Prelude
 open import Lib.FunExt
 open import Lib.BindingSignature
 
-open import Data.Product using (∃ ; ∃-syntax)
 open import Data.Vec.Functional using (updateAt)
 open import Data.Vec.Functional.Properties using (updateAt-id-local)
 open import Relation.Unary using (Pred)
