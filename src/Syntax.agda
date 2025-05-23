@@ -117,3 +117,12 @@ unit = tup 0 ▸ λ()
 
 real : ℝ → Term
 real r = oreal r ▸ λ ()
+
+-- Metavariables
+
+variable
+  m n  : ℕ
+  T T′ : Type
+  e e′ : Eff
+  c c′ : Coeff
+  t t′ : Term
