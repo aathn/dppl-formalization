@@ -2,6 +2,9 @@ open import Lib.Reals
 
 module Properties.SmallStep (R : Reals₀) where
 
+open Reals R hiding (refl)
+open Interval R
+
 -- Minor lemmas about the step relations (and typing)
 
 open import Lib.Prelude
@@ -21,10 +24,9 @@ open import SmallStep R
 
 -- Value t is irrelevant
 
-value-irrelevant
-  : ∀ {t}
-  → --------------------
-    Irrelevant (IsValue t)
+value-irrelevant :
+  ----------------------
+  Irrelevant (IsValue t)
 
 value-irrelevant vabs vabs = refl
 value-irrelevant vreal vreal = refl
@@ -37,13 +39,13 @@ value-irrelevant (vinfer v) (vinfer v′) =
 
 -- Canonical forms
 
-canonical-⇒
-  : ∀ {Γ t e e′ T T₁ T₂}
-  → Γ ⊢ t :[ e ] T
-  → IsValue t
-  → T ≡ T₁ ⇒[ e′ ] T₂
-  → ---------------------------------
-    ∃ λ T′ → ∃ λ t′ → t ≡ abs T′ ▸ t′
+canonical-⇒ :
+  {T₁ T₂ : Type}
+  (_ : Γ ⊢ t :[ e ] T)
+  (_ : IsValue t)
+  (_ : T ≡ T₁ ⇒[ e′ ] T₂)
+  → -------------------------------
+  ∃ λ T′ → ∃ λ t′ → t ≡ abs T′ ▸ t′
 
 canonical-⇒ (tabs _) _ refl = _ , _ , refl
 canonical-⇒ (tweaken Htype _ _) Hval Heq =
@@ -53,13 +55,12 @@ canonical-⇒ (tsub Htype _ (sarr _ _ _)) Hval refl =
 canonical-⇒ (tpromote {T = _ ⇒[ _ ] _} Htype H≤) Hval Heq =
   canonical-⇒ Htype Hval Heq
 
-canonical-real
-  : ∀ {Γ t e T c}
-  → Γ ⊢ t :[ e ] T
-  → IsValue t
-  → T ≡ treal c
-  → -----------------
-    ∃ λ r → t ≡ real r
+canonical-real :
+  (_ : Γ ⊢ t :[ e ] T)
+  (_ : IsValue t)
+  (_ : T ≡ treal c)
+  → ------------------
+  ∃ λ r → t ≡ real r
 
 canonical-real treal _ _ = _ , refl
 canonical-real (tweaken Htype _ _) Hval Heq =
@@ -69,29 +70,28 @@ canonical-real (tsub Htype _ (sreal _)) Hval refl =
 canonical-real (tpromote {T = treal _} Htype H≤) Hval refl =
   canonical-real Htype Hval refl
 
-canonical-tup
-  : ∀ {Γ t e T n Ts}
-  → Γ ⊢ t :[ e ] T
-  → T ≡ ttup {n} Ts
-  → IsValue t
-  → -------------------------------------------
-    ∃ λ ts → t ≡ tup n ▸ ts × ∀ i → IsValue (ts i)
+canonical-tup :
+  {Ts : Vector Type n}
+  (_ : Γ ⊢ t :[ e ] T)
+  (_ : IsValue t)
+  (_ : T ≡ ttup n Ts)
+  → --------------------------------------------
+  ∃ λ ts → t ≡ tup n ▸ ts × ∀ i → IsValue (ts i)
 
 canonical-tup (ttup _ _) (vtup Hvs) refl = _ , refl , Hvs
 canonical-tup (tweaken Htype _ _) Hval Heq =
   canonical-tup Htype Hval Heq
 canonical-tup (tsub Htype _ (stup _)) Hval refl =
   canonical-tup Htype Hval refl
-canonical-tup (tpromote {T = ttup _} Htype H≤) Hval refl =
+canonical-tup (tpromote {T = ttup _ _} Htype H≤) Hval refl =
   canonical-tup Htype Hval refl
 
-canonical-dist
-  : ∀ {Γ t e T T′}
-  → Γ ⊢ t :[ e ] T
-  → IsValue t
-  → T ≡ tdist T′
+canonical-dist :
+  (_ : Γ ⊢ t :[ e ] T)
+  (_ : IsValue t)
+  (_ : T ≡ tdist T′)
   → ---------------------------------------------
-    (∃ λ D → ∃ λ rs → t ≡ dist D ▸ (map real rs))
+    (∃ λ D → ∃ λ rs → t ≡ dist D ▸ map real rs)
   ⊎ (∃ λ v → t ≡ infer ▸ v × IsValue (v ₀))
 
 canonical-dist (tdist {ts = ts} _ _ Htypes) (vdist Hvs) _ =
@@ -107,12 +107,11 @@ canonical-dist (tsub Htype _ (sdist _)) Hval refl =
 canonical-dist (tpromote {T = tdist _} Htype H≤) Hval Heq =
   canonical-dist Htype Hval Heq
 
-val-type-det
-  : ∀ {Γ t e T}
-  → Γ ⊢ t :[ e ] T
-  → IsValue t
-  → ----------------
-    Γ ⊢ t :[ det ] T
+val-type-det :
+  (_ : Γ ⊢ t :[ e ] T)
+  (_ : IsValue t)
+  → ------------------
+  Γ ⊢ t :[ det ] T
 val-type-det (tabs Htype) _ = tabs Htype
 val-type-det treal _ = treal
 val-type-det (ttup Hd Htypes) (vtup Hvs) =
@@ -128,11 +127,7 @@ val-type-det (tpromote Htype H≤) Hval = tpromote (val-type-det Htype Hval) H�
 module Step (Ass : EvalAssumptions) where
   open Eval Ass
 
-  →det⊆→rnd
-    : ∀ {t t′ w s}
-    → t →det t′
-    → -----------------------------
-      (t , w , s) →rnd (t′ , w , s)
+  →det⊆→rnd : t →det t′ → (t , w , s) →rnd (t′ , w , s)
 
   →det⊆→rnd (estep Hstep) = estep (edet Hstep)
   →det⊆→rnd (econg ctx Hstep) = econg (_ , ctx , refl) (→det⊆→rnd Hstep)
@@ -146,39 +141,36 @@ module Step (Ass : EvalAssumptions) where
   cong-stepʳ = λ {ws ws′ o ts t′ n} →
     C2.cong-step {unit , ws} {unit , ws′} {o} {ts} {t′} {n}
 
-  ctx-value-inv
-    : ∀ {E t}
-    → DetCtx E
-    → IsValue (E t)
-    → -----------
-      IsValue t
+  ctx-value-inv :
+    {E : Term → Term}
+    (_ : DetCtx E)
+    → -----------------------
+    IsValue (E t) → IsValue t
 
   ctx-value-inv (ectx _) Hv = go Hv
     where
-    go
-      : ∀ {o t ts j}
-      → IsValue (op (o , updateAt ts (ord {{eval-order {o}}} j) (const t)))
+    go :
+      {o : TermOp}
+      {ts : Vector Term (length (ar TermSig o))}
+      {j : Fin (len {{eval-order {o}}})}
+      → IsValue (o ▸ updateAt ts (ord {{eval-order {o}}} j) (const t))
       → -----------------------------------------------------------------
         IsValue t
     go {ts = ts} {j = j} (vtup Hvs) = subst IsValue (updateAt-updates j ts) (Hvs j)
     go {ts = ts} {j = j} (vdist Hvs) = subst IsValue (updateAt-updates j ts) (Hvs j)
     go {j = ₀} (vinfer Hv) = Hv
 
-  value-cannot-step-det
-    : ∀ {t t′}
-    → IsValue t
-    → ------------
-      ¬ t →det t′
+  value-cannot-step-det : IsValue t → ¬ t →det t′
 
   value-cannot-step-det Hv (estep Hstep) with vabs ← Hv | () ← Hstep
   value-cannot-step-det Hv (econg Hctx Hstep) =
     value-cannot-step-det (ctx-value-inv Hctx Hv) Hstep
 
-  value-cannot-step-rnd
-    : ∀ {t t′}
-    → IsValue (t .π₁)
-    → -------------
-      ¬ t →rnd t′
+  value-cannot-step-rnd :
+    {t t′ : Term × ℝ × List 𝕀}
+    (_ : IsValue (t .π₁))
+    → ------------------------
+    ¬ t →rnd t′
 
   value-cannot-step-rnd Hv (estep Hstep) with vabs ← Hv | edet () ← Hstep
   value-cannot-step-rnd Hv (econg (_ , Hctx , refl) Hstep) =

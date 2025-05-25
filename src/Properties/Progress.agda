@@ -21,11 +21,10 @@ module Progress (Ass : EvalAssumptions) where
   open Eval Ass
   open Step Ass
 
-  progress-det
-    : ∀ {t T}
-    → [] ⊢ t :[ det ] T
-    → ------------------------------
-      IsValue t ⊎ ∃ (t →det_)
+  progress-det :
+    (_ : [] ⊢ t :[ det ] T)
+    → ---------------------
+    IsValue t ⊎ ∃ (t →det_)
 
   progress-det (tabs _) = ι₁ vabs
   progress-det treal    = ι₁ vreal
@@ -91,14 +90,6 @@ module Progress (Ass : EvalAssumptions) where
       { (ι₂ (j , (t′ , Hstep) , Hvs)) → ι₂ $ _ , cong-stepᵈ Hvs Hstep
       ; (ι₁ Hvs)                      → ι₁ $ vdist Hvs
       }
-  progress-det (texpect Htype) =
-    ι₂ $ case (progress-det Htype) λ
-      { (ι₂ (t′ , Hstep)) → _ , cong-stepᵈ (λ _ ()) Hstep
-      ; (ι₁ Hv) → case (canonical-dist Htype Hv refl) λ
-        { (ι₁ (D , ts , Heq)) → _ , estep (eexpectdist Heq)
-        ; (ι₂ (v , Heq , Hv)) → _ , estep (eexpectinfer Heq Hv)
-        }
-      }
   progress-det (tinfer Htype H≤) =
     case (progress-det Htype) λ
       { (ι₂ (t′ , Hstep)) → ι₂ $ _ , cong-stepᵈ (λ _ ()) Hstep
@@ -109,11 +100,10 @@ module Progress (Ass : EvalAssumptions) where
   progress-det (tpromote {[]} Htype H≤) = progress-det Htype
 
 
-  progress-rnd
-    : ∀ {t T w p s}
-    → [] ⊢ t :[ rnd ] T
-    → -------------------------------------------------
-      Value t ⊎ ∑ tws′ ∶ _ , (t , w , p ∷ s) →rnd tws′
+  progress-rnd : 
+    [] ⊢ t :[ rnd ] T
+    → ----------------------------------------------
+    IsValue t ⊎ ∃ λ tws′ → (t , w , p ∷ s) →rnd tws′
 
   progress-rnd (tapp Htype Htype₁) =
     ι₂ $ case (progress-rnd Htype) λ
@@ -175,14 +165,6 @@ module Progress (Ass : EvalAssumptions) where
     case (all-⊎ (progress-rnd ∘ Htypes)) λ
       { (ι₂ (j , (_ , Hstep) , Hvs)) → ι₂ $ _ , cong-stepʳ Hvs Hstep
       ; (ι₁ Hvs)                     → ι₁ $ vdist Hvs
-      }
-  progress-rnd (texpect Htype) =
-    ι₂ $ case (progress-rnd Htype) λ
-      { (ι₂ (_ , Hstep)) → _ , cong-stepʳ (λ _ ()) Hstep
-      ; (ι₁ Hv) → case (canonical-dist Htype Hv refl) λ
-        { (ι₁ (D , ts , Heq)) → _ , estep (edet (eexpectdist Heq))
-        ; (ι₂ (v , Heq , Hv)) → _ , estep (edet (eexpectinfer Heq Hv))
-        }
       }
   progress-rnd (tassume Htype) =
     ι₂ $ case (progress-rnd Htype) λ

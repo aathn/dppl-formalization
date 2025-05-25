@@ -29,27 +29,30 @@ data EvalCtx
   : Pred (Trm Σ → Trm Σ) ℓ₀
   where
 
-  ectx
-    : ∀ {o : Op Σ} {j : Fin len} {ts : Vector (Trm Σ) (length (ar Σ o))}
-    → (∀ i → i <′ j → Val (ts (ord i)))
-    → ------------------------------------------------------------
-      EvalCtx Val λ t → op (o , updateAt ts (ord j) (const t))
+  ectx :
+    {o : Op Σ}
+    {j : Fin len}
+    {ts : Vector (Trm Σ) (length (ar Σ o))}
+    (_ : ∀ i → i <′ j → Val (ts (ord i)))
+    → ------------------------------------------------------
+    EvalCtx Val λ t → op (o , updateAt ts (ord j) (const t))
 
 
 data CongCls {A : Set} (_↝_ : Rel A _) (Ctx : Pred (A → A) _) : Rel A ℓ₀ where
 
-  estep
-    : ∀ {a b}
-    → a ↝ b
-    → -------------------
-      CongCls _↝_ Ctx a b
+  estep :
+    {a b : A}
+    (_ : a ↝ b)
+    → -----------------
+    CongCls _↝_ Ctx a b
 
-  econg
-    : ∀ {E a b}
-    → Ctx E
-    → CongCls _↝_ Ctx a b
-    → ----------------------------
-      CongCls _↝_ Ctx (E a) (E b)
+  econg :
+    {E : A → A}
+    {a b : A}
+    (_ : Ctx E)
+    (_ : CongCls _↝_ Ctx a b)
+    → -------------------------
+    CongCls _↝_ Ctx (E a) (E b)
 
 
 -- Congruence with respect to evaluation contexts
@@ -65,13 +68,17 @@ module CongStep
     put = Lift ∘ const
     _↝ᶜ_ = CongCls _↝_ Ctx
 
-  cong-step
-    : ∀ {a b o ts t′ n}
-    → (∀ i → i <′ n → Val (ts (ord i)))
-    → put (ts (ord n)) a ↝ᶜ put t′ b
-    → ------------------------------
-      put (op (o , ts)) a ↝ᶜ
-        put (op (o , updateAt ts (ord n) (const t′))) b
+  cong-step :
+    {a b : A}
+    {o : Op Σ}
+    {ts : Vector (Trm Σ) (length (ar Σ o))}
+    {t′ : Trm Σ}
+    {n : Fin len}
+    (_ : ∀ i → i <′ n → Val (ts (ord i)))
+    (_ : put (ts (ord n)) a ↝ᶜ put t′ b)
+    → -------------------------------------
+    put (op (o , ts)) a ↝ᶜ
+      put (op (o , updateAt ts (ord n) (const t′))) b
 
   cong-step {a} {b} {o} {ts} {t′} {n} Hvs Hstep = subst₂ _↝ᶜ_ it it it
     where instance
@@ -87,14 +94,16 @@ module CongStep
     _ : Lift _ (put t′ b) ≡ put (op (o , updateAt ts (ord n) (const t′))) b
     _ = ap (_$ _) HLift
     
-CongCls-deterministic
-  : ∀ {A : Set} {_↝_ : Rel A _} {Ctx : Pred (A → A) _}
+CongCls-deterministic :
+  {A : Set}
+  {_↝_ : Rel A _}
+  {Ctx : Pred (A → A) _}
   → let _↝ᶜ_ = CongCls _↝_ Ctx in
     Deterministic _≡_ _↝_
   → (∀ {E E′ a a′ b b′} → Ctx E → Ctx E′ → a ↝ᶜ a′ → b ↝ᶜ b′ → E a ≡ E′ b → E ≡ E′ × a ≡ b)
   → (∀ {E a a′ b} → Ctx E → a ↝ᶜ a′ → ¬ E a ↝ b)
   → --------------------------------------------
-    Deterministic _≡_ _↝ᶜ_
+  Deterministic _≡_ _↝ᶜ_
 
 CongCls-deterministic Hdet Huniq Hnstep (estep Hstep₁) (estep Hstep₂) =
   Hdet Hstep₁ Hstep₂

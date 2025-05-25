@@ -2,6 +2,9 @@ open import Lib.Reals
 
 module Properties.Determinism (R : Reals₀) where
 
+open Reals R hiding (refl)
+open Interval R
+
 open import Lib.Prelude
 open import Lib.FunExt
 open import Lib.BindingSignature
@@ -41,25 +44,16 @@ module _ (Ass : EvalAssumptions) where
     with refl ← value-irrelevant v₁ v₁′
        | refl ← value-irrelevant v₂ v₂′
        | refl ← value-irrelevant v₃ v₃′ = refl
-  →ᵈ-deterministic (eexpectdist {D} Heq) (eexpectdist Heq′)
-    rewrite Heq with refl , Hmap ← op-injective Heq′ =
-    ap (real ∘ Expect ∘ Sample D) $ vmap-injective real (λ {refl → refl}) Hmap
-  →ᵈ-deterministic (eexpectinfer Heq Hv) (eexpectinfer Heq′ Hv′)
-    rewrite Heq with refl ← Heq′ with refl ← value-irrelevant Hv Hv′ = refl
-  →ᵈ-deterministic (eexpectdist Heq) (eexpectinfer Heq′ _)
-    rewrite Heq with () ← Heq′
-  →ᵈ-deterministic (eexpectinfer Heq _) (eexpectdist Heq′)
-    rewrite Heq with () ← Heq′
 
-  DetCtx-unique
-    : ∀ {E E′ t u}
-    → DetCtx E
-    → DetCtx E′
-    → ¬ IsValue t
-    → ¬ IsValue u
-    → E t ≡ E′ u
-    → --------------
-      E ≡ E′ × t ≡ u
+  DetCtx-unique :
+    {E E′ : Term → Term}
+    {t u : Term}
+    (_ : DetCtx E)
+    (_ : DetCtx E′)
+    (_ : ¬ IsValue t)
+    (_ : ¬ IsValue u)
+    → -------------------------
+    E t ≡ E′ u → E ≡ E′ × t ≡ u
 
   DetCtx-unique {t = t} {u = u} (ectx {o} {i} {ts} Hvs) (ectx {j = j} {ts′} Hvs′) Ht Hu Heq
     with refl , Heq′ ← op-injective Heq with <-cmp i j
@@ -97,12 +91,13 @@ module _ (Ass : EvalAssumptions) where
            ≡[ updateAt-updates _ ts′ ]       u
            qed
 
-  DetCtx-cannot-step
-    : ∀ {E t u}
-    → DetCtx E
-    → ¬ IsValue t
-    → ----------
-      ¬ E t →ᵈ u
+  DetCtx-cannot-step :
+    {E : Term → Term}
+    {t u : Term}
+    (_ : DetCtx E)
+    (_ : ¬ IsValue t)
+    → ---------------
+    ¬ E t →ᵈ u
 
   DetCtx-cannot-step (ectx {j = ₀} _) Ht (eapp refl _) = Ht vabs
   DetCtx-cannot-step (ectx {j = ₁} _) Ht (eapp _ Hv) = Ht Hv
@@ -119,10 +114,6 @@ module _ (Ass : EvalAssumptions) where
   DetCtx-cannot-step (ectx {j = ₀} _) Ht (esolve v₀ v₁ v₂) = Ht v₀
   DetCtx-cannot-step (ectx {j = ₁} _) Ht (esolve v₀ v₁ v₂) = Ht v₁
   DetCtx-cannot-step (ectx {j = ₂} _) Ht (esolve v₀ v₁ v₂) = Ht v₂
-  DetCtx-cannot-step (ectx {j = ₀} _) Ht (eexpectdist refl) =
-    Ht (vdist (λ _ → vreal))
-  DetCtx-cannot-step (ectx {j = ₀} _) Ht (eexpectinfer refl v) =
-    Ht (vinfer v)
 
   →det-deterministic : Deterministic _≡_ _→det_
   →det-deterministic =
@@ -153,26 +144,27 @@ module _ (Ass : EvalAssumptions) where
   →ʳ-deterministic (eassumeinfer Heq _) (eassumedist Heq′)
     rewrite Heq with () ← Heq′
 
-  RndCtx-unique
-    : ∀ {E E′ t u}
-    → RndCtx E
-    → RndCtx E′
-    → ¬ IsValue (t .π₁)
-    → ¬ IsValue (u .π₁)
-    → E t ≡ E′ u
-    → --------------
-      E ≡ E′ × t ≡ u
+  RndCtx-unique :
+    {E E′ : Term × ℝ × List 𝕀 → Term × ℝ × List 𝕀}
+    {t u : Term × ℝ × List 𝕀}
+    (_ : RndCtx E)
+    (_ : RndCtx E′)
+    (_ : ¬ IsValue (t .π₁))
+    (_ : ¬ IsValue (u .π₁))
+    → -------------------------
+    E t ≡ E′ u → E ≡ E′ × t ≡ u
 
   RndCtx-unique (E , Hctx , refl) (E′ , Hctx′ , refl) Ht Hu Heq
     with Heq′ , refl ← ,-injective Heq
     with refl , refl ← DetCtx-unique Hctx Hctx′ Ht Hu Heq′ = refl , refl
 
-  RndCtx-cannot-step
-    : ∀ {E t u}
-    → RndCtx E
-    → ¬ IsValue (t .π₁)
-    → ---------------
-      ¬ E t →ʳ u
+  RndCtx-cannot-step :
+    {E : Term × ℝ × List 𝕀 → Term × ℝ × List 𝕀}
+    {t u : Term × ℝ × List 𝕀}
+    (_ : RndCtx E)
+    (_ : ¬ IsValue (t .π₁))
+    → ---------------------
+    ¬ E t →ʳ u
 
   RndCtx-cannot-step (_ , ectx Hvs , refl) Ht (edet Hstep) =
     DetCtx-cannot-step (ectx Hvs) Ht Hstep

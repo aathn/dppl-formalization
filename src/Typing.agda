@@ -7,32 +7,19 @@ open import Syntax R
 
 open import Lib.Prelude
 open import Lib.Unfinite
-open import Lib.oc-Sets
 open import Lib.AbstractionConcretion hiding (abs)
 open import Lib.BindingSignature
+open import Lib.Env
 
-open import Data.List using (map)
 open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_)
 open import Data.List.Relation.Binary.Pointwise using (Pointwise)
 open import Data.List.Relation.Unary.All using (All)
 
 TyEnv : Set
-TyEnv = List (𝔸 × Type)
+TyEnv = Env Type
 
 variable
   Γ Γ′ : TyEnv
-
-infixl 5 _,_∶_
-pattern [_∶_]   x T = (x , T) ∷ []
-pattern _,_∶_ Γ x T = (x , T) ∷ Γ
-
-dom : TyEnv → Fset 𝔸
-dom [] = Ø
-dom (Γ , x ∶ _) = [ x ] ∪ dom Γ
-
-data Distinct : TyEnv → Set where
-  []  : Distinct []
-  _∷_ : {x : 𝔸} → x ∉ dom Γ → Distinct Γ → Distinct (Γ , x ∶ T)
 
 PrimTy : (ϕ : Prim) → Vector Coeff (PrimAr ϕ) × Coeff
 PrimTy padd        = const A , A
@@ -161,6 +148,7 @@ data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
     Γ ⊢ diff ▸ ts :[ e ] treals n (const A) ⇒[ det ] treals m ds
 
   tsolve :
+    {Γ : TyEnv}
     {ts : Vector Term 3}
     {cs : Vector Coeff n}
     (_ : Γ ⊢ ts ₀ :[ e ] ttup 2 (λ {₀ → treal c; ₁ → treals n cs}) ⇒[ det ] treals n cs)

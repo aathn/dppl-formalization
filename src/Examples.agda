@@ -12,6 +12,7 @@ open import Lib.Prelude
 open import Lib.Unfinite
 open import Lib.BindingSignature
 open import Lib.AbstractionConcretion renaming (abs to acabs)
+open import Lib.Env
 
 open import Data.Product.Instances using (Σ-≡-isDecEquivalence)
 open import Data.List.Relation.Binary.Sublist.DecPropositional {A = 𝔸 × Type} _≐_
@@ -47,6 +48,14 @@ assume′ t = assume ▸ λ {₀ → t}
 
 weight′ : Term → Term
 weight′ t = weight ▸ λ {₀ → t}
+
+tvar′ :
+  {x : 𝔸}
+  (_ : [ x ∶ T ] ⊆ Γ)
+  (_ : Distinct Γ)
+  → -------------------
+  Γ ⊢ fvar x :[ det ] T
+tvar′ p q = tweaken tvar p q
 
 tabs′ :
   {Γ : TyEnv}
@@ -97,7 +106,7 @@ private
 
 ex1 :
   [] ⊢ abs′ x (treal A) (fvar x) :[ det ] (treal A ⇒[ det ] treal A)
-ex1 = tabs′ (λ _ → tvar (refl ∷ []) it)
+ex1 = tabs′ (λ _ → tvar′ (refl ∷ []) it)
 
 Ts : Coeff → Vector Type 2
 Ts c ₀ = treal N
@@ -112,11 +121,11 @@ ex2 : ∀ c →
   :[ det ] ttup 2 (Ts c) ⇒[ det ] treal A
 ex2 c =
   tabs′ λ z {{H∉z}} →
-    tlet′ (tproj ₀ (tvar (refl ∷ it) (H∉z ∷ it))) λ x {{H∉x}} →
-    tlet′ (tproj ₁ (tvar (_ ∷ʳ refl ∷ it) (H∉x ∷ H∉z ∷ it))) λ y {{H∉y}} →
+    tlet′ (tproj ₀ (tvar′ (refl ∷ it) (H∉z ∷ it))) λ x {{H∉x}} →
+    tlet′ (tproj ₁ (tvar′ (_ ∷ʳ refl ∷ it) (H∉x ∷ H∉z ∷ it))) λ y {{H∉y}} →
     let Hd = H∉y ∷ H∉x ∷ H∉z ∷ it in
     tprim refl Hd λ where
-      ₀ → tsub (tapp (tvar (_ ∷ʳ _ ∷ʳ _ ∷ʳ refl ∷ it) Hd)
-                     (tvar (_ ∷ʳ refl ∷ it) Hd))
+      ₀ → tsub (tapp (tvar′ (_ ∷ʳ _ ∷ʳ _ ∷ʳ refl ∷ it) Hd)
+                     (tvar′ (_ ∷ʳ refl ∷ it) Hd))
                ≤refl (sreal 0≤)
-      ₁ → tsub (tvar (refl ∷ it) Hd) ≤refl (sreal 0≤)
+      ₁ → tsub (tvar′ (refl ∷ it) Hd) ≤refl (sreal 0≤)
