@@ -731,8 +731,8 @@ pair :
   ∑ A B
 pair _ x y = (x , y)
 
--- Iterated cartesian product
-infixr 6 _^_
 _^_ : Set → ℕ → Set
-A ^ 0     = 𝟙
-A ^(n +1) = A × (A ^ n)
+X ^ n = Vector X n
+
+π[_] : {X : Set}{n : ℕ} (i : Fin n) → X ^ n → X
+π[ i ] = _$ i
