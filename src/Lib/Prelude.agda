@@ -731,8 +731,8 @@ pair :
   ∑ A B
 pair _ x y = (x , y)
 
-_^_ : Set → ℕ → Set
+_^_ : {l : Level} → Set l → ℕ → Set l
 X ^ n = Vector X n
 
-π[_] : {X : Set}{n : ℕ} (i : Fin n) → X ^ n → X
+π[_] : {l : Level}{X : Set l}{n : ℕ} (i : Fin n) → X ^ n → X
 π[ i ] = _$ i
