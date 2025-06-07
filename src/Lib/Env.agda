@@ -17,6 +17,7 @@ private
     T : X
 
 infixl 5 _,_∶_
+pattern ε           = []
 pattern [_∶_]   x T = (x , T) ∷ []
 pattern _,_∶_ Γ x T = (x , T) ∷ Γ
 
