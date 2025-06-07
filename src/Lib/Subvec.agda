@@ -14,6 +14,7 @@ open import Data.Fin.Properties
 open import Data.Sum using () renaming (map to ⊎-map)
 open import Data.Sum.Properties using (inj₁-injective ; inj₂-injective)
 open import Data.Vec.Functional
+open import Relation.Binary.PropositionalEquality using (_≗_)
 
 private
   variable
@@ -32,9 +33,11 @@ private
 
 infix 4 _⊆_
 
+-- The preorder induced by the action of reindexing mappings
+-- on vectors.  The restriction to injective mappings makes it a
+-- partial order.
 _⊆_ : {X : Set} → X ^ n → X ^ m → Set
-_⊆_ {n} {m} xs ys =
-  ∑ f ∶ Fin n ↣ Fin m , ∀ i → π[ i ] xs ≡ π[ f .to i ] ys
+_⊆_ {n} {m} xs ys = ∑ f ∶ Fin n ↣ Fin m , xs ≗ ys ∘ f .to
 
 ⊆-refl :
   {X : Set}
