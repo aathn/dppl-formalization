@@ -14,7 +14,13 @@ module Lib.Prelude where
 -- Universe levels
 ------------------------------------------------------------------------
 open import Agda.Primitive public using (Level) renaming (lzero to ℓ₀)
-open import Agda.Primitive using (_⊔_)
+open import Agda.Primitive using (lsuc ; _⊔_)
+
+ℓ₁ : Level
+ℓ₁ = lsuc ℓ₀
+
+ℓ₂ : Level
+ℓ₂ = lsuc ℓ₁
 
 ----------------------------------------------------------------------
 -- Instance
