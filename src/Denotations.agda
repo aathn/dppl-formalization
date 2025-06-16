@@ -7,7 +7,7 @@ open Reals R using (ℝ; 0ᴿ; _≲?_)
 open import Syntax R hiding (n; m; D)
 open import Typing R
 
-open import Lib.Prelude hiding ([]; [_]; _∷_; _∈_)
+open import Lib.Prelude hiding ([]; [_]; _∷_; _∈_; ⋃; _∘_)
 open import Lib.Unfinite
 open import Lib.Env hiding ([]; _∷_)
 open import Lib.Subvec
@@ -16,13 +16,27 @@ open import Lib.FunExt
 open import Data.Fin using (splitAt)
 open import Data.Fin.Properties using (toℕ<n)
 open import Data.List.Relation.Unary.All as All using (All)
-open import Data.Product using (∃₂)
 open import Data.Sum using ([_,_])
 open import Data.Sum.Properties using (inj₁-injective; inj₂-injective)
 open import Data.Vec.Functional
-open import Relation.Unary using (_∈_; Pred)
+open import Relation.Unary using (_∈_; Pred; ⋃)
 open import Relation.Binary using (Rel)
 open import Relation.Binary.PropositionalEquality using (_≗_)
+
+open import Function.Bundles using (Func)
+open import Relation.Binary.Bundles using (Setoid)
+
+open import Categories.Category using (Category)
+open import Categories.Category.Concrete using (Concrete)
+open import Categories.Category.Instance.Setoids using (Setoids)
+open import Categories.Functor using (Functor)
+open import Categories.Functor.Presheaf using (Presheaf)
+open import Categories.Functor.Hom
+open import Categories.Functor.Properties using (Faithful)
+open import Categories.Object.Terminal using (IsTerminal)
+
+open Functor
+open Func
 
 private
   variable
@@ -34,88 +48,85 @@ private
 𝒫 : {ℓ : Level} → Set ℓ → Set _
 𝒫 X = Pred X ℓ₀
 
+Im : {A B : Set} → (A → B) → 𝒫 B
+Im f y = ∃ λ x → y ≡ x
+
 ∣_∣ₚ : {ℓ : Level}{X : Set ℓ} → 𝒫 X → Set _
 ∣_∣ₚ = ∃
 
 record CCat : Set₁ where
+  -- Our definition of concrete categories differs from the agda-categories library
+  -- in that we require a terminal object (following Matache et al.).
   field
-    Obj : Set
-    ∣_∣ : Obj → Set
-    is-hom : (o₁ o₂ : Obj) → 𝒫 (∣ o₁ ∣ → ∣ o₂ ∣)
+    𝒞 : Category ℓ₀ ℓ₀ ℓ₀
 
-    is-hom-id : {o : Obj} → id ∈ is-hom o o
-    is-hom-trans :
-      {o₁ o₂ o₃ : Obj}
-      {g : ∣ o₂ ∣ → ∣ o₃ ∣}
-      {f : ∣ o₁ ∣ → ∣ o₂ ∣}
-      → ---------------------------------------------------------
-      g ∈ is-hom o₂ o₃ → f ∈ is-hom o₁ o₂ → g ∘ f ∈ is-hom o₁ o₃
+  open Category 𝒞 public
+  open Hom 𝒞 public
 
-  record _𝒞⇒_ (o₁ o₂ : Obj) : Set where
-    constructor mkHom
-    field
-      to : ∣ o₁ ∣ → ∣ o₂ ∣
-      is-hom : to ∈ is-hom o₁ o₂
+  field
+    ⋆ : Obj
+    ⋆-is-terminal  : IsTerminal 𝒞 ⋆
+    ⋆-hom-faithful : Faithful Hom[ ⋆ ,-]
 
-  open _𝒞⇒_
+  open Setoid
 
-  𝒞-id : {o : Obj} → o 𝒞⇒ o
-  𝒞-id = mkHom id is-hom-id
+  obj∣_∣ : Obj → Set
+  obj∣ c ∣ = ⋆ ⇒ c
 
-  _𝒞∘_ : {o₁ o₂ o₃ : Obj} → o₂ 𝒞⇒ o₃ → o₁ 𝒞⇒ o₂ → o₁ 𝒞⇒ o₃
-  (f 𝒞∘ g) .to = f .to ∘ g .to
-  (f 𝒞∘ g) .is-hom = is-hom-trans (f .is-hom) (g .is-hom)
+  hom∣_∣ : {o₁ o₂ : Obj} → o₁ ⇒ o₂ → obj∣ o₁ ∣ → obj∣ o₂ ∣
+  hom∣ f ∣ g = f ∘ g
 
-  _𝒞≡_ : {o₁ o₂ : Obj} → Rel (o₁ 𝒞⇒ o₂) ℓ₀
-  (f 𝒞≡ g) = f .to ≗ g .to
-
-module _ (𝒞 : CCat) where
-  open CCat 𝒞
-
+module _ (Cat : CCat) where
   private
     variable
-      X Y Z : Obj
+      Y Z : CCat.Obj Cat
 
-  record IsCoverage
-    {I : Obj → Set}
-    (index : {c : Obj} → I c → Obj)
-    (cover : {c : Obj} (i : I c) → index i 𝒞⇒ c)
-    : -------------------------------------------
-    Set₁
-    where
+  -- The definition of concrete sites simplifies the site definition in the
+  -- agda-categories library, and refines the indexing of covering families
+  -- to be able to refer to specific covering families.  For simplicity,
+  -- we work exclusively with countable covers.
+  record CSite : Set₁ where
+    open CCat Cat public
     field
-      -- I′         : (g : Y ⇒ Z) → Set
-      -- universal₀ : {g : Y ⇒ Z} → I′ g → Obj
-      -- universal₁ : {g : Y ⇒ Z} (j : I′ g) → universal₀ j ⇒ Y
-      -- commute    : {g : Y ⇒ Z} (j : J g) → ∃₂ (λ i k → g ∘ universal₁ j ≈ covering₁ i ∘ k)
+      cover-fam : Obj → Set
+      cover-dom : {c : Obj} (C : cover-fam c) → ℕ → Obj
+      cover : {c : Obj} (C : cover-fam c) (n : ℕ) → cover-dom C n ⇒ c
 
-  record CSite (𝒞 : CCat) : Set₁ where
+      coverage-pullback :
+        {g : Y ⇒ Z}
+        (fs : cover-fam Z)
+        → -------------------------------
+        ∃ λ hs → ∀ (j : ℕ) → ∃₂ λ i k →
+        g ∘ cover hs j ≈ cover fs i ∘ k
+
+      coverage-covers :
+        (c : Obj)
+        (fs : cover-fam c)
+        {x : obj∣ c ∣}
+        → ---------------------------------
+        x ∈ ⋃ ℕ λ n → Im hom∣ cover fs n ∣
+
+module _ {Cat : CCat} (𝒮 : CSite Cat) where
+  open CSite 𝒮 public
+  open Setoid
+  record CSheaf : Set₁ where
     field
-      cover : (c : Obj) → 𝒫 (∃ λ (I : Set) → I → ∃ (_𝒞⇒ c))
+      ℱ : Presheaf 𝒞 (Setoids ℓ₀ ℓ₀)
 
-      -- I : {c : Obj} → J c → Set
-      -- index : {c : Obj} {j : J c} → I j → Obj
-      -- cover : {c : Obj} {j : J c} {i : I j} → index i 𝒞⇒ c
-      -- is-coverage : IsCoverage index cover
+    ∣_∣ : Set
+    ∣_∣ = ℱ .F₀ ⋆ .Carrier
 
-      cover-stable :
-        {c d : Obj}
-        (cov : ∃ (cover c))
-        (h : d 𝒞⇒ c)
-        → -----------------------------
-        ∃ λ cov′ → {I′ : Set} (j : I′) → ∃₂ λ i k →
-        cov .π₂ .π₂ i .π₂ 𝒞≡ ?
-        
-      -- fs ∈ J c → ∃ λ gs → gs ∈ J d {cs = cs′} × ∀ (j : I′) → ∃ λ i → ∃ λ k → (fs i ℂ∘ k) ℂ≡ (h ℂ∘ gs j)
+    R[_] : (c : Obj) → ℱ .F₀ c .Carrier → obj∣ c ∣ → ∣_∣
+    R[ c ] ℱc f = ℱ .F₁ f .to ℱc
 
---     -- J-covers : {!!}
+    -- field
+    --   is-concrete :
+    --     injection _≡_ _≡_ 
 
--- open CSite
-
-record c-assumptions : Set₁ where
-  field
-    c-open : Coeff → 𝒫 (𝒫 (ℝ ^ n))
-    c-regular : (c : Coeff) → (U : 𝒫 (ℝ ^ n)) → c-open c U → 𝒫 (∣ U ∣ₚ → ℝ)
+-- record c-assumptions : Set₁ where
+--   field
+--     c-open : Coeff → 𝒫 (𝒫 (ℝ ^ n))
+--     c-regular : (c : Coeff) → (U : 𝒫 (ℝ ^ n)) → c-open c U → 𝒫 (∣ U ∣ₚ → ℝ)
 
 --   𝔉′ : (Θ : Coeff ^ n) (Θ′ : Coeff ^ m) → Pred (ℝ ^ n → ℝ ^ m) ℓ₀
 --   𝔉′ Θ Θ′ f = (i : Fin _) → π[ i ] ∘ f ∈ 𝔉 Θ (π[ i ] Θ′)

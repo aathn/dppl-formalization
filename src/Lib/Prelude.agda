@@ -30,7 +30,7 @@ open import Agda.Primitive using (lsuc ; _⊔_)
 ----------------------------------------------------------------------
 
 open import Function public
-  using (id ; it ; _∘_ ; _$_ ; const)
+  using (id ; it ; _∘_ ; _$_ ; const; flip)
   renaming (case_of_ to case) 
 
 ----------------------------------------------------------------------
@@ -718,7 +718,7 @@ ordinal (n +1) = ordinal n ∪ [ n ]
 -- Dependent product
 -- Cartesian product
 ----------------------------------------------------------------------
-open import Data.Product using (_,_ ; _×_ ; ∃)
+open import Data.Product using (_,_ ; _×_ ; ∃; ∃₂)
   renaming (Σ to ∑ ; proj₁ to π₁ ; proj₂ to π₂)
   public
 
