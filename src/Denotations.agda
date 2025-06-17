@@ -23,6 +23,7 @@ open import Relation.Unary using (_∈_; Pred; ⋃)
 open import Relation.Binary using (Rel)
 open import Relation.Binary.PropositionalEquality using (_≗_)
 
+open import Function using (Injection ; _↣_ ; mk↣)
 open import Function.Bundles using (Func)
 open import Relation.Binary.Bundles using (Setoid)
 
@@ -35,8 +36,11 @@ open import Categories.Functor.Hom
 open import Categories.Functor.Properties using (Faithful)
 open import Categories.Object.Terminal using (IsTerminal)
 
+open import Level using (_⊔_) renaming (suc to lsuc)
+
 open Functor
 open Func
+open Injection
 
 private
   variable
@@ -45,23 +49,20 @@ private
 --     Θ′ : Coeff ^ m
 --     Θ″ : Coeff ^ k
 
-𝒫 : {ℓ : Level} → Set ℓ → Set _
-𝒫 X = Pred X ℓ₀
-
-Im : {A B : Set} → Rel B ℓ₀ → (A → B) → 𝒫 B
+Im : {ℓ ℓ′ : Level} {A B : Set ℓ} → Rel B ℓ′ → (A → B) → Pred B (ℓ ⊔ ℓ′)
 Im _≈_ f y = ∃ λ x → y ≈ f x
 
-Pointwise : {A B : Set} → Rel B ℓ₀ → Rel (A → B) ℓ₀
+Pointwise : {ℓA ℓB ℓ : Level} {A : Set ℓA} {B : Set ℓB} → Rel B ℓ → Rel (A → B) (ℓA ⊔ ℓ)
 Pointwise _≈_ f g = ∀ z → f z ≈ g z
 
-∣_∣ₚ : {ℓ : Level}{X : Set ℓ} → 𝒫 X → Set _
+∣_∣ₚ : {ℓ ℓ′ : Level}{X : Set ℓ} → Pred X ℓ′ → Set _
 ∣_∣ₚ = ∃
 
-record CCat : Set₁ where
+record CCat (o ℓ e : Level) : Set (lsuc (o ⊔ ℓ ⊔ e)) where
   -- Our definition of concrete categories differs from the agda-categories library
   -- in that we require a terminal object (following Matache et al.).
   field
-    𝒞 : Category ℓ₀ ℓ₀ ℓ₀
+    𝒞 : Category o ℓ e
 
   open Category 𝒞 public renaming (_∘_ to _∘′_)
   open Hom 𝒞 public
@@ -73,13 +74,13 @@ record CCat : Set₁ where
 
   open Setoid
 
-  obj∣_∣ : Obj → Set
+  obj∣_∣ : Obj → Set ℓ
   obj∣ c ∣ = ⋆ ⇒ c
 
   hom∣_∣ : {o₁ o₂ : Obj} → o₁ ⇒ o₂ → obj∣ o₁ ∣ → obj∣ o₂ ∣
   hom∣ f ∣ g = f ∘′ g
 
-module _ (Cat : CCat) where
+module _ {o ℓ e : Level} (Cat : CCat o ℓ e) where
   private
     variable
       Y Z : CCat.Obj Cat
@@ -88,7 +89,7 @@ module _ (Cat : CCat) where
   -- agda-categories library, and refines the indexing of covering families
   -- to be able to refer to specific covering families.  For simplicity,
   -- we work exclusively with countable covers.
-  record CSite : Set₁ where
+  record CSite : Set (o ⊔ lsuc ℓ ⊔ e) where
     open CCat Cat public
     field
       cover-fam : Obj → Set
@@ -109,38 +110,80 @@ module _ (Cat : CCat) where
         → -------------------------------------
         x ∈ ⋃ ℕ λ n → Im _≈_ hom∣ cover fs n ∣
 
-module _ {Cat : CCat} (S : CSite Cat) where
+record CSheaf
+  {o ℓ e : Level}
+  (o′ ℓ′ : Level)
+  {Cat : CCat o ℓ e}
+  (S : CSite Cat)
+  : ------------------------------
+  Set (o ⊔ ℓ ⊔ e ⊔ lsuc (o′ ⊔ ℓ′))
+  where
   open CSite S public
   open Setoid
-  record CSheaf : Set₁ where
-    field
-      ℱ : Presheaf 𝒞 (Setoids ℓ₀ ℓ₀)
 
-    ∣_∣ : Set
-    ∣_∣ = ℱ .F₀ ⋆ .Carrier
+  field
+    ℱ : Presheaf 𝒞 (Setoids o′ ℓ′)
 
-    ℱ-maps : (c : Obj) → ℱ .F₀ c .Carrier → obj∣ c ∣ → ∣_∣
-    ℱ-maps c ℱc f = ℱ .F₁ f .to ℱc
+  ∣_∣ : Set o′
+  ∣_∣ = ℱ .F₀ ⋆ .Carrier
 
-    R[_,_] : (c : Obj) → 𝒫 (obj∣ c ∣ → ∣_∣)
-    R[_,_] c f = ∃ λ ℱc → Pointwise (ℱ .F₀ ⋆ ._≈_) f (ℱ-maps c ℱc)
+  ℱ-maps : (c : Obj) → ℱ .F₀ c .Carrier → obj∣ c ∣ → ∣_∣
+  ℱ-maps c ℱc f = ℱ .F₁ f .to ℱc
 
-    field
-      ℱ-is-concrete :
-        {c : Obj} → injection (ℱ .F₀ c ._≈_) (Pointwise (ℱ .F₀ ⋆ ._≈_)) (ℱ-maps c)
+  R[_,_] : (c : Obj) → Pred (obj∣ c ∣ → ∣_∣) _
+  R[_,_] c f = ∃ λ ℱc → Pointwise (ℱ .F₀ ⋆ ._≈_) f (ℱ-maps c ℱc)
 
-      ℱ-is-sheaf :
-        {c : Obj}
-        (g : obj∣ c ∣ → ∣_∣)
-        (fs : cover-fam c)
-        (_ : ∀ i → g ∘ hom∣ cover fs i ∣ ∈ R[_,_] (cover-dom fs i))
-        → ---------------------------------------------------------
-        g ∈ R[_,_] c
+  field
+    ℱ-is-concrete :
+      {c : Obj} → injection (ℱ .F₀ c ._≈_) (Pointwise (ℱ .F₀ ⋆ ._≈_)) (ℱ-maps c)
 
--- record c-assumptions : Set₁ where
---   field
---     c-open : Coeff → 𝒫 (𝒫 (ℝ ^ n))
---     c-regular : (c : Coeff) → (U : 𝒫 (ℝ ^ n)) → c-open c U → 𝒫 (∣ U ∣ₚ → ℝ)
+    ℱ-is-sheaf :
+      {c : Obj}
+      (g : obj∣ c ∣ → ∣_∣)
+      (fs : cover-fam c)
+      (_ : ∀ i → g ∘ hom∣ cover fs i ∣ ∈ R[_,_] (cover-dom fs i))
+      → ---------------------------------------------------------
+      g ∈ R[_,_] c
+
+module ℝ⊆ where
+
+  open Category renaming (_∘_ to _∘′_; id to id′)
+
+  ℝ⊆ : CCat ℓ₁ ℓ₀ ℓ₀
+  ℝ⊆ = {!!}
+  -- ℝ⊆ .Obj = ∃₂ λ n o → o ↣ ℝ ^ n
+  -- ℝ⊆ ._⇒_ (_ , o₁ , _) (_ , o₂ , _) = o₁ ↣ o₂
+  -- ℝ⊆ ._≈_ = {!!}
+  -- ℝ⊆ .id′ = {!!}
+  -- ℝ⊆ ._∘′_ = {!!}
+  -- ℝ⊆ .assoc = {!!}
+  -- ℝ⊆ .sym-assoc = {!!}
+  -- ℝ⊆ .identityˡ = {!!}
+  -- ℝ⊆ .identityʳ = {!!}
+  -- ℝ⊆ .identity² = {!!}
+  -- ℝ⊆ .equiv = {!!}
+  -- ℝ⊆ .∘-resp-≈ = {!!}
+
+open ℝ⊆
+
+record c-assumptions : Set₁ where
+  field
+    c-site : Coeff → CSite ℝ⊆
+    c-sheaf : (c : Coeff) → CSheaf ℓ₀ ℓ₀ (c-site c)
+
+  -- c-opens : Category ℓ₀ ℓ₀ ℓ₀
+  -- c-opens .Obj = ∃₂ c-open
+  -- c-opens ._⇒_ (c₁ , n₁ , U) (c₂ , n₂ , V) = c-open-points U ↣ c-open-points V
+  -- c-opens ._≈_ = {!!}
+  -- c-opens .id′ = {!!}
+  -- c-opens ._∘′_ = {!!}
+  -- c-opens .assoc = {!!}
+  -- c-opens .sym-assoc = {!!}
+  -- c-opens .identityˡ = {!!}
+  -- c-opens .identityʳ = {!!}
+  -- c-opens .identity² = {!!}
+  -- c-opens .equiv = {!!}
+  -- c-opens .∘-resp-≈ = {!!}
 
 --   𝔉′ : (Θ : Coeff ^ n) (Θ′ : Coeff ^ m) → Pred (ℝ ^ n → ℝ ^ m) ℓ₀
 --   𝔉′ Θ Θ′ f = (i : Fin _) → π[ i ] ∘ f ∈ 𝔉 Θ (π[ i ] Θ′)
