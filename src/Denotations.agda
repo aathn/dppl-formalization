@@ -7,7 +7,7 @@ open Reals R using (ℝ; 0ᴿ; _≲?_)
 open import Syntax R hiding (n; m; D)
 open import Typing R
 
-open import Lib.Prelude hiding ([]; [_]; _∷_; _∈_; ⋃; _∘_)
+open import Lib.Prelude hiding ([]; [_]; _∷_; _∈_; ⋃)
 open import Lib.Unfinite
 open import Lib.Env hiding ([]; _∷_)
 open import Lib.Subvec
@@ -48,8 +48,11 @@ private
 𝒫 : {ℓ : Level} → Set ℓ → Set _
 𝒫 X = Pred X ℓ₀
 
-Im : {A B : Set} → (A → B) → 𝒫 B
-Im f y = ∃ λ x → y ≡ x
+Im : {A B : Set} → Rel B ℓ₀ → (A → B) → 𝒫 B
+Im _≈_ f y = ∃ λ x → y ≈ f x
+
+Pointwise : {A B : Set} → Rel B ℓ₀ → Rel (A → B) ℓ₀
+Pointwise _≈_ f g = ∀ z → f z ≈ g z
 
 ∣_∣ₚ : {ℓ : Level}{X : Set ℓ} → 𝒫 X → Set _
 ∣_∣ₚ = ∃
@@ -60,7 +63,7 @@ record CCat : Set₁ where
   field
     𝒞 : Category ℓ₀ ℓ₀ ℓ₀
 
-  open Category 𝒞 public
+  open Category 𝒞 public renaming (_∘_ to _∘′_)
   open Hom 𝒞 public
 
   field
@@ -74,7 +77,7 @@ record CCat : Set₁ where
   obj∣ c ∣ = ⋆ ⇒ c
 
   hom∣_∣ : {o₁ o₂ : Obj} → o₁ ⇒ o₂ → obj∣ o₁ ∣ → obj∣ o₂ ∣
-  hom∣ f ∣ g = f ∘ g
+  hom∣ f ∣ g = f ∘′ g
 
 module _ (Cat : CCat) where
   private
@@ -97,17 +100,17 @@ module _ (Cat : CCat) where
         (fs : cover-fam Z)
         → -------------------------------
         ∃ λ hs → ∀ (j : ℕ) → ∃₂ λ i k →
-        g ∘ cover hs j ≈ cover fs i ∘ k
+        g ∘′ cover hs j ≈ cover fs i ∘′ k
 
       coverage-covers :
         (c : Obj)
         (fs : cover-fam c)
         {x : obj∣ c ∣}
-        → ---------------------------------
-        x ∈ ⋃ ℕ λ n → Im hom∣ cover fs n ∣
+        → -------------------------------------
+        x ∈ ⋃ ℕ λ n → Im _≈_ hom∣ cover fs n ∣
 
-module _ {Cat : CCat} (𝒮 : CSite Cat) where
-  open CSite 𝒮 public
+module _ {Cat : CCat} (S : CSite Cat) where
+  open CSite S public
   open Setoid
   record CSheaf : Set₁ where
     field
@@ -116,12 +119,23 @@ module _ {Cat : CCat} (𝒮 : CSite Cat) where
     ∣_∣ : Set
     ∣_∣ = ℱ .F₀ ⋆ .Carrier
 
-    R[_] : (c : Obj) → ℱ .F₀ c .Carrier → obj∣ c ∣ → ∣_∣
-    R[ c ] ℱc f = ℱ .F₁ f .to ℱc
+    ℱ-maps : (c : Obj) → ℱ .F₀ c .Carrier → obj∣ c ∣ → ∣_∣
+    ℱ-maps c ℱc f = ℱ .F₁ f .to ℱc
 
-    -- field
-    --   is-concrete :
-    --     injection _≡_ _≡_ 
+    R[_,_] : (c : Obj) → 𝒫 (obj∣ c ∣ → ∣_∣)
+    R[_,_] c f = ∃ λ ℱc → Pointwise (ℱ .F₀ ⋆ ._≈_) f (ℱ-maps c ℱc)
+
+    field
+      ℱ-is-concrete :
+        {c : Obj} → injection (ℱ .F₀ c ._≈_) (Pointwise (ℱ .F₀ ⋆ ._≈_)) (ℱ-maps c)
+
+      ℱ-is-sheaf :
+        {c : Obj}
+        (g : obj∣ c ∣ → ∣_∣)
+        (fs : cover-fam c)
+        (_ : ∀ i → g ∘ hom∣ cover fs i ∣ ∈ R[_,_] (cover-dom fs i))
+        → ---------------------------------------------------------
+        g ∈ R[_,_] c
 
 -- record c-assumptions : Set₁ where
 --   field
