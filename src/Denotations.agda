@@ -29,6 +29,7 @@ open import Relation.Binary.Bundles using (Setoid)
 
 open import Categories.Category using (Category)
 open import Categories.Category.Concrete using (Concrete)
+open import Categories.Category.Slice using (SliceObj ; sliceobj)
 open import Categories.Category.Instance.Setoids using (Setoids)
 open import Categories.Functor using (Functor)
 open import Categories.Functor.Presheaf using (Presheaf)
@@ -41,6 +42,7 @@ open import Level using (_⊔_) renaming (suc to lsuc)
 open Functor
 open Func
 open Injection
+open SliceObj using (arr)
 
 private
   variable
@@ -80,45 +82,46 @@ record CCat (o ℓ e : Level) : Set (lsuc (o ⊔ ℓ ⊔ e)) where
   hom∣_∣ : {o₁ o₂ : Obj} → o₁ ⇒ o₂ → obj∣ o₁ ∣ → obj∣ o₂ ∣
   hom∣ f ∣ g = f ∘′ g
 
-module _ {o ℓ e : Level} (Cat : CCat o ℓ e) where
+module _ {o ℓ e : Level} (p : Level) (Cat : CCat o ℓ e) where
   private
     variable
       Y Z : CCat.Obj Cat
 
-  -- The definition of concrete sites simplifies the site definition in the
-  -- agda-categories library, and refines the indexing of covering families
-  -- to be able to refer to specific covering families.  For simplicity,
-  -- we work exclusively with countable covers.
-  record CSite : Set (o ⊔ lsuc ℓ ⊔ e) where
-    open CCat Cat public
+  -- The definition of concrete sites uses a predicate-based approach
+  -- instead of explicit indexing as in the agda-categories library,
+  -- to simplify the definition of the pullback site.  We also work
+  -- exclusively with countable covers.
+  record CSite : Set (o ⊔ ℓ ⊔ e ⊔ lsuc p) where
+    open CCat Cat
     field
-      cover-fam : Obj → Set
-      cover-dom : {c : Obj} (C : cover-fam c) → ℕ → Obj
-      cover : {c : Obj} (C : cover-fam c) (n : ℕ) → cover-dom C n ⇒ c
+      cover : (c : Obj) → Pred ((n : ℕ) → SliceObj 𝒞 c) p
 
       coverage-pullback :
-        {g : Y ⇒ Z}
-        (fs : cover-fam Z)
-        → -------------------------------
-        ∃ λ hs → ∀ (j : ℕ) → ∃₂ λ i k →
-        g ∘′ cover hs j ≈ cover fs i ∘′ k
+        (g : Y ⇒ Z)
+        (fs : (n : ℕ) → SliceObj 𝒞 Z)
+        (_ : fs ∈ cover Z)
+        → ----------------------------------------------
+        ∃ λ hs → hs ∈ cover Y × ∀ (j : ℕ) → ∃₂ λ i k →
+        g ∘′ hs j .arr ≈ fs i .arr ∘′ k
 
       coverage-covers :
         (c : Obj)
-        (fs : cover-fam c)
+        (fs : (n : ℕ) → SliceObj 𝒞 c)
+        (_ : fs ∈ cover c)
         {x : obj∣ c ∣}
-        → -------------------------------------
-        x ∈ ⋃ ℕ λ n → Im _≈_ hom∣ cover fs n ∣
+        → ------------------------------------
+        x ∈ ⋃ ℕ λ n → Im _≈_ hom∣ fs n .arr ∣
 
 record CSheaf
-  {o ℓ e : Level}
+  {o ℓ e c : Level}
   (o′ ℓ′ : Level)
   {Cat : CCat o ℓ e}
-  (S : CSite Cat)
-  : ------------------------------
-  Set (o ⊔ ℓ ⊔ e ⊔ lsuc (o′ ⊔ ℓ′))
+  (S : CSite c Cat)
+  : ----------------------------------
+  Set (o ⊔ ℓ ⊔ e ⊔ c ⊔ lsuc (o′ ⊔ ℓ′))
   where
-  open CSite S public
+  open CSite S
+  open CCat Cat
   open Setoid
 
   field
@@ -140,10 +143,61 @@ record CSheaf
     ℱ-is-sheaf :
       {c : Obj}
       (g : obj∣ c ∣ → ∣_∣)
-      (fs : cover-fam c)
-      (_ : ∀ i → g ∘ hom∣ cover fs i ∣ ∈ R[_,_] (cover-dom fs i))
-      → ---------------------------------------------------------
+      (fs : (n : ℕ) → SliceObj 𝒞 c)
+      (_ : fs ∈ cover c)
+      (_ : ∀ i → g ∘ hom∣ fs i .arr ∣ ∈ R[_,_] _)
+      → -----------------------------------------
       g ∈ R[_,_] c
+
+module Pushforward {o ℓ e p : Level}
+  {C D : CCat o ℓ e}
+  (S : CSite p D)
+  (F : Functor (D .CCat.𝒞) (C .CCat.𝒞))
+  where
+
+  open CSite
+  -- open Sheaf
+
+  PushSite : CSite _ C
+  PushSite .cover c fam =
+    ∃₂ λ d fam′ →
+      S .cover d fam′ ×
+      F .F₀ d ≡ c ×
+      ∀ n → F .F₁ (fam′ n .arr) ≈ fam n .arr
+    where open CCat C
+  PushSite .coverage-pullback = {!!}
+  PushSite .coverage-covers = {!!}
+  -- PushSite .cover c fam =
+  --   S .cover (F .F₀ c) λ n → sliceobj $ F .F₁ (fam n .arr)
+  -- PushSite .coverage-pullback g fam cov =
+  --   let foo = S .coverage-pullback (F .F₁ g) (λ n → sliceobj $ F .F₁ (fam n .arr)) cov
+  --   in
+  --   {!!}
+  -- PushSite .coverage-covers = {!!}
+  -- PullSite .cover-fam c = S .cover-fam (F .F₀ c)
+  -- PullSite .cover = {!!}
+  -- PullSite .coverage-pullback = {!!}
+  -- PullSite .coverage-covers = {!!}
+  -- PullSite .cover-fam c =
+  --   ∑ cov ∶ S .cover-fam (F .F₀ c) ,
+  --   ∀ (n : ℕ) → ∃₂ λ c′ f →
+  --     ∃ λ (Heq : F .F₀ c′ ≡ S .cover-dom cov n) →
+  --     subst (_⇒ F .F₀ c) Heq (F .F₁ f) ≈ S .cover cov n
+  --   where open CCat D
+  -- PullSite .cover-dom (_ , fam) n = fam n .π₁
+  -- PullSite .cover (cov , fam) n = fam n .π₂ .π₁
+  -- PullSite .coverage-pullback g (cov , fam) =
+  --   let (cov′ , pb-prop) = S .coverage-pullback (F .F₁ g) cov
+  --   in
+  --   (cov′ ,
+  --     λ n →
+  --     let c′ , f , Heq , H≈ = fam n in         
+  --     {!!}) ,
+  --     {!!}
+  --   where open CCat D
+  -- PullSite .coverage-covers c (cov , f) {x} =
+  --   let foo = F .F₁ x in {!!}
+--     where open CCat C
 
 module ℝ⊆ where
 
@@ -168,7 +222,7 @@ open ℝ⊆
 
 record c-assumptions : Set₁ where
   field
-    c-site : Coeff → CSite ℝ⊆
+    c-site : Coeff → CSite ℓ₀ ℝ⊆
     c-sheaf : (c : Coeff) → CSheaf ℓ₀ ℓ₀ (c-site c)
 
   -- c-opens : Category ℓ₀ ℓ₀ ℓ₀
