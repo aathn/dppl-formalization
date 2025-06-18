@@ -27,22 +27,21 @@ open import Function using (Injection ; _↣_ ; mk↣)
 open import Function.Bundles using (Func)
 open import Relation.Binary.Bundles using (Setoid)
 
+open import Categories.Adjoint using (_⊣_ ; Adjoint)
 open import Categories.Category using (Category)
 open import Categories.Category.Concrete using (Concrete)
-open import Categories.Category.Slice using (SliceObj ; sliceobj)
 open import Categories.Category.Instance.Setoids using (Setoids)
 open import Categories.Functor using (Functor)
 open import Categories.Functor.Presheaf using (Presheaf)
 open import Categories.Functor.Hom
 open import Categories.Functor.Properties using (Faithful)
 open import Categories.Object.Terminal using (IsTerminal)
+import Categories.Morphism.Reasoning as MR
 
 open import Level using (_⊔_) renaming (suc to lsuc)
 
-open Functor
 open Func
 open Injection
-open SliceObj using (arr)
 
 private
   variable
@@ -64,14 +63,14 @@ record CCat (o ℓ e : Level) : Set (lsuc (o ⊔ ℓ ⊔ e)) where
   -- Our definition of concrete categories differs from the agda-categories library
   -- in that we require a terminal object (following Matache et al.).
   field
-    𝒞 : Category o ℓ e
+    Cat : Category o ℓ e
 
-  open Category 𝒞 public renaming (_∘_ to _∘′_)
-  open Hom 𝒞 public
+  open Category Cat public renaming (id to id′; _∘_ to _∘′_)
+  open Hom Cat public
 
   field
     ⋆ : Obj
-    ⋆-is-terminal  : IsTerminal 𝒞 ⋆
+    ⋆-is-terminal  : IsTerminal Cat ⋆
     ⋆-hom-faithful : Faithful Hom[ ⋆ ,-]
 
   open Setoid
@@ -82,148 +81,131 @@ record CCat (o ℓ e : Level) : Set (lsuc (o ⊔ ℓ ⊔ e)) where
   hom∣_∣ : {o₁ o₂ : Obj} → o₁ ⇒ o₂ → obj∣ o₁ ∣ → obj∣ o₂ ∣
   hom∣ f ∣ g = f ∘′ g
 
-module _ {o ℓ e : Level} (p : Level) (Cat : CCat o ℓ e) where
+module _ {o ℓ e : Level} (p : Level) (𝒞 : CCat o ℓ e) where
   private
     variable
-      Y Z : CCat.Obj Cat
+      Y Z : CCat.Obj 𝒞
 
-  -- The definition of concrete sites uses a predicate-based approach
-  -- instead of explicit indexing as in the agda-categories library,
-  -- to simplify the definition of the pullback site.  We also work
-  -- exclusively with countable covers.
   record CSite : Set (o ⊔ ℓ ⊔ e ⊔ lsuc p) where
-    open CCat Cat
+    open CCat 𝒞
     field
-      cover : (c : Obj) → Pred ((n : ℕ) → SliceObj 𝒞 c) p
+      cover-fam : Obj → Set p
+      cover-dom : {c : Obj} (C : cover-fam c) → ℕ → Obj
+      cover : {c : Obj} (C : cover-fam c) (n : ℕ) → cover-dom C n ⇒ c
 
       coverage-pullback :
         (g : Y ⇒ Z)
-        (fs : (n : ℕ) → SliceObj 𝒞 Z)
-        (_ : fs ∈ cover Z)
-        → ----------------------------------------------
-        ∃ λ hs → hs ∈ cover Y × ∀ (j : ℕ) → ∃₂ λ i k →
-        g ∘′ hs j .arr ≈ fs i .arr ∘′ k
+        (fs : cover-fam Z)
+        → -------------------------------
+        ∃ λ hs → ∀ (j : ℕ) → ∃₂ λ i k →
+        g ∘′ cover hs j ≈ cover fs i ∘′ k
 
       coverage-covers :
         (c : Obj)
-        (fs : (n : ℕ) → SliceObj 𝒞 c)
-        (_ : fs ∈ cover c)
+        (fs : cover-fam c)
         {x : obj∣ c ∣}
-        → ------------------------------------
-        x ∈ ⋃ ℕ λ n → Im _≈_ hom∣ fs n .arr ∣
+        → -------------------------------------
+        x ∈ ⋃ ℕ λ n → Im _≈_ hom∣ cover fs n ∣
 
-record CSheaf
-  {o ℓ e c : Level}
-  (o′ ℓ′ : Level)
-  {Cat : CCat o ℓ e}
-  (S : CSite c Cat)
-  : ----------------------------------
-  Set (o ⊔ ℓ ⊔ e ⊔ c ⊔ lsuc (o′ ⊔ ℓ′))
-  where
-  open CSite S
-  open CCat Cat
-  open Setoid
+-- record CSheaf
+--   {o ℓ e c : Level}
+--   (o′ ℓ′ : Level)
+--   {𝒞 : CCat o ℓ e}
+--   (S : CSite c 𝒞)
+--   : ----------------------------------
+--   Set (o ⊔ ℓ ⊔ e ⊔ c ⊔ lsuc (o′ ⊔ ℓ′))
+--   where
+--   open CSite S
+--   open CCat 𝒞
+--   open Setoid
 
-  field
-    ℱ : Presheaf 𝒞 (Setoids o′ ℓ′)
+--   field
+--     ℱ : Presheaf Cat (Setoids o′ ℓ′)
 
-  ∣_∣ : Set o′
-  ∣_∣ = ℱ .F₀ ⋆ .Carrier
+--   ∣_∣ : Set o′
+--   ∣_∣ = ℱ .F₀ ⋆ .Carrier
 
-  ℱ-maps : (c : Obj) → ℱ .F₀ c .Carrier → obj∣ c ∣ → ∣_∣
-  ℱ-maps c ℱc f = ℱ .F₁ f .to ℱc
+--   ℱ-maps : (c : Obj) → ℱ .F₀ c .Carrier → obj∣ c ∣ → ∣_∣
+--   ℱ-maps c ℱc f = ℱ .F₁ f .to ℱc
 
-  R[_,_] : (c : Obj) → Pred (obj∣ c ∣ → ∣_∣) _
-  R[_,_] c f = ∃ λ ℱc → Pointwise (ℱ .F₀ ⋆ ._≈_) f (ℱ-maps c ℱc)
+--   R[_,_] : (c : Obj) → Pred (obj∣ c ∣ → ∣_∣) _
+--   R[_,_] c f = ∃ λ ℱc → Pointwise (ℱ .F₀ ⋆ ._≈_) f (ℱ-maps c ℱc)
 
-  field
-    ℱ-is-concrete :
-      {c : Obj} → injection (ℱ .F₀ c ._≈_) (Pointwise (ℱ .F₀ ⋆ ._≈_)) (ℱ-maps c)
+--   field
+--     ℱ-is-concrete :
+--       {c : Obj} → injection (ℱ .F₀ c ._≈_) (Pointwise (ℱ .F₀ ⋆ ._≈_)) (ℱ-maps c)
 
-    ℱ-is-sheaf :
-      {c : Obj}
-      (g : obj∣ c ∣ → ∣_∣)
-      (fs : (n : ℕ) → SliceObj 𝒞 c)
-      (_ : fs ∈ cover c)
-      (_ : ∀ i → g ∘ hom∣ fs i .arr ∣ ∈ R[_,_] _)
-      → -----------------------------------------
-      g ∈ R[_,_] c
+--     ℱ-is-sheaf :
+--       {c : Obj}
+--       (g : obj∣ c ∣ → ∣_∣)
+--       (fs : (n : ℕ) → SliceObj Cat c)
+--       (_ : fs ∈ cover c)
+--       (_ : ∀ i → g ∘ hom∣ fs i .arr ∣ ∈ R[_,_] _)
+--       → -----------------------------------------
+--       g ∈ R[_,_] c
 
-module Pushforward {o ℓ e p : Level}
-  {C D : CCat o ℓ e}
-  (S : CSite p D)
-  (F : Functor (D .CCat.𝒞) (C .CCat.𝒞))
+module Pullback {o ℓ e p : Level}
+  {𝒞 𝒟 : CCat o ℓ e}
+  (S : CSite p 𝒞)
   where
 
   open CSite
-  -- open Sheaf
+  module C = CCat 𝒞
+  module D = CCat 𝒟
 
-  PushSite : CSite _ C
-  PushSite .cover c fam =
-    ∃₂ λ d fam′ →
-      S .cover d fam′ ×
-      F .F₀ d ≡ c ×
-      ∀ n → F .F₁ (fam′ n .arr) ≈ fam n .arr
-    where open CCat C
-  PushSite .coverage-pullback = {!!}
-  PushSite .coverage-covers = {!!}
-  -- PushSite .cover c fam =
-  --   S .cover (F .F₀ c) λ n → sliceobj $ F .F₁ (fam n .arr)
-  -- PushSite .coverage-pullback g fam cov =
-  --   let foo = S .coverage-pullback (F .F₁ g) (λ n → sliceobj $ F .F₁ (fam n .arr)) cov
-  --   in
-  --   {!!}
-  -- PushSite .coverage-covers = {!!}
-  -- PullSite .cover-fam c = S .cover-fam (F .F₀ c)
-  -- PullSite .cover = {!!}
-  -- PullSite .coverage-pullback = {!!}
-  -- PullSite .coverage-covers = {!!}
-  -- PullSite .cover-fam c =
-  --   ∑ cov ∶ S .cover-fam (F .F₀ c) ,
-  --   ∀ (n : ℕ) → ∃₂ λ c′ f →
-  --     ∃ λ (Heq : F .F₀ c′ ≡ S .cover-dom cov n) →
-  --     subst (_⇒ F .F₀ c) Heq (F .F₁ f) ≈ S .cover cov n
-  --   where open CCat D
-  -- PullSite .cover-dom (_ , fam) n = fam n .π₁
-  -- PullSite .cover (cov , fam) n = fam n .π₂ .π₁
-  -- PullSite .coverage-pullback g (cov , fam) =
-  --   let (cov′ , pb-prop) = S .coverage-pullback (F .F₁ g) cov
-  --   in
-  --   (cov′ ,
-  --     λ n →
-  --     let c′ , f , Heq , H≈ = fam n in         
-  --     {!!}) ,
-  --     {!!}
-  --   where open CCat D
-  -- PullSite .coverage-covers c (cov , f) {x} =
-  --   let foo = F .F₁ x in {!!}
---     where open CCat C
+  module _ (L : Functor C.Cat D.Cat) (R : Functor D.Cat C.Cat) (adjoint : L ⊣ R) where
 
-module ℝ⊆ where
+    module L = Functor L
+    module R = Functor R
+    open Adjoint adjoint
 
-  open Category renaming (_∘_ to _∘′_; id to id′)
+    -- Note: we don't really need the full structure of the adjoint; all we use is
+    -- the counit and its naturality.  Presumably the other half of the adjunction
+    -- can be used to define a pushforward site on 𝒞 given a site on 𝒟.
+    PullSite : CSite p 𝒟
+    PullSite .cover-fam c = S .cover-fam (R.F₀ c)
+    PullSite .cover-dom fs n = L.F₀ $ S .cover-dom fs n
+    PullSite .cover fs n = Radjunct (S .cover fs n)
+    PullSite .coverage-pullback g fs =
+      let hs , pb-prop = S .coverage-pullback (R.F₁ g) fs in
+      hs , λ j →
+        let i , k , H≈ = pb-prop j
+            H≈′ = begin
+              g D.∘′ Radjunct (S .cover hs j)                         ≈⟨ pullˡ (counit.sym-commute g) ○ D.assoc ⟩
+              counit.η _ D.∘′ L.F₁ (R.F₁ g) D.∘′ L.F₁ (S .cover hs j) ≈⟨ refl⟩∘⟨ ⟺ L.homomorphism ⟩
+              counit.η _ D.∘′ L.F₁ (R.F₁ g C.∘′ S .cover hs j)        ≈⟨ refl⟩∘⟨ L.F-resp-≈ H≈ ⟩
+              counit.η _ D.∘′ L.F₁ (S .cover fs i C.∘′ k)             ≈⟨ refl⟩∘⟨ L.homomorphism ⟩
+              counit.η _ D.∘′ L.F₁ (S .cover fs i) D.∘′ L.F₁ k        ≈⟨ D.sym-assoc ⟩
+              Radjunct (S .cover fs i) D.∘′ L.F₁ k                    ∎
+        in
+        i , L.F₁ k , H≈′
+      where open D.HomReasoning
+            open MR D.Cat
+    PullSite .coverage-covers c fs = {!!}
 
-  ℝ⊆ : CCat ℓ₁ ℓ₀ ℓ₀
-  ℝ⊆ = {!!}
-  -- ℝ⊆ .Obj = ∃₂ λ n o → o ↣ ℝ ^ n
-  -- ℝ⊆ ._⇒_ (_ , o₁ , _) (_ , o₂ , _) = o₁ ↣ o₂
-  -- ℝ⊆ ._≈_ = {!!}
-  -- ℝ⊆ .id′ = {!!}
-  -- ℝ⊆ ._∘′_ = {!!}
-  -- ℝ⊆ .assoc = {!!}
-  -- ℝ⊆ .sym-assoc = {!!}
-  -- ℝ⊆ .identityˡ = {!!}
-  -- ℝ⊆ .identityʳ = {!!}
-  -- ℝ⊆ .identity² = {!!}
-  -- ℝ⊆ .equiv = {!!}
-  -- ℝ⊆ .∘-resp-≈ = {!!}
+-- module ℝ⊆ where
 
-open ℝ⊆
+--   ℝ⊆ : CCat ℓ₁ ℓ₀ ℓ₀
+--   ℝ⊆ = {!!}
+--   -- ℝ⊆ .Obj = ∃₂ λ n o → o ↣ ℝ ^ n
+--   -- ℝ⊆ ._⇒_ (_ , o₁ , _) (_ , o₂ , _) = o₁ ↣ o₂
+--   -- ℝ⊆ ._≈_ = {!!}
+--   -- ℝ⊆ .id′ = {!!}
+--   -- ℝ⊆ ._∘′_ = {!!}
+--   -- ℝ⊆ .assoc = {!!}
+--   -- ℝ⊆ .sym-assoc = {!!}
+--   -- ℝ⊆ .identityˡ = {!!}
+--   -- ℝ⊆ .identityʳ = {!!}
+--   -- ℝ⊆ .identity² = {!!}
+--   -- ℝ⊆ .equiv = {!!}
+--   -- ℝ⊆ .∘-resp-≈ = {!!}
 
-record c-assumptions : Set₁ where
-  field
-    c-site : Coeff → CSite ℓ₀ ℝ⊆
-    c-sheaf : (c : Coeff) → CSheaf ℓ₀ ℓ₀ (c-site c)
+-- open ℝ⊆
+
+-- record c-assumptions : Set₁ where
+--   field
+--     c-site : Coeff → CSite ℓ₀ ℝ⊆
+--     c-sheaf : (c : Coeff) → CSheaf ℓ₀ ℓ₀ (c-site c)
 
   -- c-opens : Category ℓ₀ ℓ₀ ℓ₀
   -- c-opens .Obj = ∃₂ c-open
