@@ -44,6 +44,7 @@ open import Categories.NaturalTransformation using (NaturalTransformation)
 open import Categories.Object.Initial using (Initial)
 open import Categories.Object.Terminal using (Terminal ; IsTerminal ; up-to-iso)
 open import Categories.Object.Terminal.Limit using (⊤⇒limit; limit⇒⊤)
+import Categories.Diagram.Pullback as PB
 import Categories.Morphism.Reasoning as MR
 import Categories.Morphism as Morphism
 
@@ -94,26 +95,25 @@ record CCat (o ℓ e : Level) : Set (lsuc (o ⊔ ℓ ⊔ e)) where
 
 record CSite
   {o ℓ e : Level}
-  (p : Level)
+  (p i : Level)
   (𝒞 : CCat o ℓ e)
   : ----------------------
-  Set (o ⊔ ℓ ⊔ e ⊔ lsuc p)
+  Set (o ⊔ ℓ ⊔ e ⊔ lsuc (p ⊔ i))
   where
-  -- In our definition of concrete sites, we assume exclusively
-  -- countable covers for simplicity.
   open CCat 𝒞
   open Setoid hiding (_≈_)
   field
     cover-fam : Obj → Set p
-    cover-dom : {c : Obj} (C : cover-fam c) → ℕ → Obj
-    cover : {c : Obj} (C : cover-fam c) (n : ℕ) → cover-dom C n ⇒ c
+    cover-idx : {c : Obj} → cover-fam c → Set i
+    cover-dom : {c : Obj} (fs : cover-fam c) → cover-idx fs → Obj
+    cover : {c : Obj} (fs : cover-fam c) (i : cover-idx fs) → cover-dom fs i ⇒ c
 
     coverage-pullback :
       {Y Z : Obj}
       (g : Y ⇒ Z)
       (fs : cover-fam Z)
-      → -------------------------------
-      ∃ λ hs → ∀ (j : ℕ) → ∃₂ λ i k →
+      → ------------------------------
+      ∃ λ hs → ∀ j → ∃₂ λ i k →
       g ∘ cover hs j ≈ cover fs i ∘ k
 
     coverage-covers :
@@ -121,15 +121,15 @@ record CSite
       (fs : cover-fam c)
       (x : obj∣ c ∣ .Carrier)
       → --------------------------------
-      x ∈ ⋃ ℕ λ n → Im hom∣ cover fs n ∣
+      x ∈ ⋃ _ λ i → Im hom∣ cover fs i ∣
 
 record CSheaf
-  {o ℓ e c : Level}
+  {o ℓ e p i : Level}
   (o′ e′ : Level)
   {𝒞 : CCat o ℓ e}
-  (S : CSite c 𝒞)
-  : ----------------------------------
-  Set (o ⊔ ℓ ⊔ e ⊔ c ⊔ lsuc (o′ ⊔ e′))
+  (S : CSite p i 𝒞)
+  : -------------------------------------
+  Set (o ⊔ ℓ ⊔ e ⊔ i ⊔ p ⊔ lsuc (o′ ⊔ e′))
   where
   open CSite S
   open CCat 𝒞
@@ -146,8 +146,8 @@ record CSheaf
   ∣_∣ = F₀ ⋆
 
   F-maps : (c : Obj) → F₀ c .Carrier → Func obj∣ c ∣ ∣_∣
-  F-maps c Fc = record {
-      to = λ f → F₁ f .to Fc
+  F-maps c Fc = record
+    { to = λ f → F₁ f .to Fc
     ; cong = λ {x} {y} z → F-resp-≈ z
     }
 
@@ -166,9 +166,9 @@ record CSheaf
     is-concrete :
       {c : Obj} → injection (F₀ c ._≈_) _≗_ (F-maps c)
 
-module Pullback {o ℓ e p : Level}
+module Pull {o ℓ e p i : Level}
   {𝒞 𝒟 : CCat o ℓ e}
-  (S : CSite p 𝒞)
+  (S : CSite p i 𝒞)
   where
 
   open CSite
@@ -195,8 +195,9 @@ module Pullback {o ℓ e p : Level}
 
       module R⋆ = IsTerminal (Terminal.⊤-is-terminal R⋆-terminal)
 
-    PullSite : CSite p 𝒟
+    PullSite : CSite p i 𝒟
     PullSite .cover-fam c = S .cover-fam $ R.F₀ c
+    PullSite .cover-idx fs = S .cover-idx fs
     PullSite .cover-dom fs n = L.F₀ $ S .cover-dom fs n
     PullSite .cover fs n = Radjunct $ S .cover fs n
     PullSite .coverage-pullback g fs =
@@ -275,8 +276,8 @@ module Pullback {o ℓ e p : Level}
       PullSheaf : CSheaf o′ ℓ′ PullSite
       PullSheaf .Psh = F.Psh ∘F R.op
       PullSheaf .is-sheaf g fs H∈ =
-        let g′ = record {
-                to = λ x → (F.F₁ R⋆.! ∙ g) .to $ Radjunct x D.∘ L⋆.!
+        let g′ = record
+              { to = λ x → (F.F₁ R⋆.! ∙ g) .to $ Radjunct x D.∘ L⋆.!
               ; cong = λ H≈ → (F.F₁ R⋆.! ∙ g) .cong $ D.∘-resp-≈ˡ $ D.∘-resp-≈ʳ $ L.F-resp-≈ H≈
               }
             hs , H≈′ =
@@ -316,7 +317,7 @@ module Pullback {o ℓ e p : Level}
               module XR = SetoidR (F.F₀ C.⋆)
               module FR = SetoidR (F.F₀ (R.F₀ D.⋆))
               module FS = Setoid (F.F₀ (R.F₀ D.⋆))
-      PullSheaf .is-concrete {x = x} {y} H≈ = 
+      PullSheaf .is-concrete {x = x} {y} H≈ =
         F.is-concrete λ {z} →
           let H≈′ = CR.begin
                 R.F₁ (Radjunct z D.∘ L⋆.!)                         CR.≈⟨ CR.⟺ C.identityʳ ⟩
@@ -335,7 +336,88 @@ module Pullback {o ℓ e p : Level}
             F.F₁ C.! .to (F.F₁ z .to y)             FR.∎
           where module CR = C.HomReasoning
                 module FR = SetoidR (F.F₀ (R.F₀ D.⋆))
-      
+
+module Meet {o ℓ e p i : Level}
+  {𝒞 : CCat o ℓ e}
+  (S₁ : CSite p i 𝒞)
+  (S₂ : CSite p i 𝒞)
+  where
+
+  private
+    open CSite
+    open CCat 𝒞
+    module S₁ = CSite S₁
+    module S₂ = CSite S₂
+
+    open PB Cat using (Pullback)
+    open Pullback
+
+    open HomReasoning
+    open MR Cat
+
+  module _
+    (pullback : {c : Obj} (fs : S₁ .cover-fam c) (gs : S₂ .cover-fam c) →
+                ∀ i j → Pullback (S₁ .cover fs i) (S₂ .cover gs j))
+    where
+
+    MeetSite : CSite p i 𝒞
+    MeetSite .cover-fam c = S₁.cover-fam c × S₂.cover-fam c
+    MeetSite .cover-idx (fs , gs) = S₁.cover-idx fs × S₂.cover-idx gs
+    MeetSite .cover-dom (fs , gs) (i , j) =
+      pullback fs gs i j .Pullback.P
+    MeetSite .cover (fs , gs) (i , j) =
+      S₁.cover fs i ∘ pullback fs gs i j .p₁
+    MeetSite .coverage-pullback g (fs , gs) =
+      let fs′ , pb-prop₁ = S₁ .coverage-pullback g fs
+          gs′ , pb-prop₂ = S₂ .coverage-pullback g gs
+      in (fs′ , gs′) , λ (j₁ , j₂) →
+        let i₁ , k₁ , comm₁ = pb-prop₁ j₁
+            i₂ , k₂ , comm₂ = pb-prop₂ j₂
+            pb₁ = pullback fs gs i₁ i₂
+            pb₂ = pullback fs′ gs′ j₁ j₂
+            uni = pb₁ .universal $ begin
+              S₁.cover fs i₁ ∘ k₁ ∘ p₁ pb₂ ≈⟨ extendʳ (⟺ comm₁) ⟩
+              g ∘ S₁.cover fs′ j₁ ∘ p₁ pb₂ ≈⟨ refl⟩∘⟨ commute pb₂ ⟩
+              g ∘ S₂.cover gs′ j₂ ∘ p₂ pb₂ ≈⟨ extendʳ comm₂ ⟩
+              S₂.cover gs i₂ ∘ k₂ ∘ p₂ pb₂ ∎
+            H≈ = begin
+              g ∘ S₁.cover fs′ j₁ ∘ p₁ pb₂    ≈⟨ extendʳ comm₁ ⟩
+              S₁.cover fs i₁ ∘ k₁ ∘ p₁ pb₂    ≈⟨ refl⟩∘⟨ ⟺ (p₁∘universal≈h₁ pb₁) ⟩
+              S₁.cover fs i₁ ∘ p₁ pb₁ ∘ uni   ≈⟨ sym-assoc ⟩
+              (S₁.cover fs i₁ ∘ p₁ pb₁) ∘ uni ∎
+        in
+        (i₁ , i₂) , uni , H≈
+    MeetSite .coverage-covers (fs , gs) x =
+      let n₁ , y₁ , H≈₁ = S₁ .coverage-covers fs x
+          n₂ , y₂ , H≈₂ = S₂ .coverage-covers gs x
+          pb = pullback fs gs n₁ n₂
+          y = pb .universal (⟺ H≈₁ ○ H≈₂)
+          H≈ = begin
+            x                             ≈⟨ H≈₁ ⟩
+            S₁ .cover fs n₁ ∘ y₁          ≈⟨ refl⟩∘⟨ ⟺ (p₁∘universal≈h₁ pb) ⟩
+            S₁ .cover fs n₁ ∘ p₁ pb ∘ y   ≈⟨ sym-assoc ⟩
+            (S₁ .cover fs n₁ ∘ p₁ pb) ∘ y ∎
+      in
+      (n₁ , n₂) , y , H≈
+
+
+    module _
+      {o′ ℓ′ : Level}
+      (F₁ : CSheaf o′ ℓ′ S₁)
+      (F₂ : CSheaf o′ ℓ′ S₂)
+      where
+
+      private
+        open CSheaf hiding (F₁)
+        module F₁ = CSheaf F₁
+        module F₂ = CSheaf F₂
+
+      MeetSheaf : CSheaf o′ ℓ′ MeetSite
+      MeetSheaf .Psh = {!!}
+      MeetSheaf .is-sheaf = {!!}
+      MeetSheaf .is-concrete = {!!}
+
+
 -- module ℝ⊆ where
 
 --   ℝ⊆ : CCat ℓ₁ ℓ₀ ℓ₀
@@ -534,14 +616,14 @@ module Pullback {o ℓ e p : Level}
 --     {n : ℕ} {Θ : Coeff ^ n}
 --     {g : ∣ s₁ ∣ₛ → ℝ ^ n}
 --     → -----------------------------------------------
---     π₁ ∘ g ∈ 𝔉′ Θ⟨ s₁ ⟩ Θ → π₁ ∘ f ∘ g ∈ 𝔉′ Θ⟨ s₂ ⟩ Θ 
+--     π₁ ∘ g ∈ 𝔉′ Θ⟨ s₁ ⟩ Θ → π₁ ∘ f ∘ g ∈ 𝔉′ Θ⟨ s₂ ⟩ Θ
 
 --   record S-hom (s₁ s₂ : S) : Set where
 --     constructor mkS-hom
 --     field
 --       to : ∣ s₁ ∣ₛ → ∣ s₂ ∣ₛ
 --       is-hom : to ∈ S-is-hom s₁ s₂
-  
+
 --   open S-hom
 
 --   private
