@@ -32,9 +32,10 @@ open import Categories.Adjoint using (_⊣_ ; Adjoint)
 open import Categories.Adjoint.RAPL using (rapl)
 open import Categories.Category using (Category)
 open import Categories.Category.Concrete using (Concrete)
+open import Categories.Category.Construction.Presheaves using (Presheaves′ ; Presheaves)
+open import Categories.Category.Construction.Properties.Presheaves.Complete using (Presheaves-FinitelyComplete)
 open import Categories.Category.Instance.Setoids using (Setoids)
-open import Categories.Category.Instance.Zero using (Zero)
-open import Categories.Category.Instance.Zero.Properties using (Zero-⊥)
+open import Categories.Diagram.Empty using (empty)
 open import Categories.Functor using (Functor; _∘F_) renaming (id to idF)
 open import Categories.Functor.Presheaf using (Presheaf)
 open import Categories.Functor.Hom
@@ -44,6 +45,7 @@ open import Categories.NaturalTransformation using (NaturalTransformation)
 open import Categories.Object.Initial using (Initial)
 open import Categories.Object.Terminal using (Terminal ; IsTerminal ; up-to-iso)
 open import Categories.Object.Terminal.Limit using (⊤⇒limit; limit⇒⊤)
+import Categories.Category.Complete.Finitely as FinitelyComplete
 import Categories.Diagram.Pullback as PB
 import Categories.Morphism.Reasoning as MR
 import Categories.Morphism as Morphism
@@ -166,7 +168,7 @@ record CSheaf
     is-concrete :
       {c : Obj} → injection (F₀ c ._≈_) _≗_ (F-maps c)
 
-module Pull {o ℓ e p i : Level}
+module Lift {o ℓ e p i : Level}
   {𝒞 𝒟 : CCat o ℓ e}
   (S : CSite p i 𝒞)
   where
@@ -190,17 +192,16 @@ module Pull {o ℓ e p i : Level}
 
       R⋆-terminal : Terminal C.Cat
       R⋆-terminal =
-        limit⇒⊤ C.Cat $ rapl adjoint ZI.! $ ⊤⇒limit D.Cat D.terminal
-        where module ZI = Initial (Zero-⊥ {o} {ℓ} {e})
+        limit⇒⊤ C.Cat $ rapl adjoint (empty _ o ℓ e) $ ⊤⇒limit D.Cat D.terminal
 
       module R⋆ = IsTerminal (Terminal.⊤-is-terminal R⋆-terminal)
 
-    PullSite : CSite p i 𝒟
-    PullSite .cover-fam c = S .cover-fam $ R.F₀ c
-    PullSite .cover-idx fs = S .cover-idx fs
-    PullSite .cover-dom fs n = L.F₀ $ S .cover-dom fs n
-    PullSite .cover fs n = Radjunct $ S .cover fs n
-    PullSite .coverage-pullback g fs =
+    LiftSite : CSite p i 𝒟
+    LiftSite .cover-fam c = S .cover-fam $ R.F₀ c
+    LiftSite .cover-idx fs = S .cover-idx fs
+    LiftSite .cover-dom fs n = L.F₀ $ S .cover-dom fs n
+    LiftSite .cover fs n = Radjunct $ S .cover fs n
+    LiftSite .coverage-pullback g fs =
       let hs , pb-prop = S .coverage-pullback (R.F₁ g) fs in
       hs , λ j →
         let i , k , H≈ = pb-prop j
@@ -215,7 +216,7 @@ module Pull {o ℓ e p i : Level}
         i , L.F₁ k , H≈′
       where open D.HomReasoning
             open MR D.Cat
-    PullSite .coverage-covers {c} fs x =
+    LiftSite .coverage-covers {c} fs x =
       let n , y , H≈ = S .coverage-covers fs (C.hom∣ R.F₁ x ∣ .to R⋆.!)
           H≈′ = begin
             x                                                              ≈⟨ ⟺ D.identityʳ ⟩
@@ -273,9 +274,9 @@ module Pull {o ℓ e p i : Level}
                 open Iso
                 module FS = Setoid (F.F₀ (R.F₀ D.⋆))
 
-      PullSheaf : CSheaf o′ ℓ′ PullSite
-      PullSheaf .Psh = F.Psh ∘F R.op
-      PullSheaf .is-sheaf g fs H∈ =
+      LiftSheaf : CSheaf o′ ℓ′ LiftSite
+      LiftSheaf .Psh = F.Psh ∘F R.op
+      LiftSheaf .is-sheaf g fs H∈ =
         let g′ = record
               { to = λ x → (F.F₁ R⋆.! ∙ g) .to $ Radjunct x D.∘ L⋆.!
               ; cong = λ H≈ → (F.F₁ R⋆.! ∙ g) .cong $ D.∘-resp-≈ˡ $ D.∘-resp-≈ʳ $ L.F-resp-≈ H≈
@@ -317,7 +318,7 @@ module Pull {o ℓ e p i : Level}
               module XR = SetoidR (F.F₀ C.⋆)
               module FR = SetoidR (F.F₀ (R.F₀ D.⋆))
               module FS = Setoid (F.F₀ (R.F₀ D.⋆))
-      PullSheaf .is-concrete {x = x} {y} H≈ =
+      LiftSheaf .is-concrete {x = x} {y} H≈ =
         F.is-concrete λ {z} →
           let H≈′ = CR.begin
                 R.F₁ (Radjunct z D.∘ L⋆.!)                         CR.≈⟨ CR.⟺ C.identityʳ ⟩
@@ -337,7 +338,7 @@ module Pull {o ℓ e p i : Level}
           where module CR = C.HomReasoning
                 module FR = SetoidR (F.F₀ (R.F₀ D.⋆))
 
-module Meet {o ℓ e p i : Level}
+module Pull {o ℓ e p i : Level}
   {𝒞 : CCat o ℓ e}
   (S₁ : CSite p i 𝒞)
   (S₂ : CSite p i 𝒞)
@@ -360,14 +361,14 @@ module Meet {o ℓ e p i : Level}
                 ∀ i j → Pullback (S₁ .cover fs i) (S₂ .cover gs j))
     where
 
-    MeetSite : CSite p i 𝒞
-    MeetSite .cover-fam c = S₁.cover-fam c × S₂.cover-fam c
-    MeetSite .cover-idx (fs , gs) = S₁.cover-idx fs × S₂.cover-idx gs
-    MeetSite .cover-dom (fs , gs) (i , j) =
+    PullSite : CSite p i 𝒞
+    PullSite .cover-fam c = S₁.cover-fam c × S₂.cover-fam c
+    PullSite .cover-idx (fs , gs) = S₁.cover-idx fs × S₂.cover-idx gs
+    PullSite .cover-dom (fs , gs) (i , j) =
       pullback fs gs i j .Pullback.P
-    MeetSite .cover (fs , gs) (i , j) =
+    PullSite .cover (fs , gs) (i , j) =
       S₁.cover fs i ∘ pullback fs gs i j .p₁
-    MeetSite .coverage-pullback g (fs , gs) =
+    PullSite .coverage-pullback g (fs , gs) =
       let fs′ , pb-prop₁ = S₁ .coverage-pullback g fs
           gs′ , pb-prop₂ = S₂ .coverage-pullback g gs
       in (fs′ , gs′) , λ (j₁ , j₂) →
@@ -387,7 +388,7 @@ module Meet {o ℓ e p i : Level}
               (S₁.cover fs i₁ ∘ p₁ pb₁) ∘ uni ∎
         in
         (i₁ , i₂) , uni , H≈
-    MeetSite .coverage-covers (fs , gs) x =
+    PullSite .coverage-covers (fs , gs) x =
       let n₁ , y₁ , H≈₁ = S₁ .coverage-covers fs x
           n₂ , y₂ , H≈₂ = S₂ .coverage-covers gs x
           pb = pullback fs gs n₁ n₂
@@ -403,19 +404,36 @@ module Meet {o ℓ e p i : Level}
 
     module _
       {o′ ℓ′ : Level}
-      (F₁ : CSheaf o′ ℓ′ S₁)
-      (F₂ : CSheaf o′ ℓ′ S₂)
+      (F : CSheaf (o′ ⊔ ℓ′) ℓ′ S₁)
+      (G : CSheaf (o′ ⊔ ℓ′) ℓ′ S₂)
+      (H : Presheaf Cat (Setoids (o′ ⊔ ℓ′) ℓ′))
       where
 
       private
-        open CSheaf hiding (F₁)
-        module F₁ = CSheaf F₁
-        module F₂ = CSheaf F₂
+        open CSheaf
+        module F = CSheaf F
+        module G = CSheaf G
+        module H = Functor H
+        module FC = FinitelyComplete (Presheaves′ (o′ ⊔ ℓ′) ℓ′ Cat)
 
-      MeetSheaf : CSheaf o′ ℓ′ MeetSite
-      MeetSheaf .Psh = {!!}
-      MeetSheaf .is-sheaf = {!!}
-      MeetSheaf .is-concrete = {!!}
+      module _
+        (nt₁ : NaturalTransformation (F.Psh) H)
+        (nt₂ : NaturalTransformation (G.Psh) H)
+        where
+
+        module nt₁ = NaturalTransformation nt₁
+        module nt₂ = NaturalTransformation nt₂
+        module St = Category (Setoids o′ ℓ′)
+
+        PullSheaf : CSheaf (o′ ⊔ ℓ′) ℓ′ PullSite
+        PullSheaf .Psh = PB.Pullback.P pb
+          where
+            module PshFC = FC.FinitelyComplete (Presheaves-FinitelyComplete Cat ℓ₀ ℓ₀ ℓ₀ o′ ℓ′)
+            abstract
+              pb : PB.Pullback (Presheaves Cat) nt₁ nt₂
+              pb = PshFC.pullback nt₁ nt₂
+        PullSheaf .is-sheaf g fs H∈ = {!!}
+        PullSheaf .is-concrete = {!!}
 
 
 -- module ℝ⊆ where
