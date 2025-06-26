@@ -3,8 +3,6 @@ module Lib.OrderedField where
 open import Lib.Prelude hiding (_+_ ; refl ; trans ; sym)
 
 open import Algebra using (Op₁ ; Op₂ ; CommutativeRing)
-open import Level using (suc ; _⊔_)
-open import Relation.Binary using (Rel)
 
 module _ {a ℓ ℓ′} {A : Set a} (_≈_ : Rel A ℓ) where
   open import Algebra.Definitions _≈_ using (RightInvertible)
@@ -33,7 +31,7 @@ module _ {a ℓ ℓ′} {A : Set a} (_≈_ : Rel A ℓ) where
       renaming (refl to ≲-refl ; reflexive to ≲-reflexive
                ; trans to ≲-trans)
 
-record OrderedField c ℓ ℓ′ : Set (suc (c ⊔ ℓ ⊔ ℓ′)) where
+record OrderedField c ℓ ℓ′ : Set (lsuc (c ⊔ ℓ ⊔ ℓ′)) where
   infix  8 -_
   infixl 7 _*_
   infixl 6 _+_
@@ -69,7 +67,7 @@ record OrderedField c ℓ ℓ′ : Set (suc (c ⊔ ℓ ⊔ ℓ′)) where
 
 module Properties {c ℓ ℓ′} (F : OrderedField c ℓ ℓ′) where
   open OrderedField F
-  open import Algebra.Properties.Ring
+  open import Algebra.Properties.Ring ring
   open import Algebra.Solver.CommutativeMonoid *-commutativeMonoid
   open import Relation.Binary.Reasoning.Setoid setoid
 
@@ -81,14 +79,14 @@ module Properties {c ℓ ℓ′} (F : OrderedField c ℓ ℓ′) where
 
   [-1]²≈1 : - 1# * - 1# ≈ 1#
   [-1]²≈1 = begin
-    - 1# * - 1#   ≈⟨ sym $ -‿distribˡ-* ring _ _ ⟩
+    - 1# * - 1#   ≈⟨ sym $ -‿distribˡ-* _ _ ⟩
     - (1# * - 1#) ≈⟨ -‿cong (*-identityˡ _) ⟩
-    - (- 1#)      ≈⟨ -‿involutive ring _ ⟩
+    - (- 1#)      ≈⟨ -‿involutive _ ⟩
     1#            ∎
 
   [-a]²≈a² : ∀ a → - a * - a ≈ a * a
   [-a]²≈a² a = begin
-    - a * - a               ≈⟨ *-cong (sym $ -1*x≈-x ring _) (sym $ -1*x≈-x ring _) ⟩
+    - a * - a               ≈⟨ *-cong (sym $ -1*x≈-x _) (sym $ -1*x≈-x _) ⟩
     (- 1# * a) * (- 1# * a) ≈⟨ solve 2 (λ x y → (x ⊕ y) ⊕ (x ⊕ y) ⊜ (x ⊕ x) ⊕ (y ⊕ y)) refl _ _ ⟩
     (- 1# * - 1#) * (a * a) ≈⟨ *-congʳ [-1]²≈1 ⟩
     1# * (a * a)            ≈⟨ *-identityˡ _ ⟩

@@ -13,8 +13,8 @@ module Lib.Prelude where
 ------------------------------------------------------------------------
 -- Universe levels
 ------------------------------------------------------------------------
-open import Agda.Primitive public using (Level) renaming (lzero to ℓ₀)
-open import Agda.Primitive using (lsuc ; _⊔_)
+open import Agda.Primitive public
+  using (Level ; lsuc ; _⊔_) renaming (lzero to ℓ₀)
 
 ℓ₁ : Level
 ℓ₁ = lsuc ℓ₀
@@ -54,6 +54,13 @@ open import Data.Unit public using (tt)
 ----------------------------------------------------------------------
 open import Data.Bool public using (true ; false ; if_then_else_ ; not)
   renaming (Bool to 𝔹 ; _∧_ to _and_)
+
+----------------------------------------------------------------------
+-- Relations and predicates
+----------------------------------------------------------------------
+
+open import Relation.Unary public using () renaming (Pred to ℙ)
+open import Relation.Binary public using (Rel)
 
 ----------------------------------------------------------------------
 -- Homogeneous propositional equality
@@ -121,7 +128,8 @@ open import Axiom.UniquenessOfIdentityProofs.WithK public using (uip)
 ----------------------------------------------------------------------
 -- Injective functions
 ----------------------------------------------------------------------
-open import Function public using () renaming (Injective to injection)
+open import Function public using ()
+  renaming (Injective to injection ; Surjective to surjection)
 
 ----------------------------------------------------------------------
 -- Disjoint union

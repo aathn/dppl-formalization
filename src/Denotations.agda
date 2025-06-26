@@ -50,13 +50,7 @@ import Categories.Diagram.Pullback as PB
 import Categories.Morphism.Reasoning as MR
 import Categories.Morphism as Morphism
 
-open import Level using (_⊔_) renaming (suc to lsuc)
-
 open Func
-
-private
-  variable
-    n m k : ℕ
 
 module _ {a₁ a₂ b₁ b₂ : Level} {A : Setoid a₁ a₂} {B : Setoid b₁ b₂} where
 
@@ -86,354 +80,351 @@ record CCat (o ℓ e : Level) : Set (lsuc (o ⊔ ℓ ⊔ e)) where
   field
     ⋆-hom-faithful : Faithful Hom[ ⋆ ,-]
 
-  obj∣_∣ : Obj → Setoid ℓ e
-  obj∣ c ∣ = Hom[ ⋆ , c ]
+  module obj∣_∣ (c : Obj) = Setoid Hom[ ⋆ , c ]
 
-  hom∣_∣ : {o₁ o₂ : Obj} → o₁ ⇒ o₂ → Func obj∣ o₁ ∣ obj∣ o₂ ∣
-  hom∣ f ∣ = record {
-      to = λ g → f ∘ g
-    ; cong = ∘-resp-≈ʳ
-    }
+  -- hom∣_∣ : {o₁ o₂ : Obj} → o₁ ⇒ o₂ → Func obj∣ o₁ ∣ obj∣ o₂ ∣
+  -- hom∣ f ∣ = record {
+  --     to = λ g → f ∘ g
+  --   ; cong = ∘-resp-≈ʳ
+  --   }
 
-record CSite
-  {o ℓ e : Level}
-  (p i : Level)
-  (𝒞 : CCat o ℓ e)
-  : ----------------------
-  Set (o ⊔ ℓ ⊔ e ⊔ lsuc (p ⊔ i))
-  where
-  open CCat 𝒞
-  open Setoid hiding (_≈_)
-  field
-    cover-fam : Obj → Set p
-    cover-idx : {c : Obj} → cover-fam c → Set i
-    cover-dom : {c : Obj} (fs : cover-fam c) → cover-idx fs → Obj
-    cover : {c : Obj} (fs : cover-fam c) (i : cover-idx fs) → cover-dom fs i ⇒ c
-
-    coverage-pullback :
-      {Y Z : Obj}
-      (g : Y ⇒ Z)
-      (fs : cover-fam Z)
-      → ------------------------------
-      ∃ λ hs → ∀ j → ∃₂ λ i k →
-      g ∘ cover hs j ≈ cover fs i ∘ k
-
-    coverage-covers :
-      {c : Obj}
-      (fs : cover-fam c)
-      (x : obj∣ c ∣ .Carrier)
-      → --------------------------------
-      x ∈ ⋃ _ λ i → Im hom∣ cover fs i ∣
-
-record CSheaf
-  {o ℓ e p i : Level}
-  (o′ e′ : Level)
-  {𝒞 : CCat o ℓ e}
-  (S : CSite p i 𝒞)
-  : -------------------------------------
-  Set (o ⊔ ℓ ⊔ e ⊔ i ⊔ p ⊔ lsuc (o′ ⊔ e′))
-  where
-  open CSite S
+module _ {o ℓ e : Level} (𝒞 : CCat o ℓ e) where
   open CCat 𝒞
 
-  field
-    Psh : Presheaf Cat (Setoids o′ e′)
+  record Cover (U : Obj) (i : Level) : Set (lsuc i) where
+    field
+      {index} : Set i
+      {domain} : index → Obj
+      map : ∀ i → domain i ⇒ U
 
-  open Functor Psh public
-  open Setoid
-
-  module X = Setoid (F₀ ⋆)
-
-  ∣_∣ : Setoid o′ e′
-  ∣_∣ = F₀ ⋆
-
-  F-maps : (c : Obj) → F₀ c .Carrier → Func obj∣ c ∣ ∣_∣
-  F-maps c Fc = record
-    { to = λ f → F₁ f .to Fc
-    ; cong = λ {x} {y} z → F-resp-≈ z
-    }
-
-  R[_,_] : (c : Obj) → Pred (Func obj∣ c ∣ ∣_∣) _
-  R[_,_] c f = ∃ λ Fc → f ≗ F-maps c Fc
-
-  field
-    is-sheaf :
-      {c : Obj}
-      (g : Func obj∣ c ∣ ∣_∣)
-      (fs : cover-fam c)
-      (_ : ∀ i → g ∙ hom∣ cover fs i ∣ ∈ R[_,_] _)
-      → ------------------------------------------
-      g ∈ R[_,_] c
-
-    is-concrete :
-      {c : Obj} → injection (F₀ c ._≈_) _≗_ (F-maps c)
-
-module Lift {o ℓ e p i : Level}
-  {𝒞 𝒟 : CCat o ℓ e}
-  (S : CSite p i 𝒞)
-  where
-
-  open CSite
-  module C = CCat 𝒞
-  module D = CCat 𝒟
-
-  module _
-    (L : Functor C.Cat D.Cat) (R : Functor D.Cat C.Cat)
-    (adjoint : L ⊣ R) (L⋆-is-terminal : IsTerminal D.Cat (Functor.F₀ L C.⋆))
-    where
-
-    private
-      module L = Functor L
-      module R = Functor R
-      module LR = Functor (L ∘F R)
-      module RL = Functor (R ∘F L)
-      module L⋆ = IsTerminal L⋆-is-terminal
-      open Adjoint adjoint
-
-      R⋆-terminal : Terminal C.Cat
-      R⋆-terminal =
-        limit⇒⊤ C.Cat $ rapl adjoint (empty _ o ℓ e) $ ⊤⇒limit D.Cat D.terminal
-
-      module R⋆ = IsTerminal (Terminal.⊤-is-terminal R⋆-terminal)
-
-    LiftSite : CSite p i 𝒟
-    LiftSite .cover-fam c = S .cover-fam $ R.F₀ c
-    LiftSite .cover-idx fs = S .cover-idx fs
-    LiftSite .cover-dom fs n = L.F₀ $ S .cover-dom fs n
-    LiftSite .cover fs n = Radjunct $ S .cover fs n
-    LiftSite .coverage-pullback g fs =
-      let hs , pb-prop = S .coverage-pullback (R.F₁ g) fs in
-      hs , λ j →
-        let i , k , H≈ = pb-prop j
-            H≈′ = begin
-              g D.∘ Radjunct (S .cover hs j)                  ≈⟨ pullˡ (counit.sym-commute g) ○ D.assoc ⟩
-              counit.η _ D.∘ LR.F₁ g D.∘ L.F₁ (S .cover hs j) ≈⟨ refl⟩∘⟨ ⟺ L.homomorphism ⟩
-              counit.η _ D.∘ L.F₁ (R.F₁ g C.∘ S .cover hs j)  ≈⟨ refl⟩∘⟨ L.F-resp-≈ H≈ ⟩
-              counit.η _ D.∘ L.F₁ (S .cover fs i C.∘ k)       ≈⟨ refl⟩∘⟨ L.homomorphism ⟩
-              counit.η _ D.∘ L.F₁ (S .cover fs i) D.∘ L.F₁ k  ≈⟨ D.sym-assoc ⟩
-              Radjunct (S .cover fs i) D.∘ L.F₁ k             ∎
-        in
-        i , L.F₁ k , H≈′
-      where open D.HomReasoning
-            open MR D.Cat
-    LiftSite .coverage-covers {c} fs x =
-      let n , y , H≈ = S .coverage-covers fs (C.hom∣ R.F₁ x ∣ .to R⋆.!)
-          H≈′ = begin
-            x                                                              ≈⟨ ⟺ D.identityʳ ⟩
-            x D.∘ D.id                                                     ≈⟨ refl⟩∘⟨ (⟺ (D.!-unique _) ○ D.!-unique _) ⟩
-            x D.∘ Radjunct R⋆.! D.∘ L⋆.!                                   ≈⟨ pullˡ (pullˡ (counit.sym-commute _) ○ D.assoc) ○ D.assoc ⟩
-            counit.η _ D.∘ (LR.F₁ x D.∘ L.F₁ R⋆.!) D.∘ L⋆.!                ≈⟨ refl⟩∘⟨ (⟺ L.homomorphism ○ L.F-resp-≈ H≈ ○ L.homomorphism) ⟩∘⟨refl ⟩
-            counit.η _ D.∘ (L.F₁ (S .cover fs n) D.∘ L.F₁ y) D.∘ L⋆.!      ≈⟨ (refl⟩∘⟨ D.assoc) ○ D.sym-assoc ⟩
-            D.hom∣ Radjunct (S .cover fs n) ∣ .to (D.hom∣ L.F₁ y ∣ .to L⋆.!) ∎
-      in
-      n , D.hom∣ L.F₁ y ∣ .to L⋆.! , H≈′
-      where open D.HomReasoning
-            open MR D.Cat
-
-    module _
-      {o′ ℓ′ : Level}
-      (F : CSheaf o′ ℓ′ S)
-      where
-
-      private
-        module F = CSheaf F
-        open CSheaf
-        open Setoid
-        open Morphism
-
-        ⋆-lemma : R.F₁ L⋆.! C.∘ R⋆.! C.≈ unit.η _
-        ⋆-lemma = begin
-          R.F₁ L⋆.! C.∘ R⋆.!               ≈⟨ C.sym-assoc ○ ⟺ R.homomorphism ⟩∘⟨refl ⟩
-          R.F₁ (L⋆.! D.∘ D.!) C.∘ unit.η _ ≈⟨ R.F-resp-≈ L⋆.!-unique₂ ⟩∘⟨refl ⟩
-          R.F₁ D.id C.∘ unit.η _           ≈⟨ elimˡ R.identity ⟩
-          unit.η _                         ∎
-          where open C.HomReasoning
-                open MR C.Cat
-
-        F!-injective : injection (F.F₀ C.⋆ ._≈_) (F.F₀ (R.F₀ D.⋆) ._≈_) (F.F₁ C.! .to)
-        F!-injective =
-          let ⋆-iso = up-to-iso C.Cat R⋆-terminal C.terminal
-              F-iso = [ F.Psh ]-resp-≅ (≅⇒op-≅ C.Cat ⋆-iso)
-              inv : Inverse (F.F₀ C.⋆) (F.F₀ (R.F₀ D.⋆))
-              inv = record
-                     { to = F-iso .to .to
-                     ; from = F-iso .from .to
-                     ; to-cong = F-iso .to .cong
-                     ; from-cong = F-iso .from .cong
-                     ; inverse = (λ H≈ →
-                                    FS.trans (F.F₁ C.! .cong H≈)
-                                             (F-iso .iso .isoˡ)) ,
-                                 (λ H≈ →
-                                    F.X.trans (F.F₁ R⋆.! .cong H≈)
-                                              (F-iso .iso .isoʳ))
-                     }
-          in
-          Inverse⇒Injection inv .injective
-          where open Injection
-                open _≅_
-                open Iso
-                module FS = Setoid (F.F₀ (R.F₀ D.⋆))
-
-      LiftSheaf : CSheaf o′ ℓ′ LiftSite
-      LiftSheaf .Psh = F.Psh ∘F R.op
-      LiftSheaf .is-sheaf g fs H∈ =
-        let g′ = record
-              { to = λ x → (F.F₁ R⋆.! ∙ g) .to $ Radjunct x D.∘ L⋆.!
-              ; cong = λ H≈ → (F.F₁ R⋆.! ∙ g) .cong $ D.∘-resp-≈ˡ $ D.∘-resp-≈ʳ $ L.F-resp-≈ H≈
-              }
-            hs , H≈′ =
-              F.is-sheaf g′ fs λ i →
-                let hs , H≈ = H∈ i
-                in F.F₁ (unit.η _) .to hs , λ {z} →
-                  XR.begin
-                    g′ .to (cover S fs i C.∘ z)                          XR.≈⟨ (F.F₁ R⋆.! ∙ g) .cong $ D.∘-resp-≈ˡ $ D.∘-resp-≈ʳ L.homomorphism ⟩
-                    _                                                    XR.≈⟨ F.F₁ R⋆.! .cong $ FS.trans (g .cong DM.assoc²βγ) H≈ ⟩
-                    F.F₁ R⋆.! .to (F.F₁ (R.F₁ (L.F₁ z D.∘ L⋆.!)) .to hs) XR.≈⟨ F.X.sym F.homomorphism ⟩
-                    _                                                    XR.≈⟨ F.F-resp-≈ (C.∘-resp-≈ˡ R.homomorphism CR.○ C.assoc) ⟩
-                    F.F₁ (RL.F₁ z C.∘ R.F₁ L⋆.! C.∘ R⋆.!) .to hs         XR.≈⟨ F.F-resp-≈ (C.∘-resp-≈ʳ ⋆-lemma) ⟩
-                    F.F₁ (RL.F₁ z C.∘ unit.η _) .to hs                   XR.≈⟨ F.X.trans (F.F-resp-≈ (unit.sym-commute _)) F.homomorphism ⟩
-                    F.F₁ z .to (F.F₁ (unit.η _) .to hs)                  XR.∎
-        in
-        hs , λ {z} →
-          let z-lemma = DR.begin
-                z                                                       DR.≈⟨ DM.introʳ D.!-unique₂ DR.○ D.sym-assoc ⟩
-                (z D.∘ D.!) D.∘ L⋆.!                                    DR.≈⟨ (DR.refl⟩∘⟨ DM.introʳ zig) DR.⟩∘⟨refl ⟩
-                (z D.∘ D.! D.∘ counit.η _ D.∘ L.F₁ (unit.η _)) D.∘ L⋆.! DR.≈⟨ (DR.refl⟩∘⟨ DM.extendʳ (counit.sym-commute _)) DR.⟩∘⟨refl ⟩
-                _                                                       DR.≈⟨ DM.extendʳ (counit.sym-commute _) DR.⟩∘⟨refl ⟩
-                _                                                       DR.≈⟨ (DR.refl⟩∘⟨ DR.refl⟩∘⟨ DR.⟺ L.homomorphism) DR.⟩∘⟨refl ⟩
-                _                                                       DR.≈⟨ (DR.refl⟩∘⟨ DR.⟺ L.homomorphism) DR.⟩∘⟨refl ⟩
-                Radjunct (R.F₁ z C.∘ R⋆.!) D.∘ L⋆.!                     DR.∎
-          in FR.begin
-            g .to z                                      FR.≈⟨ g .cong z-lemma ⟩
-            g .to (Radjunct (R.F₁ z C.∘ R⋆.!) D.∘ L⋆.!)  FR.≈⟨ FS.sym F.identity ⟩
-            _                                            FR.≈⟨ FS.trans (F.F-resp-≈ R⋆.!-unique₂) F.homomorphism ⟩
-            F.F₁ C.! .to (g′ .to (R.F₁ z C.∘ R⋆.!))      FR.≈⟨ F.F₁ C.! .cong H≈′ ⟩
-            F.F₁ C.! .to (F.F₁ (R.F₁ z C.∘ R⋆.!) .to hs) FR.≈⟨ FS.sym F.homomorphism ⟩
-            _                                            FR.≈⟨ F.F-resp-≈ (C.assoc CR.○ CM.elimʳ R⋆.!-unique₂) ⟩
-            F.F₁ (R.F₁ z) .to hs                         FR.∎
-        where module CR = C.HomReasoning
-              module DR = D.HomReasoning
-              module CM = MR C.Cat
-              module DM = MR D.Cat
-              module XR = SetoidR (F.F₀ C.⋆)
-              module FR = SetoidR (F.F₀ (R.F₀ D.⋆))
-              module FS = Setoid (F.F₀ (R.F₀ D.⋆))
-      LiftSheaf .is-concrete {x = x} {y} H≈ =
-        F.is-concrete λ {z} →
-          let H≈′ = CR.begin
-                R.F₁ (Radjunct z D.∘ L⋆.!)                         CR.≈⟨ CR.⟺ C.identityʳ ⟩
-                _                                                  CR.≈⟨ R.homomorphism CR.⟩∘⟨ CR.⟺ R⋆.!-unique₂ ⟩
-                _                                                  CR.≈⟨ C.sym-assoc CR.○ C.assoc CR.⟩∘⟨refl ⟩
-                (R.F₁ (Radjunct z) C.∘ R.F₁ L⋆.! C.∘ R⋆.!) C.∘ C.! CR.≈⟨ (CR.refl⟩∘⟨ ⋆-lemma) CR.⟩∘⟨refl ⟩
-                Ladjunct (Radjunct z) C.∘ C.!                      CR.≈⟨ LRadjunct≈id CR.⟩∘⟨refl ⟩
-                z C.∘ C.!                                          CR.∎
-          in
-          F!-injective $ FR.begin
-            F.F₁ C.! .to (F.F₁ z .to x)             FR.≈⟨ Setoid.sym (F.F₀ (R.F₀ D.⋆)) F.homomorphism ⟩
-            _                                       FR.≈⟨ F.F-resp-≈ (CR.⟺ H≈′) ⟩
-            F.F₁ (R.F₁ (Radjunct z D.∘ L⋆.!)) .to x FR.≈⟨ H≈ ⟩
-            F.F₁ (R.F₁ (Radjunct z D.∘ L⋆.!)) .to y FR.≈⟨ F.F-resp-≈ H≈′ ⟩
-            _                                       FR.≈⟨ F.homomorphism ⟩
-            F.F₁ C.! .to (F.F₁ z .to y)             FR.∎
-          where module CR = C.HomReasoning
-                module FR = SetoidR (F.F₀ (R.F₀ D.⋆))
-
-module Pull {o ℓ e p i : Level}
-  {𝒞 : CCat o ℓ e}
-  (S₁ : CSite p i 𝒞)
-  (S₂ : CSite p i 𝒞)
-  where
-
-  private
-    open CSite
+  record CSite (p i : Level) : Set (o ⊔ ℓ ⊔ e ⊔ lsuc (p ⊔ i)) where
     open CCat 𝒞
-    module S₁ = CSite S₁
-    module S₂ = CSite S₂
+    open Setoid hiding (_≈_)
+    field
+      covers : Obj → Set p
+      cover  : ∀ {U} → covers U → Cover U
+  
+      stable :
+        {Y Z : Obj} (g : Y ⇒ Z) (fs : covers Z)
+        → ---------------------------------------
+        ∃ λ hs → ∀ j → ∃₂ λ i k →
+        g ∘ cover hs .map j ≈ cover fs .map i ∘ k
+  
+      concrete :
+        {U : Obj} (fs : covers U)
+        (x : obj∣ c ∣ .Carrier)
+        → --------------------------------
+        x ∈ ⋃ _ λ i → Im hom∣ cover fs i ∣
 
-    open PB Cat using (Pullback)
-    open Pullback
+-- record CSheaf
+--   {o ℓ e p i : Level}
+--   {𝒞 : CCat o ℓ e}
+--   (S : CSite 𝒞 p i)
+--   (o′ e′ : Level)
+--   : -------------------------------------
+--   Set (o ⊔ ℓ ⊔ e ⊔ i ⊔ p ⊔ lsuc (o′ ⊔ e′))
+--   where
+--   open CSite S
+--   open CCat 𝒞
 
-    open HomReasoning
-    open MR Cat
+--   field
+--     Psh : Presheaf Cat (Setoids o′ e′)
 
-  module _
-    (pullback : {c : Obj} (fs : S₁ .cover-fam c) (gs : S₂ .cover-fam c) →
-                ∀ i j → Pullback (S₁ .cover fs i) (S₂ .cover gs j))
-    where
+--   open Functor Psh public
+--   open Setoid
 
-    PullSite : CSite p i 𝒞
-    PullSite .cover-fam c = S₁.cover-fam c × S₂.cover-fam c
-    PullSite .cover-idx (fs , gs) = S₁.cover-idx fs × S₂.cover-idx gs
-    PullSite .cover-dom (fs , gs) (i , j) =
-      pullback fs gs i j .Pullback.P
-    PullSite .cover (fs , gs) (i , j) =
-      S₁.cover fs i ∘ pullback fs gs i j .p₁
-    PullSite .coverage-pullback g (fs , gs) =
-      let fs′ , pb-prop₁ = S₁ .coverage-pullback g fs
-          gs′ , pb-prop₂ = S₂ .coverage-pullback g gs
-      in (fs′ , gs′) , λ (j₁ , j₂) →
-        let i₁ , k₁ , comm₁ = pb-prop₁ j₁
-            i₂ , k₂ , comm₂ = pb-prop₂ j₂
-            pb₁ = pullback fs gs i₁ i₂
-            pb₂ = pullback fs′ gs′ j₁ j₂
-            uni = pb₁ .universal $ begin
-              S₁.cover fs i₁ ∘ k₁ ∘ p₁ pb₂ ≈⟨ extendʳ (⟺ comm₁) ⟩
-              g ∘ S₁.cover fs′ j₁ ∘ p₁ pb₂ ≈⟨ refl⟩∘⟨ commute pb₂ ⟩
-              g ∘ S₂.cover gs′ j₂ ∘ p₂ pb₂ ≈⟨ extendʳ comm₂ ⟩
-              S₂.cover gs i₂ ∘ k₂ ∘ p₂ pb₂ ∎
-            H≈ = begin
-              g ∘ S₁.cover fs′ j₁ ∘ p₁ pb₂    ≈⟨ extendʳ comm₁ ⟩
-              S₁.cover fs i₁ ∘ k₁ ∘ p₁ pb₂    ≈⟨ refl⟩∘⟨ ⟺ (p₁∘universal≈h₁ pb₁) ⟩
-              S₁.cover fs i₁ ∘ p₁ pb₁ ∘ uni   ≈⟨ sym-assoc ⟩
-              (S₁.cover fs i₁ ∘ p₁ pb₁) ∘ uni ∎
-        in
-        (i₁ , i₂) , uni , H≈
-    PullSite .coverage-covers (fs , gs) x =
-      let n₁ , y₁ , H≈₁ = S₁ .coverage-covers fs x
-          n₂ , y₂ , H≈₂ = S₂ .coverage-covers gs x
-          pb = pullback fs gs n₁ n₂
-          y = pb .universal (⟺ H≈₁ ○ H≈₂)
-          H≈ = begin
-            x                             ≈⟨ H≈₁ ⟩
-            S₁ .cover fs n₁ ∘ y₁          ≈⟨ refl⟩∘⟨ ⟺ (p₁∘universal≈h₁ pb) ⟩
-            S₁ .cover fs n₁ ∘ p₁ pb ∘ y   ≈⟨ sym-assoc ⟩
-            (S₁ .cover fs n₁ ∘ p₁ pb) ∘ y ∎
-      in
-      (n₁ , n₂) , y , H≈
+--   module X = Setoid (F₀ ⋆)
+
+--   ∣_∣ : Setoid o′ e′
+--   ∣_∣ = F₀ ⋆
+
+--   F-maps : (c : Obj) → F₀ c .Carrier → Func obj∣ c ∣ ∣_∣
+--   F-maps c Fc = record
+--     { to = λ f → F₁ f .to Fc
+--     ; cong = λ {x} {y} z → F-resp-≈ z
+--     }
+
+--   R[_,_] : (c : Obj) → Pred (Func obj∣ c ∣ ∣_∣) _
+--   R[_,_] c f = ∃ λ Fc → f ≗ F-maps c Fc
+
+--   field
+--     is-sheaf :
+--       {c : Obj}
+--       (g : Func obj∣ c ∣ ∣_∣)
+--       (fs : cover-fam c)
+--       (_ : ∀ i → g ∙ hom∣ cover fs i ∣ ∈ R[_,_] _)
+--       → ------------------------------------------
+--       g ∈ R[_,_] c
+
+--     is-concrete :
+--       {c : Obj} → injection (F₀ c ._≈_) _≗_ (F-maps c)
+
+-- module Lift {o ℓ e p i : Level}
+--   {𝒞 𝒟 : CCat o ℓ e}
+--   (S : CSite 𝒞 p i)
+--   where
+
+--   open CSite
+--   module C = CCat 𝒞
+--   module D = CCat 𝒟
+
+--   module _
+--     (L : Functor C.Cat D.Cat) (R : Functor D.Cat C.Cat)
+--     (adjoint : L ⊣ R) (L⋆-is-terminal : IsTerminal D.Cat (Functor.F₀ L C.⋆))
+--     where
+
+--     private
+--       module L = Functor L
+--       module R = Functor R
+--       module LR = Functor (L ∘F R)
+--       module RL = Functor (R ∘F L)
+--       module L⋆ = IsTerminal L⋆-is-terminal
+--       open Adjoint adjoint
+
+--       R⋆-terminal : Terminal C.Cat
+--       R⋆-terminal =
+--         limit⇒⊤ C.Cat $ rapl adjoint (empty _ o ℓ e) $ ⊤⇒limit D.Cat D.terminal
+
+--       module R⋆ = IsTerminal (Terminal.⊤-is-terminal R⋆-terminal)
+
+--     LiftSite : CSite p i 𝒟
+--     LiftSite .cover-fam c = S .cover-fam $ R.F₀ c
+--     LiftSite .cover-idx fs = S .cover-idx fs
+--     LiftSite .cover-dom fs n = L.F₀ $ S .cover-dom fs n
+--     LiftSite .cover fs n = Radjunct $ S .cover fs n
+--     LiftSite .coverage-pullback g fs =
+--       let hs , pb-prop = S .coverage-pullback (R.F₁ g) fs in
+--       hs , λ j →
+--         let i , k , H≈ = pb-prop j
+--             H≈′ = begin
+--               g D.∘ Radjunct (S .cover hs j)                  ≈⟨ pullˡ (counit.sym-commute g) ○ D.assoc ⟩
+--               counit.η _ D.∘ LR.F₁ g D.∘ L.F₁ (S .cover hs j) ≈⟨ refl⟩∘⟨ ⟺ L.homomorphism ⟩
+--               counit.η _ D.∘ L.F₁ (R.F₁ g C.∘ S .cover hs j)  ≈⟨ refl⟩∘⟨ L.F-resp-≈ H≈ ⟩
+--               counit.η _ D.∘ L.F₁ (S .cover fs i C.∘ k)       ≈⟨ refl⟩∘⟨ L.homomorphism ⟩
+--               counit.η _ D.∘ L.F₁ (S .cover fs i) D.∘ L.F₁ k  ≈⟨ D.sym-assoc ⟩
+--               Radjunct (S .cover fs i) D.∘ L.F₁ k             ∎
+--         in
+--         i , L.F₁ k , H≈′
+--       where open D.HomReasoning
+--             open MR D.Cat
+--     LiftSite .coverage-covers {c} fs x =
+--       let n , y , H≈ = S .coverage-covers fs (C.hom∣ R.F₁ x ∣ .to R⋆.!)
+--           H≈′ = begin
+--             x                                                              ≈⟨ ⟺ D.identityʳ ⟩
+--             x D.∘ D.id                                                     ≈⟨ refl⟩∘⟨ (⟺ (D.!-unique _) ○ D.!-unique _) ⟩
+--             x D.∘ Radjunct R⋆.! D.∘ L⋆.!                                   ≈⟨ pullˡ (pullˡ (counit.sym-commute _) ○ D.assoc) ○ D.assoc ⟩
+--             counit.η _ D.∘ (LR.F₁ x D.∘ L.F₁ R⋆.!) D.∘ L⋆.!                ≈⟨ refl⟩∘⟨ (⟺ L.homomorphism ○ L.F-resp-≈ H≈ ○ L.homomorphism) ⟩∘⟨refl ⟩
+--             counit.η _ D.∘ (L.F₁ (S .cover fs n) D.∘ L.F₁ y) D.∘ L⋆.!      ≈⟨ (refl⟩∘⟨ D.assoc) ○ D.sym-assoc ⟩
+--             D.hom∣ Radjunct (S .cover fs n) ∣ .to (D.hom∣ L.F₁ y ∣ .to L⋆.!) ∎
+--       in
+--       n , D.hom∣ L.F₁ y ∣ .to L⋆.! , H≈′
+--       where open D.HomReasoning
+--             open MR D.Cat
+
+--     module _
+--       {o′ ℓ′ : Level}
+--       (F : CSheaf o′ ℓ′ S)
+--       where
+
+--       private
+--         module F = CSheaf F
+--         open CSheaf
+--         open Setoid
+--         open Morphism
+
+--         ⋆-lemma : R.F₁ L⋆.! C.∘ R⋆.! C.≈ unit.η _
+--         ⋆-lemma = begin
+--           R.F₁ L⋆.! C.∘ R⋆.!               ≈⟨ C.sym-assoc ○ ⟺ R.homomorphism ⟩∘⟨refl ⟩
+--           R.F₁ (L⋆.! D.∘ D.!) C.∘ unit.η _ ≈⟨ R.F-resp-≈ L⋆.!-unique₂ ⟩∘⟨refl ⟩
+--           R.F₁ D.id C.∘ unit.η _           ≈⟨ elimˡ R.identity ⟩
+--           unit.η _                         ∎
+--           where open C.HomReasoning
+--                 open MR C.Cat
+
+--         F!-injective : injection (F.F₀ C.⋆ ._≈_) (F.F₀ (R.F₀ D.⋆) ._≈_) (F.F₁ C.! .to)
+--         F!-injective =
+--           let ⋆-iso = up-to-iso C.Cat R⋆-terminal C.terminal
+--               F-iso = [ F.Psh ]-resp-≅ (≅⇒op-≅ C.Cat ⋆-iso)
+--               inv : Inverse (F.F₀ C.⋆) (F.F₀ (R.F₀ D.⋆))
+--               inv = record
+--                      { to = F-iso .to .to
+--                      ; from = F-iso .from .to
+--                      ; to-cong = F-iso .to .cong
+--                      ; from-cong = F-iso .from .cong
+--                      ; inverse = (λ H≈ →
+--                                     FS.trans (F.F₁ C.! .cong H≈)
+--                                              (F-iso .iso .isoˡ)) ,
+--                                  (λ H≈ →
+--                                     F.X.trans (F.F₁ R⋆.! .cong H≈)
+--                                               (F-iso .iso .isoʳ))
+--                      }
+--           in
+--           Inverse⇒Injection inv .injective
+--           where open Injection
+--                 open _≅_
+--                 open Iso
+--                 module FS = Setoid (F.F₀ (R.F₀ D.⋆))
+
+--       LiftSheaf : CSheaf o′ ℓ′ LiftSite
+--       LiftSheaf .Psh = F.Psh ∘F R.op
+--       LiftSheaf .is-sheaf g fs H∈ =
+--         let g′ = record
+--               { to = λ x → (F.F₁ R⋆.! ∙ g) .to $ Radjunct x D.∘ L⋆.!
+--               ; cong = λ H≈ → (F.F₁ R⋆.! ∙ g) .cong $ D.∘-resp-≈ˡ $ D.∘-resp-≈ʳ $ L.F-resp-≈ H≈
+--               }
+--             hs , H≈′ =
+--               F.is-sheaf g′ fs λ i →
+--                 let hs , H≈ = H∈ i
+--                 in F.F₁ (unit.η _) .to hs , λ {z} →
+--                   XR.begin
+--                     g′ .to (cover S fs i C.∘ z)                          XR.≈⟨ (F.F₁ R⋆.! ∙ g) .cong $ D.∘-resp-≈ˡ $ D.∘-resp-≈ʳ L.homomorphism ⟩
+--                     _                                                    XR.≈⟨ F.F₁ R⋆.! .cong $ FS.trans (g .cong DM.assoc²βγ) H≈ ⟩
+--                     F.F₁ R⋆.! .to (F.F₁ (R.F₁ (L.F₁ z D.∘ L⋆.!)) .to hs) XR.≈⟨ F.X.sym F.homomorphism ⟩
+--                     _                                                    XR.≈⟨ F.F-resp-≈ (C.∘-resp-≈ˡ R.homomorphism CR.○ C.assoc) ⟩
+--                     F.F₁ (RL.F₁ z C.∘ R.F₁ L⋆.! C.∘ R⋆.!) .to hs         XR.≈⟨ F.F-resp-≈ (C.∘-resp-≈ʳ ⋆-lemma) ⟩
+--                     F.F₁ (RL.F₁ z C.∘ unit.η _) .to hs                   XR.≈⟨ F.X.trans (F.F-resp-≈ (unit.sym-commute _)) F.homomorphism ⟩
+--                     F.F₁ z .to (F.F₁ (unit.η _) .to hs)                  XR.∎
+--         in
+--         hs , λ {z} →
+--           let z-lemma = DR.begin
+--                 z                                                       DR.≈⟨ DM.introʳ D.!-unique₂ DR.○ D.sym-assoc ⟩
+--                 (z D.∘ D.!) D.∘ L⋆.!                                    DR.≈⟨ (DR.refl⟩∘⟨ DM.introʳ zig) DR.⟩∘⟨refl ⟩
+--                 (z D.∘ D.! D.∘ counit.η _ D.∘ L.F₁ (unit.η _)) D.∘ L⋆.! DR.≈⟨ (DR.refl⟩∘⟨ DM.extendʳ (counit.sym-commute _)) DR.⟩∘⟨refl ⟩
+--                 _                                                       DR.≈⟨ DM.extendʳ (counit.sym-commute _) DR.⟩∘⟨refl ⟩
+--                 _                                                       DR.≈⟨ (DR.refl⟩∘⟨ DR.refl⟩∘⟨ DR.⟺ L.homomorphism) DR.⟩∘⟨refl ⟩
+--                 _                                                       DR.≈⟨ (DR.refl⟩∘⟨ DR.⟺ L.homomorphism) DR.⟩∘⟨refl ⟩
+--                 Radjunct (R.F₁ z C.∘ R⋆.!) D.∘ L⋆.!                     DR.∎
+--           in FR.begin
+--             g .to z                                      FR.≈⟨ g .cong z-lemma ⟩
+--             g .to (Radjunct (R.F₁ z C.∘ R⋆.!) D.∘ L⋆.!)  FR.≈⟨ FS.sym F.identity ⟩
+--             _                                            FR.≈⟨ FS.trans (F.F-resp-≈ R⋆.!-unique₂) F.homomorphism ⟩
+--             F.F₁ C.! .to (g′ .to (R.F₁ z C.∘ R⋆.!))      FR.≈⟨ F.F₁ C.! .cong H≈′ ⟩
+--             F.F₁ C.! .to (F.F₁ (R.F₁ z C.∘ R⋆.!) .to hs) FR.≈⟨ FS.sym F.homomorphism ⟩
+--             _                                            FR.≈⟨ F.F-resp-≈ (C.assoc CR.○ CM.elimʳ R⋆.!-unique₂) ⟩
+--             F.F₁ (R.F₁ z) .to hs                         FR.∎
+--         where module CR = C.HomReasoning
+--               module DR = D.HomReasoning
+--               module CM = MR C.Cat
+--               module DM = MR D.Cat
+--               module XR = SetoidR (F.F₀ C.⋆)
+--               module FR = SetoidR (F.F₀ (R.F₀ D.⋆))
+--               module FS = Setoid (F.F₀ (R.F₀ D.⋆))
+--       LiftSheaf .is-concrete {x = x} {y} H≈ =
+--         F.is-concrete λ {z} →
+--           let H≈′ = CR.begin
+--                 R.F₁ (Radjunct z D.∘ L⋆.!)                         CR.≈⟨ CR.⟺ C.identityʳ ⟩
+--                 _                                                  CR.≈⟨ R.homomorphism CR.⟩∘⟨ CR.⟺ R⋆.!-unique₂ ⟩
+--                 _                                                  CR.≈⟨ C.sym-assoc CR.○ C.assoc CR.⟩∘⟨refl ⟩
+--                 (R.F₁ (Radjunct z) C.∘ R.F₁ L⋆.! C.∘ R⋆.!) C.∘ C.! CR.≈⟨ (CR.refl⟩∘⟨ ⋆-lemma) CR.⟩∘⟨refl ⟩
+--                 Ladjunct (Radjunct z) C.∘ C.!                      CR.≈⟨ LRadjunct≈id CR.⟩∘⟨refl ⟩
+--                 z C.∘ C.!                                          CR.∎
+--           in
+--           F!-injective $ FR.begin
+--             F.F₁ C.! .to (F.F₁ z .to x)             FR.≈⟨ Setoid.sym (F.F₀ (R.F₀ D.⋆)) F.homomorphism ⟩
+--             _                                       FR.≈⟨ F.F-resp-≈ (CR.⟺ H≈′) ⟩
+--             F.F₁ (R.F₁ (Radjunct z D.∘ L⋆.!)) .to x FR.≈⟨ H≈ ⟩
+--             F.F₁ (R.F₁ (Radjunct z D.∘ L⋆.!)) .to y FR.≈⟨ F.F-resp-≈ H≈′ ⟩
+--             _                                       FR.≈⟨ F.homomorphism ⟩
+--             F.F₁ C.! .to (F.F₁ z .to y)             FR.∎
+--           where module CR = C.HomReasoning
+--                 module FR = SetoidR (F.F₀ (R.F₀ D.⋆))
+
+-- module Pull {o ℓ e p i : Level}
+--   {𝒞 : CCat o ℓ e}
+--   (S₁ : CSite p i 𝒞)
+--   (S₂ : CSite p i 𝒞)
+--   where
+
+--   private
+--     open CSite
+--     open CCat 𝒞
+--     module S₁ = CSite S₁
+--     module S₂ = CSite S₂
+
+--     open PB Cat using (Pullback)
+--     open Pullback
+
+--     open HomReasoning
+--     open MR Cat
+
+--   module _
+--     (pullback : {c : Obj} (fs : S₁ .cover-fam c) (gs : S₂ .cover-fam c) →
+--                 ∀ i j → Pullback (S₁ .cover fs i) (S₂ .cover gs j))
+--     where
+
+--     PullSite : CSite p i 𝒞
+--     PullSite .cover-fam c = S₁.cover-fam c × S₂.cover-fam c
+--     PullSite .cover-idx (fs , gs) = S₁.cover-idx fs × S₂.cover-idx gs
+--     PullSite .cover-dom (fs , gs) (i , j) =
+--       pullback fs gs i j .Pullback.P
+--     PullSite .cover (fs , gs) (i , j) =
+--       S₁.cover fs i ∘ pullback fs gs i j .p₁
+--     PullSite .coverage-pullback g (fs , gs) =
+--       let fs′ , pb-prop₁ = S₁ .coverage-pullback g fs
+--           gs′ , pb-prop₂ = S₂ .coverage-pullback g gs
+--       in (fs′ , gs′) , λ (j₁ , j₂) →
+--         let i₁ , k₁ , comm₁ = pb-prop₁ j₁
+--             i₂ , k₂ , comm₂ = pb-prop₂ j₂
+--             pb₁ = pullback fs gs i₁ i₂
+--             pb₂ = pullback fs′ gs′ j₁ j₂
+--             uni = pb₁ .universal $ begin
+--               S₁.cover fs i₁ ∘ k₁ ∘ p₁ pb₂ ≈⟨ extendʳ (⟺ comm₁) ⟩
+--               g ∘ S₁.cover fs′ j₁ ∘ p₁ pb₂ ≈⟨ refl⟩∘⟨ commute pb₂ ⟩
+--               g ∘ S₂.cover gs′ j₂ ∘ p₂ pb₂ ≈⟨ extendʳ comm₂ ⟩
+--               S₂.cover gs i₂ ∘ k₂ ∘ p₂ pb₂ ∎
+--             H≈ = begin
+--               g ∘ S₁.cover fs′ j₁ ∘ p₁ pb₂    ≈⟨ extendʳ comm₁ ⟩
+--               S₁.cover fs i₁ ∘ k₁ ∘ p₁ pb₂    ≈⟨ refl⟩∘⟨ ⟺ (p₁∘universal≈h₁ pb₁) ⟩
+--               S₁.cover fs i₁ ∘ p₁ pb₁ ∘ uni   ≈⟨ sym-assoc ⟩
+--               (S₁.cover fs i₁ ∘ p₁ pb₁) ∘ uni ∎
+--         in
+--         (i₁ , i₂) , uni , H≈
+--     PullSite .coverage-covers (fs , gs) x =
+--       let n₁ , y₁ , H≈₁ = S₁ .coverage-covers fs x
+--           n₂ , y₂ , H≈₂ = S₂ .coverage-covers gs x
+--           pb = pullback fs gs n₁ n₂
+--           y = pb .universal (⟺ H≈₁ ○ H≈₂)
+--           H≈ = begin
+--             x                             ≈⟨ H≈₁ ⟩
+--             S₁ .cover fs n₁ ∘ y₁          ≈⟨ refl⟩∘⟨ ⟺ (p₁∘universal≈h₁ pb) ⟩
+--             S₁ .cover fs n₁ ∘ p₁ pb ∘ y   ≈⟨ sym-assoc ⟩
+--             (S₁ .cover fs n₁ ∘ p₁ pb) ∘ y ∎
+--       in
+--       (n₁ , n₂) , y , H≈
 
 
-    module _
-      {o′ ℓ′ : Level}
-      (F : CSheaf (o′ ⊔ ℓ′) ℓ′ S₁)
-      (G : CSheaf (o′ ⊔ ℓ′) ℓ′ S₂)
-      (H : Presheaf Cat (Setoids (o′ ⊔ ℓ′) ℓ′))
-      where
+--     module _
+--       {o′ ℓ′ : Level}
+--       (F : CSheaf (o′ ⊔ ℓ′) ℓ′ S₁)
+--       (G : CSheaf (o′ ⊔ ℓ′) ℓ′ S₂)
+--       (H : Presheaf Cat (Setoids (o′ ⊔ ℓ′) ℓ′))
+--       where
 
-      private
-        open CSheaf
-        module F = CSheaf F
-        module G = CSheaf G
-        module H = Functor H
-        module FC = FinitelyComplete (Presheaves′ (o′ ⊔ ℓ′) ℓ′ Cat)
+--       private
+--         open CSheaf
+--         module F = CSheaf F
+--         module G = CSheaf G
+--         module H = Functor H
+--         module FC = FinitelyComplete (Presheaves′ (o′ ⊔ ℓ′) ℓ′ Cat)
 
-      module _
-        (nt₁ : NaturalTransformation (F.Psh) H)
-        (nt₂ : NaturalTransformation (G.Psh) H)
-        where
+--       module _
+--         (nt₁ : NaturalTransformation (F.Psh) H)
+--         (nt₂ : NaturalTransformation (G.Psh) H)
+--         where
 
-        module nt₁ = NaturalTransformation nt₁
-        module nt₂ = NaturalTransformation nt₂
-        module St = Category (Setoids o′ ℓ′)
+--         module nt₁ = NaturalTransformation nt₁
+--         module nt₂ = NaturalTransformation nt₂
+--         module St = Category (Setoids o′ ℓ′)
 
-        PullSheaf : CSheaf (o′ ⊔ ℓ′) ℓ′ PullSite
-        PullSheaf .Psh = PB.Pullback.P pb
-          where
-            module PshFC = FC.FinitelyComplete (Presheaves-FinitelyComplete Cat ℓ₀ ℓ₀ ℓ₀ o′ ℓ′)
-            abstract
-              pb : PB.Pullback (Presheaves Cat) nt₁ nt₂
-              pb = PshFC.pullback nt₁ nt₂
-        PullSheaf .is-sheaf g fs H∈ = {!!}
-        PullSheaf .is-concrete = {!!}
+--         PullSheaf : CSheaf (o′ ⊔ ℓ′) ℓ′ PullSite
+--         PullSheaf .Psh = PB.Pullback.P pb
+--           where
+--             module PshFC = FC.FinitelyComplete (Presheaves-FinitelyComplete Cat ℓ₀ ℓ₀ ℓ₀ o′ ℓ′)
+--             abstract
+--               pb : PB.Pullback (Presheaves Cat) nt₁ nt₂
+--               pb = PshFC.pullback nt₁ nt₂
+--         PullSheaf .is-sheaf g fs H∈ = {!!}
+--         PullSheaf .is-concrete = {!!}
 
 
 -- module ℝ⊆ where
