@@ -2,7 +2,7 @@ module Lib.Categories.Concrete where
 
 -- Our definitions of concrete categories, sites, and sheaves.
 
-open import Lib.Prelude renaming (_∘_ to _∘ᶠ_) hiding (⋃ ; _∈_ ; refl ; sym ; [_])
+open import Lib.Prelude renaming (_∘_ to _∘ᶠ_) hiding (⋃ ; _∈_ ; [_])
 
 open import Categories.Adjoint using (Adjoint ; _⊣_)
 open import Categories.Adjoint.RAPL using (rapl)
@@ -20,10 +20,9 @@ open import Categories.Object.Terminal.Limit using (limit⇒⊤ ; ⊤⇒limit)
 import Categories.Morphism.Reasoning as MR
 
 open import Function using (Func)
-open import Function.Construct.Setoid as FnS using (_∙_)
-open import Function.Properties.Inverse using (Inverse⇒Injection)
+import Function.Construct.Setoid as FnS
 
-open import Relation.Unary using (_∈_ ; _⊆_ ; ⋃)
+open import Relation.Unary using (_∈_ ; ⋃)
 open import Relation.Binary.Bundles using (Setoid)
 import Relation.Binary.Reasoning.Setoid as SetoidR
 
@@ -50,8 +49,10 @@ module _ {c ℓ ℓ′ : Level} (A : Setoid c ℓ) where
   open ∃! public
 
 record CCat (o ℓ e : Level) : Set (lsuc (o ⊔ ℓ ⊔ e)) where
-  -- Our definition of concrete categories differs from the agda-categories library
-  -- in that we require a terminal object (following Matache et al.).
+  -- Here, we use a more restrictive definition of concrete category
+  -- than the standard presentation in that we require the forgetful
+  -- functor to be representable by a terminal object
+  -- (following Matache et al.).
   field
     Cat : Category o ℓ e
 
@@ -173,7 +174,7 @@ module _ {o ℓ e : Level} {𝒞 : CCat o ℓ e} where
       is-sheaf :
         ∀ {U} (fs : covers U) (p : Parts (fs .cover))
         (_ : is-matching (fs .cover) p)
-        → -----------------------------------------
+        → -------------------------------------------
         ∃! (F₀ U) (is-section (fs .cover) p)
   
       is-concrete :
@@ -202,7 +203,6 @@ module _ {o ℓ e : Level} where
       Inv-lex : is-lex Inv[_]
       Inv⊣Dir : Inv[_] ⊣ Dir[_]
 
-
 module Lift {o ℓ e p i : Level} {𝒞 𝒟 : CCat o ℓ e} (S : CSite 𝒞 p i) where
 
   open CSite
@@ -230,7 +230,10 @@ module Lift {o ℓ e p i : Level} {𝒞 𝒟 : CCat o ℓ e} (S : CSite 𝒞 p i
           where
             open Terminal
             R⋆-terminal : Terminal C.Cat
-            R⋆-terminal = limit⇒⊤ C.Cat $ rapl (Inv⊣Dir G) (empty _ o ℓ e) $ ⊤⇒limit D.Cat D.terminal
+            R⋆-terminal =
+              limit⇒⊤ C.Cat $
+              rapl (Inv⊣Dir G) (empty _ o ℓ e) $
+              ⊤⇒limit D.Cat D.terminal
 
       R⋆-terminal = record { ⊤ = _ ; ⊤-is-terminal = R⋆-is-terminal}
 
@@ -289,91 +292,64 @@ module Lift {o ℓ e p i : Level} {𝒞 𝒟 : CCat o ℓ e} (S : CSite 𝒞 p i
           where open C.HomReasoning
                 open MR C.Cat
 
-        module _ {U : C.Obj} where
-          private
-            module F1 = Setoid (F.₀ U)
-            module F2 = Setoid (F.₀ (RL.₀ U))
-          Fη-injective : ∀ {s t} → F.₁ (unit.η U) .to s F1.≈ F.₁ (unit.η U) .to t → s F2.≈ t
-          Fη-injective {s} {t} H≈ =
-            let step1 : (∀ {z} → F.₁ (unit.η _ C.∘ z) .to s F.X.≈ F.₁ (unit.η _ C.∘ z) .to t) → ∀ {z} → F.₁ z .to s F.X.≈ F.₁ z .to t
-                step1 = {!!}
-                step2 : ∀ {z} → F.₁ (unit.η _ C.∘ z) .to s F.X.≈ F.₁ z .to (F.₁ (unit.η _) .to t)
-                step2 = {!!}
-            in
-            F.is-concrete $ step1 λ {z} → {!!}
-              -- F.X.trans (F.F-resp-≈ H≈′) $
-              -- F.X.trans FH $
-              -- {!!}
-
-        Radjunct-lemma₁ : ∀ {X} {z : C.⋆ C.⇒ R.₀ X} → R.₁ (Radjunct z D.∘ L⋆.!) C.∘ R⋆.! C.≈ z
-        Radjunct-lemma₁ {z = z} = begin
+        Radjunct-lemma : ∀ {X} {z : C.⋆ C.⇒ R.₀ X} → R.₁ (Radjunct z D.∘ L⋆.!) C.∘ R⋆.! C.≈ z
+        Radjunct-lemma {z = z} = begin
           R.₁ (Radjunct z D.∘ L⋆.!) C.∘ R⋆.!     ≈⟨ C.∘-resp-≈ˡ RH ○ C.assoc ⟩ 
           R.₁ (Radjunct z) C.∘ R.₁ L⋆.! C.∘ R⋆.! ≈⟨ refl⟩∘⟨ RL⋆≈η ⟩
           Ladjunct (Radjunct z)                  ≈⟨ LRadjunct≈id ⟩
           z                                      ∎
           where open C.HomReasoning
 
-        Radjunct-lemma₂ : ∀ {X} {z : D.⋆ D.⇒ X} → Radjunct (R.F₁ z C.∘ R⋆.!) D.∘ L⋆.! D.≈ z
-        Radjunct-lemma₂ {z = z} = begin
-          Radjunct (R.F₁ z C.∘ R⋆.!) D.∘ L⋆.!      ≈⟨ D.∘-resp-≈ʳ (L.F-resp-≈ H≈) ⟩∘⟨refl ⟩
-          Radjunct (Ladjunct (z D.∘ D.!)) D.∘ L⋆.! ≈⟨ RLadjunct≈id ⟩∘⟨refl ⟩ 
-          (z D.∘ D.!) D.∘ L⋆.!                     ≈⟨ D.assoc ○ elimʳ D.!-unique₂ ⟩
-          z                                        ∎
-          where
-            open D.HomReasoning
-            open MR D.Cat
-            module CR = C.HomReasoning
-            H≈ = C.∘-resp-≈ʳ R⋆.!-unique₂ CR.○ C.sym-assoc CR.○ C.∘-resp-≈ˡ (CR.⟺ RH)
+        module DR = D.HomReasoning
+        module CR = C.HomReasoning
 
       LiftSheaf : CSheaf LiftSite o′ ℓ′
       LiftSheaf .Psh = F.Psh ∘F R.op
-      LiftSheaf .is-sheaf {U} fs p matching = mkUnique witness′ section′ unique′
+      LiftSheaf .is-sheaf {U} fs p matching =
+        mkUnique (uniq-section .witness) section′ unique′
         where
           p′ = λ i → F.₁ (unit.η _) .to (p i)
           matching′ : F.is-matching (S.cover fs) p′
           matching′ {K = K} {i = i} {j} f g H≈ = begin
-            F.₁ f .to (F.₁ (unit.η _) .to (p i))        ≈⟨ FK.sym FH ○ F.F-resp-≈ (unit.commute f) ○ FH ⟩
+            F.₁ f .to (F.₁ (unit.η _) .to (p i))        ≈⟨ FK.sym FH ○ (F.F-resp-≈ (unit.commute f) ○ FH) ⟩
             F.₁ (unit.η _) .to (F.₁ (RL.₁ f) .to (p i)) ≈⟨ F.₁ (unit.η _) .cong (matching (L.₁ f) (L.₁ g) H≈′) ⟩
-            F.₁ (unit.η _) .to (F.₁ (RL.₁ g) .to (p j)) ≈⟨ FK.sym FH ○ F.F-resp-≈ (unit.sym-commute g) ○ FH ⟩
+            F.₁ (unit.η _) .to (F.₁ (RL.₁ g) .to (p j)) ≈⟨ FK.sym FH ○ (F.F-resp-≈ (unit.sym-commute g) ○ FH) ⟩
             F.₁ g .to (F.₁ (unit.η _) .to (p j))        ∎
-            where
-              open SetoidR (F.₀ K)
-              module FK = Setoid (F.₀ K)
-              module DR = D.HomReasoning
-              infixr 5 _○_
-              _○_ = FK.trans
-              H≈′ = D.assoc DR.○ D.∘-resp-≈ʳ (DR.⟺ LH DR.○ L.F-resp-≈ H≈ DR.○ LH) DR.○ D.sym-assoc
-          abstract
-            uniq-section : ∃! (F.₀ (R.₀ U)) (F.is-section (S.cover fs) p′)
-            uniq-section = F.is-sheaf fs p′ matching′
+            where open SetoidR (F.₀ K)
+                  module FK = Setoid (F.₀ K)
+                  _○_ = FK.trans
+                  H≈′ = D.assoc DR.○ D.∘-resp-≈ʳ (DR.⟺ LH DR.○ L.F-resp-≈ H≈ DR.○ LH) DR.○ D.sym-assoc
+          uniq-section : ∃! (F.₀ (R.₀ U)) (F.is-section (S.cover fs) p′)
+          uniq-section = F.is-sheaf fs p′ matching′
+          section′ : F.is-section _ p (uniq-section .witness)
+          section′ i = F.is-concrete λ {x} →
+            let j , u , H≈u = S.is-concrete fs (R.₁ (Radjunct (S.cov fs i)) C.∘ x)
+                H≈u′ = DR.begin
+                  Radjunct (S.cov fs j) D.∘ L.₁ u              DR.≈⟨ D.assoc DR.○ D.∘-resp-≈ʳ (DR.⟺ LH) ⟩
+                  Radjunct (S.cov fs j C.∘ u)                  DR.≈⟨ DR.refl⟩∘⟨ L.F-resp-≈ (CR.⟺ H≈u) ⟩
+                  Radjunct (R.₁ (Radjunct (S.cov fs i)) C.∘ x) DR.≈⟨ D.∘-resp-≈ʳ LH DR.○ DM.extendʳ (counit.commute _) ⟩
+                  Radjunct (S.cov fs i) D.∘ Radjunct x         DR.∎
+            in begin
+              F.₁ x .to (F.₁ (R.₁ (Radjunct (S.cov fs i))) .to _)   ≈⟨ F.X.sym FH ○ (F.F-resp-≈ H≈u ○ FH) ⟩
+              F.₁ u .to (F.₁ (S.cov fs j) .to _)                    ≈⟨ F.F₁ u .cong (uniq-section .has-prop j) ⟩
+              F.₁ u .to (F.₁ (unit.η _) .to (p j))                  ≈⟨ F.X.sym FH ○ (F.F-resp-≈ (unit.commute u) ○ FH) ⟩
+              F.₁ (unit.η _) .to (F.₁ (RL.₁ u) .to (p j))           ≈⟨ F.₁ (unit.η _) .cong (matching _ _ H≈u′) ⟩
+              F.₁ (unit.η _) .to (F.₁ (R.₁ (Radjunct x)) .to (p i)) ≈⟨ F.X.sym FH ○ F.F-resp-≈ LRadjunct≈id ⟩
+              F.₁ x .to (p i) ∎
+            where open SetoidR (F.₀ C.⋆)
+                  module DM = MR D.Cat
+                  _○_ = F.X.trans
           module FU = Setoid (F.₀ (R.₀ U))
-          witness′ = uniq-section .witness
-          section′ : F.is-section _ p witness′
-          section′ i =
-            let H≈ = uniq-section .has-prop i
-                w′ = witness′
-                foo = begin
-                  F.₁ (unit.η _) .to (F.₁ (R.₁ (Radjunct (S.cov fs i))) .to witness′) ≈⟨ {!!} ⟩
-                  F.₁ (Ladjunct (Radjunct (S.cov fs i))) .to witness′                 ≈⟨ {!!} ⟩
-                  F.₁ (S.cov fs i) .to witness′                                       ≈⟨ {!!} ⟩
-                  F.₁ (unit.η _) .to (p i)                                            ∎
-            in {!!}
-              -- begin
-              -- F.₁ (R.₁ (Radjunct (S.cov fs i))) .to witness′ ≈⟨ {!!} ⟩
-              -- -- F.₁ (unit.η _ C.∘ R.₁ (LR.₁ (counit.η _))) .to (p i)  ≈⟨ ? ⟩
-              -- F.₁ (R.₁ (counit.η _) C.∘ unit.η _) .to (p i)  ≈⟨ {!!} ⟩
-              -- F.₁ C.id .to (p i)                             ≈⟨ {!!} ⟩
-              -- p i                                            ∎
-            where open SetoidR (F.₀ (S.dom fs i))
-          unique′ : ∀ s → F.is-section _ p s → witness′ FU.≈ s
-          unique′ s Hs = uniq-section .unique s λ i → {!!}
-            -- uniq uniq-section λ i → {!!} -- Define at-most-one part of ∃! and separate out?
+          unique′ : ∀ s → F.is-section _ p s → uniq-section .witness FU.≈ s
+          unique′ s Hs = uniq-section .unique s λ i →
+            let module FD = Setoid (F.₀ (S.dom fs i))
+                _○_ = FD.trans
+            in F.F-resp-≈ (CR.⟺ LRadjunct≈id) ○ (FH ○ F.F₁ (unit.η _) .cong (Hs i))
       LiftSheaf .is-concrete {x = x} {y} H≈ =
         F.is-concrete λ {z} → begin
-          F.₁ z .to x                      ≈⟨ F.F-resp-≈ (CR.⟺ Radjunct-lemma₁) ○ FH ⟩
+          F.₁ z .to x                      ≈⟨ F.F-resp-≈ (CR.⟺ Radjunct-lemma) ○ FH ⟩
           F.₁ R⋆.! .to (F.₁ (R.₁ _) .to x) ≈⟨ F.₁ R⋆.! .cong H≈ ⟩
-          F.₁ R⋆.! .to (F.₁ (R.₁ _) .to y) ≈⟨ F.X.sym FH ○ F.F-resp-≈ Radjunct-lemma₁ ⟩
+          F.₁ R⋆.! .to (F.₁ (R.₁ _) .to y) ≈⟨ F.X.sym FH ○ F.F-resp-≈ Radjunct-lemma ⟩
           F.₁ z .to y                      ∎
         where open SetoidR (F.₀ C.⋆)
-              module CR = C.HomReasoning
               _○_ = F.X.trans
