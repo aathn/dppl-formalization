@@ -8,10 +8,10 @@
 -- https://amp12.github.io/LocallyNamelessSets/
 --------------------------------------------------------------
 
-module Lib.oc-Sets where
+module Lib.LocallyNameless.oc-Sets where
 
 open import Lib.Prelude
-open import Lib.Unfinite
+open import Lib.LocallyNameless.Unfinite
 
 ----------------------------------------------------------------------
 -- oc-Sets [Section 2.2]

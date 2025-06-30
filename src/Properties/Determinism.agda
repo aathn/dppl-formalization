@@ -7,7 +7,7 @@ open Interval R
 
 open import Lib.Prelude
 open import Lib.FunExt
-open import Lib.BindingSignature
+open import Lib.LocallyNameless.BindingSignature
 open import Lib.EvalCtx
 
 open import Syntax R

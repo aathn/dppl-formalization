@@ -6,9 +6,9 @@ open Reals R
 open import Syntax R
 
 open import Lib.Prelude
-open import Lib.Unfinite
-open import Lib.AbstractionConcretion hiding (abs)
-open import Lib.BindingSignature
+open import Lib.LocallyNameless.Unfinite
+open import Lib.LocallyNameless.AbstractionConcretion hiding (abs)
+open import Lib.LocallyNameless.BindingSignature
 open import Lib.Env
 
 open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_)

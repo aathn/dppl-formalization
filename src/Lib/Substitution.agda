@@ -1,11 +1,11 @@
 module Lib.Substitution where
 
 open import Lib.Prelude
-open import Lib.Unfinite
-open import Lib.oc-Sets
-open import Lib.LocalClosedness
+open import Lib.LocallyNameless.Unfinite
+open import Lib.LocallyNameless.oc-Sets
+open import Lib.LocallyNameless.LocalClosedness
 open import Lib.FunExt
-open import Lib.BindingSignature
+open import Lib.LocallyNameless.BindingSignature
 
 module _ {Σ : Sig} where
 

@@ -8,11 +8,11 @@
 -- https://amp12.github.io/LocallyNamelessSets/
 --------------------------------------------------------------
 
-module Lib.LocalClosedness where
+module Lib.LocallyNameless.LocalClosedness where
 
 open import Lib.Prelude
-open import Lib.Unfinite
-open import Lib.oc-Sets
+open import Lib.LocallyNameless.Unfinite
+open import Lib.LocallyNameless.oc-Sets
 
 ----------------------------------------------------------------------
 -- Local closedness [Section 2.4]

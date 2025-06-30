@@ -46,7 +46,7 @@ open import Relation.Nullary public using (¬_)
 -- Unit type
 ----------------------------------------------------------------------
 
-open import Data.Unit.Polymorphic public using (tt)
+open import Data.Unit public using (tt)
   renaming (⊤ to 𝟙)
 
 ----------------------------------------------------------------------

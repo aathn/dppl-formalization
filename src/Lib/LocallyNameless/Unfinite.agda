@@ -8,7 +8,7 @@
 -- https://amp12.github.io/LocallyNamelessSets/
 --------------------------------------------------------------
 
-module Lib.Unfinite where
+module Lib.LocallyNameless.Unfinite where
 
 open import Lib.Prelude
 

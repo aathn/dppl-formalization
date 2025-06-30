@@ -6,9 +6,9 @@ open Reals R hiding (refl)
 open Interval R
 
 open import Lib.Prelude
-open import Lib.Unfinite
+open import Lib.LocallyNameless.Unfinite
 open import Lib.FunExt
-open import Lib.BindingSignature
+open import Lib.LocallyNameless.BindingSignature
 open import Lib.EvalCtx
 open import Lib.Env
 open import Lib.Substitution

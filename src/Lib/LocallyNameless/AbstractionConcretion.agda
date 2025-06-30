@@ -8,14 +8,14 @@
 -- https://amp12.github.io/LocallyNamelessSets/
 --------------------------------------------------------------
 
-module Lib.AbstractionConcretion where
+module Lib.LocallyNameless.AbstractionConcretion where
 
 open import Lib.Prelude
-open import Lib.Unfinite
-open import Lib.oc-Sets
-open import Lib.Freshness
-open import Lib.LocalClosedness
-open import Lib.Support
+open import Lib.LocallyNameless.Unfinite
+open import Lib.LocallyNameless.oc-Sets
+open import Lib.LocallyNameless.Freshness
+open import Lib.LocallyNameless.LocalClosedness
+open import Lib.LocallyNameless.Support
 
 ----------------------------------------------------------------------
 -- Locally closed part of an oc-set [Definition 2.14]
