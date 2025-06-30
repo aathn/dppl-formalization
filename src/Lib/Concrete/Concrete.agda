@@ -2,7 +2,7 @@ module Lib.Concrete.Concrete where
 
 -- Our definitions of concrete categories, sites, and sheaves.
 
-open import Lib.Prelude hiding (id ; _∘_ ; _∈_ ; [_])
+open import Lib.Prelude hiding (id ; _∘_ ; _∈_ ; [_] ; 𝟙 ; tt)
 
 open import Categories.Category using (Category)
 open import Categories.Category.Construction.Presheaves using (Presheaves)
@@ -13,6 +13,8 @@ open import Categories.Functor.Hom using (module Hom)
 open import Categories.Functor.Presheaf using (Presheaf)
 open import Categories.Functor.Properties using (Faithful)
 open import Categories.Object.Terminal using (Terminal)
+
+open import Data.Unit.Polymorphic using (tt) renaming (⊤ to 𝟙)
 
 open import Function using (Func)
 import Function.Construct.Setoid as FnS
@@ -234,8 +236,8 @@ module _ {o ℓ e : Level} where
       ; cong = λ H≈ → F-resp-≈ H≈
       }
 
-    R[_,_] : (U : Obj) → ℙ (Func obj∣ U ∣ ∣_∣) _
-    R[_,_] U f = ∃ λ FU → f ≗ F-maps U FU
+    R[_,_] : (U : Obj) → ℙ (obj-set.Carrier U → X.Carrier) _
+    R[_,_] U f = ∃ λ FU → ∀ {x} → f x X.≈ F-maps U FU .to x
 
     field
       is-sheaf :

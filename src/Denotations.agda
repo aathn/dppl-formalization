@@ -7,18 +7,27 @@ open Reals R using (ℝ; 0ᴿ; _≲?_)
 open import Syntax R hiding (n; m; D)
 open import Typing R
 
-open import Lib.Prelude
-open import Lib.LocallyNameless.Unfinite
-open import Lib.Env
-open import Lib.Subvec
-open import Lib.FunExt
+open import Lib.Prelude hiding (_∈_ ; _∷_ ; [])
+
+open import Lib.Concrete.Concrete
+open import Lib.Concrete.Construction
+open import Lib.Concrete.Properties
+
+open import Categories.Category using (Category)
+
+open import Relation.Unary using (_∈_)
+
+-- open import Lib.LocallyNameless.Unfinite
+-- open import Lib.Env
+-- open import Lib.Subvec
+-- open import Lib.FunExt
 
 -- open import Data.Fin using (splitAt)
 -- open import Data.Fin.Properties using (toℕ<n)
 -- open import Data.List.Relation.Unary.All as All using (All)
 -- open import Data.Sum using ([_,_])
 -- open import Data.Sum.Properties using (inj₁-injective; inj₂-injective)
--- open import Data.Vec.Functional
+open import Data.Vec.Functional
 -- open import Relation.Unary using (_∈_; Pred; ⋃)
 -- open import Relation.Binary using (Rel)
 
@@ -28,76 +37,77 @@ open import Lib.FunExt
 -- open import Function.Construct.Setoid as FuncS using (_∙_)
 -- import Relation.Binary.Reasoning.Setoid as SetoidR
 
--- module ℝ⊆ where
+private
+  variable
+    n m : ℕ
+    Θ : Coeff ^ n
+    Θ′ : Coeff ^ m
 
---   ℝ⊆ : CCat ℓ₁ ℓ₀ ℓ₀
---   ℝ⊆ = {!!}
---   -- ℝ⊆ .Obj = ∃₂ λ n o → o ↣ ℝ ^ n
---   -- ℝ⊆ ._⇒_ (_ , o₁ , _) (_ , o₂ , _) = o₁ ↣ o₂
---   -- ℝ⊆ ._≈_ = {!!}
---   -- ℝ⊆ .id′ = {!!}
---   -- ℝ⊆ ._∘′_ = {!!}
---   -- ℝ⊆ .assoc = {!!}
---   -- ℝ⊆ .sym-assoc = {!!}
---   -- ℝ⊆ .identityˡ = {!!}
---   -- ℝ⊆ .identityʳ = {!!}
---   -- ℝ⊆ .identity² = {!!}
---   -- ℝ⊆ .equiv = {!!}
---   -- ℝ⊆ .∘-resp-≈ = {!!}
+record c-assumptions : Set₁ where
+  field
+    c-cat   : Coeff → CCat ℓ₀ ℓ₀ ℓ₀
+    c-site  : (c : Coeff) → CSite (c-cat c) ℓ₀ ℓ₀
+    c-sheaf : (c : Coeff) → CSheaf (c-site c) ℓ₀ ℓ₀
 
--- open ℝ⊆
+    Θ-cat : CCat ℓ₀ ℓ₀ ℓ₀
 
--- record c-assumptions : Set₁ where
---   field
---     c-site : Coeff → CSite ℓ₀ ℝ⊆
---     c-sheaf : (c : Coeff) → CSheaf ℓ₀ ℓ₀ (c-site c)
+  module c-cat (c : Coeff) = CCat (c-cat c)
+  module Θ-cat = CCat Θ-cat
 
-  -- c-opens : Category ℓ₀ ℓ₀ ℓ₀
-  -- c-opens .Obj = ∃₂ c-open
-  -- c-opens ._⇒_ (c₁ , n₁ , U) (c₂ , n₂ , V) = c-open-points U ↣ c-open-points V
-  -- c-opens ._≈_ = {!!}
-  -- c-opens .id′ = {!!}
-  -- c-opens ._∘′_ = {!!}
-  -- c-opens .assoc = {!!}
-  -- c-opens .sym-assoc = {!!}
-  -- c-opens .identityˡ = {!!}
-  -- c-opens .identityʳ = {!!}
-  -- c-opens .identity² = {!!}
-  -- c-opens .equiv = {!!}
-  -- c-opens .∘-resp-≈ = {!!}
+  field
+    Θ-obj : Coeff ^ n → Θ-cat.Obj
 
---   𝔉′ : (Θ : Coeff ^ n) (Θ′ : Coeff ^ m) → Pred (ℝ ^ n → ℝ ^ m) ℓ₀
---   𝔉′ Θ Θ′ f = (i : Fin _) → π[ i ] ∘ f ∈ 𝔉 Θ (π[ i ] Θ′)
+    c-proj : (c : Coeff) → Geom[ Θ-cat.Cat , c-cat.Cat c ]
 
---   field
---     𝔉-const : (r : ℝ) → const r ∈ 𝔉 [] N
+module _ (c-ass : c-assumptions) where
+  open c-assumptions c-ass
+  open Pull
+  open Meet
 
---     𝔉-proj : id ∈ 𝔉′ Θ Θ
+  Θc-site : (c : Coeff) → CSite Θ-cat ℓ₀ ℓ₀
+  Θc-site c = PullSite (c-site c) (c-proj c)
 
---     𝔉-cond :
---       (λ θ → if (θ ₀ ≲? 0ᴿ) then θ ₁ else θ ₂)
---         ∈ 𝔉 (P ∷ c ∷ c ∷ []) c
+  Θc-sheaf : (c : Coeff) → CSheaf (Θc-site c) ℓ₀ ℓ₀
+  Θc-sheaf c = PullSheaf (c-site c) (c-proj c) (c-sheaf c)
 
---     𝔉-compose :
---       {g : ℝ ^ n → ℝ ^ m}
---       {f : ℝ ^ m → ℝ}
---       (_ : g ∈ 𝔉′ Θ Θ′)
---       (_ : f ∈ 𝔉 Θ′ c)
---       → -----------------
---        f ∘ g ∈ 𝔉 Θ c
+  Θ-site : CSite Θ-cat ℓ₀ ℓ₀
+  Θ-site =
+    MeetSite (Θc-site A) $
+    MeetSite (Θc-site P)
+             (Θc-site N)
 
---     𝔉-sub :
---       {f : ℝ ^ n → ℝ}
---       (_ : ∀ i → π[ i ] Θ ≤′ π[ i ] Θ′)
---       (_ : c′ ≤′ c)
---       → -------------------------------
---       f ∈ 𝔉 Θ c → f ∈ 𝔉 Θ′ c′
+  Θ-sheaf : CSheaf Θ-site ℓ₀ ℓ₀
+  Θ-sheaf = {!!}
 
---     𝔉-promote :
---       {f : ℝ ^ n → ℝ}
---       (_ : ∀ i → c′ ≤′ π[ i ] Θ)
---       → ------------------------
---       f ∈ 𝔉 Θ c → f ∈ 𝔉 Θ c′
+  𝔉 : (Θ : Coeff ^ n) → ℙ (ℝ ^ n → ℝ) ℓ₀
+  𝔉 Θ f = {!!} -- f ∈ R[ Θ-sheaf , Θ-obj Θ ]
+
+  𝔉′ : (Θ : Coeff ^ n) (Θ′ : Coeff ^ m) → ℙ (ℝ ^ n → ℝ ^ m) ℓ₀
+  𝔉′ Θ Θ′ f = {!!}
+
+  record 𝔉-assumptions : Set₁ where
+
+    field
+      𝔉-const : (r : ℝ) → const r ∈ 𝔉 []
+  
+      𝔉-proj : id ∈ 𝔉′ Θ Θ
+  
+      𝔉-cond :
+        (λ θ → if (θ ₀ ≲? 0ᴿ) then θ ₁ else θ ₂)
+          ∈ 𝔉 (P ∷ c ∷ c ∷ [])
+  
+      𝔉-sub :
+        {f : ℝ ^ n → ℝ}
+        (_ : ∀ i → π[ i ] Θ ≤′ π[ i ] Θ′)
+        (_ : c′ ≤′ c)
+        → -------------------------------
+        f ∈ 𝔉 Θ → f ∈ 𝔉 Θ′
+  
+      -- 𝔉-promote :
+      --   {f : ℝ ^ n → ℝ}
+      --   (_ : ∀ i → c′ ≤′ π[ i ] Θ)
+      --   → ------------------------
+      --   f ∈ 𝔉 Θ c → f ∈ 𝔉 Θ c′
 
 
 -- module 𝔉-lemmas (Ass : 𝔉-assumptions) where

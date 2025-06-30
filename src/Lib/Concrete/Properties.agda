@@ -1,6 +1,8 @@
+-- TODO: REMOVE THIS PRAGMA
+{-# OPTIONS --allow-unsolved-metas #-}
 module Lib.Concrete.Properties where
 
-open import Lib.Prelude renaming (_∘_ to _∘ᶠ_) hiding (id)
+open import Lib.Prelude renaming (_∘_ to _∘ᶠ_) hiding (id ; tt)
 open import Lib.Concrete.Concrete
 
 open import Categories.Category.BinaryProducts using (BinaryProducts)
@@ -19,6 +21,8 @@ open import Categories.Object.Terminal using (Terminal)
 import Categories.Category.Construction.Properties.Presheaves.Cartesian as PreCart
 import Categories.Category.Construction.Properties.Presheaves.CartesianClosed as PreCCC
 import Categories.Morphism.Reasoning as MR
+
+open import Data.Unit.Polymorphic using (tt) renaming (⊤ to 𝟙)
 
 open import Function using (Func)
 
