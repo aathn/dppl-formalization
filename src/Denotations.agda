@@ -17,6 +17,7 @@ open import Data.Fin.Properties using (toℕ<n)
 open import Data.List.Relation.Unary.All as All using (All)
 open import Data.Vec.Functional
 open import Relation.Unary using (_∈_; Pred)
+import Data.List.Relation.Binary.Sublist.Propositional as Sub
 
 private
   variable
@@ -38,7 +39,7 @@ record 𝔉-assumptions : Set₁ where
     𝔉-proj : id ∈ 𝔉′ Θ Θ
 
     𝔉-cond :
-      (λ θ → if (θ ₀ ≲? 0ᴿ) then θ ₁ else θ ₂)
+      (λ θ → if θ ₀ ≲? 0ᴿ then θ ₁ else θ ₂)
         ∈ 𝔉 (P ∷ c ∷ c ∷ []) c
 
     𝔉-compose :
@@ -171,6 +172,19 @@ module Denotations (Ass : DenotAssumptions) where
   weaken-env : Θ ⊆ Θ′ → ⟦ Γ ⟧ᴱ Θ → ⟦ Γ ⟧ᴱ Θ′
   weaken-env H⊆ = All.map (weaken H⊆)
 
+  weaken-Γ : Γ Sub.⊆ Γ′ → ⟦ Γ′ ⟧ᴱ Θ → ⟦ Γ ⟧ᴱ Θ
+  weaken-Γ Sub.[] HΓ′ = HΓ′
+  weaken-Γ (y Sub.∷ʳ H⊆) (_ All.∷ HΓ′) = weaken-Γ H⊆ HΓ′
+  weaken-Γ (refl Sub.∷ H⊆) (px All.∷ HΓ′) = px All.∷ weaken-Γ H⊆ HΓ′
+
+  sub-compat : T <: T′ → ⟦ T ⟧ᵀ Θ → ⟦ T′ ⟧ᵀ Θ
+  sub-compat (sreal H≤) (f , Hf) = f , 𝔉-sub (λ _ → ≤refl) H≤ Hf
+  sub-compat (stup Hsub) HT i = sub-compat (Hsub i) (HT i)
+  sub-compat (sarr {e = det} {e′ = det} Hsub Hsub₁ H≤) HT H⊆ HT₁ =
+    sub-compat Hsub₁ (HT H⊆ (sub-compat Hsub HT₁))
+  sub-compat (sarr {e′ = rnd} Hsub Hsub₁ H≤) HT = tt
+  sub-compat (sdist _) _ = tt
+
   abs-real-denot : {cs : Coeff ^ n} → ⟦ T ⟧ᵀ (cs ++ Θ) → ⟦ treals n cs ⇒[ det ] T ⟧ᵀ Θ
   abs-real-denot {n = n} {T = treal c′} {cs = cs} f {Θ′ = Θ′} H⊆ xs
     with f , Hf ← weaken (⊆-++⁺ ⊆-refl H⊆) f = _ , 𝔉-compose Hg Hf
@@ -231,6 +245,6 @@ module Denotations (Ass : DenotAssumptions) where
   ⟦ tsolve Htype Htype₁ Htype₂ H≤ ⟧ = {!!}
   ⟦ tdist _ _ _ ⟧ γ = tt
   ⟦ tinfer Htype _ ⟧ γ = tt
-  ⟦ tweaken Htype x x₁ ⟧ = {!!}
-  ⟦ tsub Htype x x₁ ⟧ = {!!}
-  ⟦ tpromote Htype x ⟧ = {!!}
+  ⟦ tweaken Htype H⊆ Hd ⟧ γ = ⟦ Htype ⟧ (weaken-Γ H⊆ γ)
+  ⟦ tsub {e = det} Htype _ Hsub ⟧ γ = sub-compat Hsub (⟦ Htype ⟧ γ)
+  ⟦ tpromote Htype H≤ ⟧ = {!!}
