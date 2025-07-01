@@ -6,13 +6,13 @@ open import Syntax R
 open import Typing R
 open import Properties.Syntax R
 open import Properties.Typing R
-open import Properties.Util
 
 open import Lib.Prelude
 open import Lib.LocallyNameless.Unfinite
 open import Lib.LocallyNameless.BindingSignature
 open import Lib.LocallyNameless.AbstractionConcretion renaming (abs to acabs)
 open import Lib.Env
+open import Lib.Util
 
 open import Data.Product.Instances using (Σ-≡-isDecEquivalence)
 open import Data.List.Relation.Binary.Sublist.DecPropositional {A = 𝔸 × Type} _≐_

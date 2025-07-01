@@ -9,11 +9,11 @@ open import Lib.Prelude
 open import Lib.FunExt
 open import Lib.LocallyNameless.BindingSignature
 open import Lib.EvalCtx
+open import Lib.Util
 
 open import Syntax R
 open import SmallStep R
 open import Properties.SmallStep R
-open import Properties.Util
 
 open import Data.Fin.Properties using (<-cmp)
 open import Data.Product using (map₁)

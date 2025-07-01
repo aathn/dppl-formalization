@@ -8,7 +8,7 @@ open import Syntax R hiding (n; m)
 open import Typing R
 
 open import Lib.Prelude hiding ([]; _∷_; _∈_)
-open import Lib.Unfinite
+open import Lib.LocallyNameless.Unfinite
 open import Lib.Env hiding ([]; _∷_)
 open import Lib.Subvec
 

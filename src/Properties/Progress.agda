@@ -8,11 +8,11 @@ open import Syntax R
 open import Typing R
 open import SmallStep R
 open import Properties.SmallStep R
-open import Properties.Util
 
 open import Lib.Prelude
 open import Lib.FunExt
 open import Lib.EvalCtx
+open import Lib.Util
 
 open import Data.List.Relation.Binary.Sublist.Propositional using ([])
 open import Data.Vec.Functional using (map)

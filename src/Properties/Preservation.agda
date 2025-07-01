@@ -12,6 +12,7 @@ open import Lib.LocallyNameless.BindingSignature
 open import Lib.EvalCtx
 open import Lib.Env
 open import Lib.Substitution
+open import Lib.Util
 
 open import Data.Fin.Instances using (Fin-≡-isDecEquivalence)
 open import Data.Fin.Properties using (toℕ<n)
@@ -25,7 +26,6 @@ open import Typing R
 open import SmallStep R
 open import Properties.Typing R
 open import Properties.SmallStep R
-open import Properties.Util
 
 ctx-type-inv :
   {E : Term → Term}

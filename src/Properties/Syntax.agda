@@ -3,10 +3,10 @@ open import Lib.Reals
 module Properties.Syntax (R : Reals₀) where
 
 open import Syntax R
-open import Properties.Util
 
 open import Lib.Prelude
 open import Lib.FunExt
+open import Lib.Util
 
 open import Data.Fin.Instances using (Fin-≡-isDecEquivalence)
 

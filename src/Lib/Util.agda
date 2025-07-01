@@ -1,7 +1,7 @@
-module Properties.Util where
+module Lib.Util where
 
+-- Various utility lemmas
 
--- Utility lemmas
 open import Lib.Prelude
 open import Lib.FunExt
 
@@ -10,7 +10,7 @@ open import Data.List using (_++_ ; map)
 open import Data.List.Properties
   using (++-conicalʳ ; ∷-injective ; ∷-injectiveˡ ; ∷-injectiveʳ)
 open import Data.List.Membership.Propositional using () renaming (_∈_ to _∈ˡ_)
-open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_ ; [] ; _∷ʳ_)
+open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_ ; [] ; _∷_ ; _∷ʳ_ ; ⊆-refl)
 open import Data.List.Relation.Unary.All using (All ; [] ; _∷_)
 import Data.Vec.Functional as V
 
@@ -69,8 +69,18 @@ all-weaken :
   {A : Set}
   {P : A → Set}
   {l₁ l₂ : List A}
+  (_ : l₁ ⊆ l₂)
+  → -----------------
+  All P l₂ → All P l₁
+all-weaken [] Hall = Hall
+all-weaken (y ∷ʳ H⊆) (px ∷ Hall) = all-weaken H⊆ Hall
+all-weaken (refl ∷ H⊆) (px ∷ Hall) = px ∷ all-weaken H⊆ Hall
+
+insert-⊆ :
+  {A : Set}
+  {l₁ l₂ : List A}
   {x : A}
-  → -------------------------------------
-  All P (l₁ ++ x ∷ l₂) → All P (l₁ ++ l₂)
-all-weaken {l₁ = []} (px ∷ Hall) = Hall
-all-weaken {l₁ = x ∷ l₁} (px ∷ Hall) = px ∷ all-weaken Hall
+  → ---------------------
+  l₁ ++ l₂ ⊆ l₁ ++ x ∷ l₂
+insert-⊆ {l₁ = []} = _ ∷ʳ ⊆-refl
+insert-⊆ {l₁ = x ∷ l₁} = refl ∷ insert-⊆

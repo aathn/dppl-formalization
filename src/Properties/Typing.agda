@@ -7,7 +7,6 @@ open Reals R hiding (refl)
 
 open import Syntax R
 open import Typing R
-open import Properties.Util
 
 open import Lib.Prelude
 open import Lib.LocallyNameless.Unfinite
@@ -17,6 +16,7 @@ open import Lib.LocallyNameless.AbstractionConcretion hiding (abs)
 open import Lib.LocallyNameless.BindingSignature
 open import Lib.Env
 open import Lib.Substitution
+open import Lib.Util
 
 open import Data.List.Properties using (++-conicalʳ)
 open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_ ; [] ; _∷_ ; _∷ʳ_ ; lookup)
@@ -316,11 +316,11 @@ substitution-pres-typing {Γ′ = Γ′} {x = x} {u = u} {T₂ = T₂} Htype Hu 
   go {{refl}} (tdist HD Hd Htypes) = tdist HD (distinct-weaken Hd) (go ∘ Htypes)
   go (tassume Htype) = tassume $ go Htype
   go (tweight Htype) = tweight $ go Htype
-  go {{refl}} (tinfer Htype H≤) = tinfer (go Htype) (all-weaken H≤)
+  go {{refl}} (tinfer Htype H≤) = tinfer (go Htype) (all-weaken insert-⊆ H≤)
   go {{refl}} (tweaken {Γ′ = Γ₂} {t = t} Htype H⊆ Hd) with x ∈? dom Γ₂
   ... | yes H∈ with Δ₁ , Δ₂ , [] , H⊆₁ , refl ← ⊆-split (distinct-∉ Hd) H∈ H⊆ =
     tweaken (go Htype) (++⁺ H⊆₁ []) (distinct-weaken Hd)
   ... | no H∉ rewrite subst-fresh u t (∉-dom-fv Htype (¬∈→∉ H∉)) =
     tweaken Htype (⊆-strengthen (¬∈→∉ H∉) H⊆) (distinct-weaken Hd)
   go (tsub Htype H≤ Hsub) = tsub (go Htype) H≤ Hsub
-  go {{refl}} (tpromote Htype Hmul) = tpromote (go Htype) (all-weaken Hmul)
+  go {{refl}} (tpromote Htype Hmul) = tpromote (go Htype) (all-weaken insert-⊆ Hmul)
