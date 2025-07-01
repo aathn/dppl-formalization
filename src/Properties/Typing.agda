@@ -15,12 +15,14 @@ open import Lib.LocallyNameless.Freshness
 open import Lib.LocallyNameless.AbstractionConcretion hiding (abs)
 open import Lib.LocallyNameless.BindingSignature
 open import Lib.Env
+open import Lib.FunExt
 open import Lib.Substitution
 open import Lib.Util
 
+open import Data.Fin using (fromℕ<)
 open import Data.List.Properties using (++-conicalʳ)
 open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_ ; [] ; _∷_ ; _∷ʳ_ ; lookup)
-open import Data.List.Relation.Binary.Sublist.Propositional.Properties using (++⁺ )
+open import Data.List.Relation.Binary.Sublist.Propositional.Properties using (++⁺)
 open import Data.List.Relation.Binary.Pointwise as P using ([] ; _∷_)
 open import Data.List.Relation.Unary.All as A using ([] ; _∷_)
 
@@ -58,6 +60,12 @@ sub-dom :
   dom Γ₁ ≡ dom Γ₂
 sub-dom [] = refl
 sub-dom (x≡y ∷ Hsub) = ap₂ _∪_ (ap [_] $ π₁ x≡y) (sub-dom Hsub)
+
+≤ᶜ⇒⊙-noop : c ≤ᶜ T → c ⊙ T ≡ T
+≤ᶜ⇒⊙-noop {T = treal c′} H≤ = ap treal {!!}
+≤ᶜ⇒⊙-noop {T = _ ⇒[ _ ] _} H≤ = refl
+≤ᶜ⇒⊙-noop {T = ttup n Ts} H≤ = ap (ttup n) $ funext λ i → ≤ᶜ⇒⊙-noop (H≤ i)
+≤ᶜ⇒⊙-noop {T = tdist _} H≤ = refl
 
 ≤ᶜ-<:-trans :
   {T₁ T₂ : Type}

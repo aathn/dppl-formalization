@@ -7,10 +7,13 @@ open Reals R using (ℝ; 0ᴿ; _≲?_)
 open import Syntax R hiding (n; m)
 open import Typing R
 
+open import Properties.Typing R
+
 open import Lib.Prelude hiding ([]; _∷_; _∈_)
 open import Lib.LocallyNameless.Unfinite
 open import Lib.Env hiding ([]; _∷_)
 open import Lib.Subvec
+open import Lib.Util
 
 open import Data.Fin using (splitAt)
 open import Data.Fin.Properties using (toℕ<n)
@@ -218,33 +221,50 @@ module Denotations (Ass : DenotAssumptions) where
   if-denot {T = ttup n Ts} s s₁ s₂ i = if-denot s (s₁ i) (s₂ i)
   if-denot {T = tdist T} s s₁ s₂ = tt
 
+  term-denot : Γ ⊢ t :[ det ] T → c ≤ᴱ Γ → {Θ : Coeff ^ n} → ⟦ Γ ⟧ᴱ Θ → ⟦ c ⊙ T ⟧ᵀ Θ
+  term-denot tvar H≤ (x All.∷ _) = {!!}
+  term-denot (tabs x) H≤ γ = {!!}
+  term-denot (tapp Htype Htype₁) H≤ γ = {!!}
+  term-denot (tprim x x₁ x₂) H≤ γ = {!!}
+  term-denot treal H≤ γ = {!!}
+  term-denot (ttup x x₁) H≤ γ = {!!}
+  term-denot (tproj i Htype) H≤ γ = {!!}
+  term-denot (tif Htype Htype₁ Htype₂) H≤ γ = {!!}
+  term-denot (tdiff x Htype Htype₁) H≤ γ = {!!}
+  term-denot (tsolve Htype Htype₁ Htype₂ x) H≤ γ = {!!}
+  term-denot (tdist _ _ _) H≤ γ = tt
+  term-denot (tinfer _ _) H≤ γ = tt
+  term-denot (tweaken Htype H⊆ _) H≤ γ =
+    term-denot Htype (all-weaken H⊆ H≤) (weaken-Γ H⊆ γ)
+  term-denot (tsub {e = det} Htype _ Hsub) H≤ γ = let foo = term-denot Htype H≤ γ in {!!} -- sub-compat Hsub (term-denot Htype H≤ γ)
+  term-denot (tpromote Htype H≤′) H≤ γ = {!!}
 
-  ⟦_⟧ : Γ ⊢ t :[ det ] T → {Θ : Coeff ^ n} → ⟦ Γ ⟧ᴱ Θ → ⟦ T ⟧ᵀ Θ
-  ⟦ tvar ⟧ (x All.∷ _) = x
-  ⟦ tabs {e = det} (Иi As Habs) ⟧ γ H⊆ s =
-    ⟦ Habs (new As) {{unfinite As}} ⟧ (s All.∷ weaken-env H⊆ γ)
-  ⟦ tabs {e = rnd} (Иi As Habs) ⟧ γ = tt
-  ⟦ tapp Hf Ht ⟧ γ = ⟦ Hf ⟧ γ ⊆-refl (⟦ Ht ⟧ γ)
-  ⟦ tprim {ϕ = ϕ} {cs = cs} Hϕ _ Htypes ⟧ {Θ} γ =
-    _ , 𝔉-compose (λ i → ⟦ Htypes i ⟧ γ .π₂) (𝔉-prim Hϕ)
-  ⟦ treal {r = r} ⟧ _ = _ , 𝔉-compose {g = λ _ ()} (λ ()) (𝔉-const r)
-  ⟦ ttup _ Htypes ⟧ γ i = ⟦ Htypes i ⟧ γ
-  ⟦ tproj i Htype ⟧ γ = ⟦ Htype ⟧ γ i
-  ⟦ tif Htype Htype₁ Htype₂ ⟧ γ =
-    if-denot (⟦ Htype ⟧ γ) (⟦ Htype₁ ⟧ γ) (⟦ Htype₂ ⟧ γ)
-  ⟦ tdiff {n = n} {m} {cs = cs} {ds} H≤ Htype Htype₁ ⟧ {Θ} γ =
-    abs-real-denot {T = treals m ds} λ j →
-    _ , 𝔉-compose
-         ((𝔉-compose′ getΘ (λ i → ⟦ Htype₁ ⟧ γ i .π₂) <++> getAs) <++> getΘ)
-         (𝔉-diff _ H≤ (fapp _ .π₂))
-    where
-      fapp = app-real-denot {T = treals m ds} (⟦ Htype ⟧ γ)
-      _<++>_ = 𝔉-++
-      getAs = 𝔉-proj′ (⊆-++⁺ʳ _ ⊆-refl)
-      getΘ = 𝔉-proj′ (⊆-++⁺ˡ _ ⊆-refl)
-  ⟦ tsolve Htype Htype₁ Htype₂ H≤ ⟧ = {!!}
-  ⟦ tdist _ _ _ ⟧ γ = tt
-  ⟦ tinfer Htype _ ⟧ γ = tt
-  ⟦ tweaken Htype H⊆ Hd ⟧ γ = ⟦ Htype ⟧ (weaken-Γ H⊆ γ)
-  ⟦ tsub {e = det} Htype _ Hsub ⟧ γ = sub-compat Hsub (⟦ Htype ⟧ γ)
-  ⟦ tpromote Htype H≤ ⟧ = {!!}
+  -- ⟦_⟧ : Γ ⊢ t :[ det ] T → {Θ : Coeff ^ n} → ⟦ Γ ⟧ᴱ Θ → ⟦ T ⟧ᵀ Θ
+  -- ⟦ tvar ⟧ (x All.∷ _) = x
+  -- ⟦ tabs {e = det} (Иi As Habs) ⟧ γ H⊆ s =
+  --   ⟦ Habs (new As) {{unfinite As}} ⟧ (s All.∷ weaken-env H⊆ γ)
+  -- ⟦ tabs {e = rnd} (Иi As Habs) ⟧ γ = tt
+  -- ⟦ tapp Hf Ht ⟧ γ = ⟦ Hf ⟧ γ ⊆-refl (⟦ Ht ⟧ γ)
+  -- ⟦ tprim {ϕ = ϕ} {cs = cs} Hϕ _ Htypes ⟧ {Θ} γ =
+  --   _ , 𝔉-compose (λ i → ⟦ Htypes i ⟧ γ .π₂) (𝔉-prim Hϕ)
+  -- ⟦ treal {r = r} ⟧ _ = _ , 𝔉-compose {g = λ _ ()} (λ ()) (𝔉-const r)
+  -- ⟦ ttup _ Htypes ⟧ γ i = ⟦ Htypes i ⟧ γ
+  -- ⟦ tproj i Htype ⟧ γ = ⟦ Htype ⟧ γ i
+  -- ⟦ tif Htype Htype₁ Htype₂ ⟧ γ =
+  --   if-denot (⟦ Htype ⟧ γ) (⟦ Htype₁ ⟧ γ) (⟦ Htype₂ ⟧ γ)
+  -- ⟦ tdiff {n = n} {m} {cs = cs} {ds} H≤ Htype Htype₁ ⟧ {Θ} γ =
+  --   abs-real-denot {T = treals m ds} λ j →
+  --   _ , 𝔉-compose
+  --        ((𝔉-compose′ getΘ (λ i → ⟦ Htype₁ ⟧ γ i .π₂) <++> getAs) <++> getΘ)
+  --        (𝔉-diff _ H≤ (fapp _ .π₂))
+  --   where
+  --     fapp = app-real-denot {T = treals m ds} (⟦ Htype ⟧ γ)
+  --     _<++>_ = 𝔉-++
+  --     getAs = 𝔉-proj′ (⊆-++⁺ʳ _ ⊆-refl)
+  --     getΘ = 𝔉-proj′ (⊆-++⁺ˡ _ ⊆-refl)
+  -- ⟦ tsolve Htype Htype₁ Htype₂ H≤ ⟧ = {!!}
+  -- ⟦ tdist _ _ _ ⟧ γ = tt
+  -- ⟦ tinfer Htype _ ⟧ γ = tt
+  -- ⟦ tweaken Htype H⊆ Hd ⟧ γ = ⟦ Htype ⟧ (weaken-Γ H⊆ γ)
+  -- ⟦ tsub {e = det} Htype _ Hsub ⟧ γ = sub-compat Hsub (⟦ Htype ⟧ γ)
+  -- ⟦ tpromote Htype H≤ ⟧ = {!!}
