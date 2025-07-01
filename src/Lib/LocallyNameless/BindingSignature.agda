@@ -8,18 +8,18 @@
 -- https://amp12.github.io/LocallyNamelessSets/
 --------------------------------------------------------------
 
-module Lib.BindingSignature where
+module Lib.LocallyNameless.BindingSignature where
 
 open import Lib.Prelude
-open import Lib.Unfinite
-open import Lib.oc-Sets
-open import Lib.Freshness
-open import Lib.LocalClosedness
-open import Lib.Support
-open import Lib.AbstractionConcretion
-open import Lib.RenamingReindexingSwapping
-open import Lib.Category
-open import Lib.Shift
+open import Lib.LocallyNameless.Unfinite
+open import Lib.LocallyNameless.oc-Sets
+open import Lib.LocallyNameless.Freshness
+open import Lib.LocallyNameless.LocalClosedness
+open import Lib.LocallyNameless.Support
+open import Lib.LocallyNameless.AbstractionConcretion
+open import Lib.LocallyNameless.RenamingReindexingSwapping
+open import Lib.LocallyNameless.Category
+open import Lib.LocallyNameless.Shift
 open import Lib.FunExt
 
 ----------------------------------------------------------------------

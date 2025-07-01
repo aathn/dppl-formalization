@@ -8,11 +8,11 @@
 -- https://amp12.github.io/LocallyNamelessSets/
 --------------------------------------------------------------
 
-module Lib.Freshness where
+module Lib.LocallyNameless.Freshness where
 
 open import Lib.Prelude
-open import Lib.Unfinite
-open import Lib.oc-Sets
+open import Lib.LocallyNameless.Unfinite
+open import Lib.LocallyNameless.oc-Sets
 
 ----------------------------------------------------------------------
 -- Freshness [Section 2.3]

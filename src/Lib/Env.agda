@@ -1,7 +1,7 @@
 module Lib.Env where
 
 open import Lib.Prelude
-open import Lib.Unfinite
+open import Lib.LocallyNameless.Unfinite
 open import Data.List using (_++_)
 open import Data.List.Membership.Propositional using () renaming (_∈_ to _∈ˡ_)
 open import Data.List.Relation.Unary.Any using (here ; there)

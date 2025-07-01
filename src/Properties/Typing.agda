@@ -10,11 +10,11 @@ open import Typing R
 open import Properties.Util
 
 open import Lib.Prelude
-open import Lib.Unfinite
-open import Lib.oc-Sets
-open import Lib.Freshness
-open import Lib.AbstractionConcretion hiding (abs)
-open import Lib.BindingSignature
+open import Lib.LocallyNameless.Unfinite
+open import Lib.LocallyNameless.oc-Sets
+open import Lib.LocallyNameless.Freshness
+open import Lib.LocallyNameless.AbstractionConcretion hiding (abs)
+open import Lib.LocallyNameless.BindingSignature
 open import Lib.Env
 open import Lib.Substitution
 

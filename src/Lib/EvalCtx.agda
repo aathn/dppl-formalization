@@ -2,7 +2,7 @@ module Lib.EvalCtx where
 
 open import Lib.Prelude
 open import Lib.FunExt
-open import Lib.BindingSignature
+open import Lib.LocallyNameless.BindingSignature
 
 open import Data.Vec.Functional using (updateAt)
 open import Data.Vec.Functional.Properties using (updateAt-id-local)

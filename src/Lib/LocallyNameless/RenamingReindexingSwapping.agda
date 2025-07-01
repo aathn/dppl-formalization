@@ -8,15 +8,15 @@
 -- https://amp12.github.io/LocallyNamelessSets/
 --------------------------------------------------------------
 
-module Lib.RenamingReindexingSwapping where
+module Lib.LocallyNameless.RenamingReindexingSwapping where
 
 open import Lib.Prelude
-open import Lib.Unfinite
-open import Lib.oc-Sets
-open import Lib.Freshness
-open import Lib.LocalClosedness
-open import Lib.Support
-open import Lib.AbstractionConcretion
+open import Lib.LocallyNameless.Unfinite
+open import Lib.LocallyNameless.oc-Sets
+open import Lib.LocallyNameless.Freshness
+open import Lib.LocallyNameless.LocalClosedness
+open import Lib.LocallyNameless.Support
+open import Lib.LocallyNameless.AbstractionConcretion
 
 ----------------------------------------------------------------------
 -- Lemma 2.16

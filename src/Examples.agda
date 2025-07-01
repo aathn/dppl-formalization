@@ -9,9 +9,9 @@ open import Properties.Typing R
 open import Properties.Util
 
 open import Lib.Prelude
-open import Lib.Unfinite
-open import Lib.BindingSignature
-open import Lib.AbstractionConcretion renaming (abs to acabs)
+open import Lib.LocallyNameless.Unfinite
+open import Lib.LocallyNameless.BindingSignature
+open import Lib.LocallyNameless.AbstractionConcretion renaming (abs to acabs)
 open import Lib.Env
 
 open import Data.Product.Instances using (Σ-≡-isDecEquivalence)

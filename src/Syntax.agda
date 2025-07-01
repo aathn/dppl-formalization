@@ -5,10 +5,10 @@ module Syntax (R : Reals₀) where
 open Reals R
 
 open import Lib.Prelude
-open import Lib.Unfinite
-open import Lib.oc-Sets
-open import Lib.Support
-open import Lib.BindingSignature
+open import Lib.LocallyNameless.Unfinite
+open import Lib.LocallyNameless.oc-Sets
+open import Lib.LocallyNameless.Support
+open import Lib.LocallyNameless.BindingSignature
 
 open import Data.Vec.Functional using (map ; fromList)
 

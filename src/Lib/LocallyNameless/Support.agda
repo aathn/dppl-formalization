@@ -8,13 +8,13 @@
 -- https://amp12.github.io/LocallyNamelessSets/
 --------------------------------------------------------------
 
-module Lib.Support where
+module Lib.LocallyNameless.Support where
 
 open import Lib.Prelude
-open import Lib.Unfinite
-open import Lib.oc-Sets
-open import Lib.Freshness
-open import Lib.LocalClosedness
+open import Lib.LocallyNameless.Unfinite
+open import Lib.LocallyNameless.oc-Sets
+open import Lib.LocallyNameless.Freshness
+open import Lib.LocallyNameless.LocalClosedness
 
 ----------------------------------------------------------------------
 -- Locally nameless sets [Definition 2.9]
