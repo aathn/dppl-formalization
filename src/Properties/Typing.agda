@@ -7,6 +7,7 @@ open Reals R hiding (refl)
 
 open import Syntax R
 open import Typing R
+open import Properties.Syntax R
 
 open import Lib.Prelude
 open import Lib.LocallyNameless.Unfinite
@@ -19,12 +20,66 @@ open import Lib.FunExt
 open import Lib.Substitution
 open import Lib.Util
 
-open import Data.Fin using (fromℕ<)
+open import Data.Fin using (toℕ ; fromℕ<)
+open import Data.Fin.Properties using (toℕ<n ; fromℕ<-toℕ ; toℕ-fromℕ< ; fromℕ<-cong ; fromℕ<-injective)
 open import Data.List.Properties using (++-conicalʳ)
 open import Data.List.Relation.Binary.Sublist.Propositional using (_⊆_ ; [] ; _∷_ ; _∷ʳ_ ; lookup)
 open import Data.List.Relation.Binary.Sublist.Propositional.Properties using (++⁺)
 open import Data.List.Relation.Binary.Pointwise as P using ([] ; _∷_)
 open import Data.List.Relation.Unary.All as A using ([] ; _∷_)
+open import Data.Nat.Properties using (⊔-assoc ; ⊔-monoʳ-≤ ; m⊔n≡n⇒m≤n)
+
+open import Relation.Binary.PropositionalEquality using (subst₂)
+
+⊙-action : (T : Type) → (c ⊔′ c′) ⊙ T ≡ c ⊙ (c′ ⊙ T)
+⊙-action {c} {c′} (treal c″) = ap treal $ fromℕ<-cong _ _ H≡ _ _
+  where
+    H≡ = proof
+      max (toℕ (c ⊔′ c′)) (toℕ c″)        ≡[ ap (λ x → max x _) (toℕ-fromℕ< (≤lub _ _ _ (toℕ<n c) (toℕ<n c′))) ]
+      max (max (toℕ c) (toℕ c′)) (toℕ c″) ≡[ ⊔-assoc (toℕ c) (toℕ c′) (toℕ c″) ]
+      max (toℕ c) (max (toℕ c′) (toℕ c″)) ≡[ ap (max _) (symm $ toℕ-fromℕ< (≤lub _ _ _ (toℕ<n c′) (toℕ<n c″))) ]
+      max (toℕ c) (toℕ (c′ ⊔′ c″))        qed
+⊙-action (T₁ ⇒[ _ ] T₂) = ap₂ (_⇒[ _ ]_) (⊙-action T₁) (⊙-action T₂)
+⊙-action (ttup n Ts) = ap (ttup n) $ funext λ i → ⊙-action (Ts i)
+⊙-action (tdist T) = ap tdist (⊙-action T)
+
+⊙⇒≤ᶜ : c ⊙ T ≡ T → c ≤ᶜ T
+⊙⇒≤ᶜ {c = c} {treal c′} Heq = m⊔n≡n⇒m≤n $ fromℕ<-injective _ _ _ _ $ proof
+  fromℕ< {max (toℕ c) (toℕ c′)} _ ≡[ treal-injective Heq ]
+  c′                              ≡[ symm (fromℕ<-toℕ c′ (toℕ<n c′)) ]
+  fromℕ< {toℕ c′} _               qed
+⊙⇒≤ᶜ {T = T ⇒[ _ ] T₁} Heq =
+  let Heq₁ , Heq₂ = tarr-injective Heq
+  in ⊙⇒≤ᶜ Heq₁ , ⊙⇒≤ᶜ Heq₂
+⊙⇒≤ᶜ {T = ttup n Ts} Heq i = ⊙⇒≤ᶜ $ ap (_$ i) $ ttup-injective Heq
+⊙⇒≤ᶜ {T = tdist T} Heq = ⊙⇒≤ᶜ $ tdist-injective Heq
+
+≤ᶜ⇒⊙ : c ≤ᶜ T → c ⊙ T ≡ T
+≤ᶜ⇒⊙ {T = treal c′} H≤ =
+  ap treal $ fromℕ<-cong _ _ (max≤ H≤) _ _ ； fromℕ<-toℕ c′ (toℕ<n c′)
+≤ᶜ⇒⊙ {T = T₁ ⇒[ _ ] T₂} (H≤₁ , H≤₂) = ap₂ (_⇒[ _ ]_) (≤ᶜ⇒⊙ H≤₁) (≤ᶜ⇒⊙ H≤₂)
+≤ᶜ⇒⊙ {T = ttup n Ts} H≤ = ap (ttup n) $ funext λ i → ≤ᶜ⇒⊙ (H≤ i)
+≤ᶜ⇒⊙ {T = tdist T} H≤ = ap tdist (≤ᶜ⇒⊙ H≤)
+
+≤ᶜ-lub : c ≤ᶜ T → c′ ≤ᶜ T → (c ⊔′ c′) ≤ᶜ T
+≤ᶜ-lub {c = c} {T} {c′} H≤ H≤′ = ⊙⇒≤ᶜ $ proof
+  (c ⊔′ c′) ⊙ T ≡[ ⊙-action T ]
+  c ⊙ (c′ ⊙ T)  ≡[ ap (_ ⊙_) (≤ᶜ⇒⊙ H≤′) ]
+  c ⊙ T         ≡[ ≤ᶜ⇒⊙ H≤ ]
+  T             qed
+
+≤ᴱ-lub : c ≤ᴱ Γ → c′ ≤ᴱ Γ → (c ⊔′ c′) ≤ᴱ Γ
+≤ᴱ-lub [] [] = []
+≤ᴱ-lub {Γ = (_ , T) ∷ _} (px ∷ H≤) (py ∷ H≤′) = ≤ᶜ-lub {T = T} px py ∷ ≤ᴱ-lub H≤ H≤′
+
+A≤ᶜ : A ≤ᶜ T
+A≤ᶜ {treal _} = 0≤
+A≤ᶜ {T₁ ⇒[ _ ] T₂} = A≤ᶜ {T₁} , A≤ᶜ {T₂}
+A≤ᶜ {ttup n Ts} i = A≤ᶜ {Ts i}
+A≤ᶜ {tdist T} = A≤ᶜ {T}
+
+A≤ᴱ : A ≤ᴱ Γ
+A≤ᴱ {Γ} = A.universal (λ (_ , T) → A≤ᶜ {T}) Γ
 
 sub-refl : T <: T
 sub-refl {treal c} = sreal ≤refl
@@ -61,12 +116,6 @@ sub-dom :
 sub-dom [] = refl
 sub-dom (x≡y ∷ Hsub) = ap₂ _∪_ (ap [_] $ π₁ x≡y) (sub-dom Hsub)
 
-≤ᶜ⇒⊙-noop : c ≤ᶜ T → c ⊙ T ≡ T
-≤ᶜ⇒⊙-noop {T = treal c′} H≤ = ap treal {!!}
-≤ᶜ⇒⊙-noop {T = _ ⇒[ _ ] _} H≤ = refl
-≤ᶜ⇒⊙-noop {T = ttup n Ts} H≤ = ap (ttup n) $ funext λ i → ≤ᶜ⇒⊙-noop (H≤ i)
-≤ᶜ⇒⊙-noop {T = tdist _} H≤ = refl
-
 ≤ᶜ-<:-trans :
   {T₁ T₂ : Type}
   (_ : c ≤ᶜ T₁)
@@ -75,8 +124,9 @@ sub-dom (x≡y ∷ Hsub) = ap₂ _∪_ (ap [_] $ π₁ x≡y) (sub-dom Hsub)
   c ≤ᶜ T₂
 ≤ᶜ-<:-trans H≤ (sreal H≤′) = ≤trans H≤ H≤′
 ≤ᶜ-<:-trans H≤ (stup Hsubs) i = ≤ᶜ-<:-trans (H≤ i) (Hsubs i)
-≤ᶜ-<:-trans H≤ (sarr _ _ _) = tt
-≤ᶜ-<:-trans H≤ (sdist _) = tt
+≤ᶜ-<:-trans (H≤₁ , H≤₂) (sarr Hsub₁ Hsub₂ _) =
+  {!!} , ≤ᶜ-<:-trans H≤₂ Hsub₂
+≤ᶜ-<:-trans H≤ (sdist Hsub) = ≤ᶜ-<:-trans H≤ Hsub
 
 ≤ᴱ-<:ᴱ-trans :
   {Γ₁ Γ₂ : TyEnv}
@@ -87,6 +137,19 @@ sub-dom (x≡y ∷ Hsub) = ap₂ _∪_ (ap [_] $ π₁ x≡y) (sub-dom Hsub)
 ≤ᴱ-<:ᴱ-trans [] [] = []
 ≤ᴱ-<:ᴱ-trans (H≤ ∷ H≤′) ((_ , Hsub) ∷ Hsub′) =
   ≤ᶜ-<:-trans H≤ Hsub ∷ ≤ᴱ-<:ᴱ-trans H≤′ Hsub′
+
+⊙-sub : c ⊙ T <: T
+⊙-sub {T = treal c′} = sreal $ subst (_ ≤_) (symm $ toℕ-fromℕ< _) ≤max₂
+⊙-sub {T = T ⇒[ _ ] T₁} = {!!}
+⊙-sub {T = ttup n Ts} = stup λ i → ⊙-sub
+⊙-sub {T = tdist T} = {!!}
+
+sub-⊙-mono : {T₁ T₂ : Type} → T₁ <: T₂ → c ⊙ T₁ <: c ⊙ T₂
+sub-⊙-mono (sreal H≤) =
+  sreal $ subst₂ _≤_ (symm $ toℕ-fromℕ< _) (symm $ toℕ-fromℕ< _) (⊔-monoʳ-≤ _ H≤)
+sub-⊙-mono (stup Hsubs) = stup $ sub-⊙-mono ∘ Hsubs
+sub-⊙-mono (sarr Hsub Hsub₁ H≤) = {!!}
+sub-⊙-mono (sdist Hsub) = {!!}
 
 sub-env :
   {Γ₁ Γ₂ : TyEnv}
@@ -137,8 +200,8 @@ tabs-inv {Γ} {T₀} (tweaken Htype H⊆ Hd) Heq
 tabs-inv (tsub Htype H≤ (sarr Hsub₀ Hsub₁ He)) refl
   with Иi As Hcof ← tabs-inv Htype refl =
   Иi As λ x → sub-env (tsub (Hcof x) He Hsub₁) ((refl , Hsub₀) ∷ P.refl (refl , sub-refl))
-tabs-inv (tpromote {T = _ ⇒[ _ ] _} Htype H≤) refl =
-  tabs-inv Htype refl
+tabs-inv (tpromote {T = _ ⇒[ _ ] _} Htype H≤) refl = {!!}
+  -- tabs-inv Htype refl
 
 ttup-inv :
   {vs : Vector Term n}
@@ -166,8 +229,7 @@ tassume-inv (tweaken Htype H⊆ Hd) Heq =
   tassume-inv Htype Heq
 tassume-inv (tsub Htype H≤ (sdist Hsub)) refl with tassume-inv Htype refl
 ... | cs , T , Heq , Hsub′ = cs , T , Heq , sub-trans Hsub′ Hsub
-tassume-inv (tpromote {T = tdist _} Htype H≤) refl =
-  tassume-inv Htype refl
+tassume-inv (tpromote {T = tdist _} Htype H≤) Heq = {!!}
 
 tinfer-inv :
   {v : Vector Term 1}
@@ -180,8 +242,7 @@ tinfer-inv (tweaken Htype H⊆ Hd) Heq =
   tweaken (tinfer-inv Htype Heq) H⊆ Hd
 tinfer-inv (tsub Htype H≤ (sdist Hsub)) refl =
   tsub (tinfer-inv Htype refl) H≤ (sarr sub-refl Hsub ≤refl)
-tinfer-inv (tpromote {T = tdist _} Htype H≤) refl =
-  tpromote (tinfer-inv Htype refl) H≤
+tinfer-inv (tpromote {T = tdist _} Htype H≤) Heq = {!!}
 
 
 well-typed-distinct : Γ ⊢ t :[ e ] T → Distinct Γ

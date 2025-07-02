@@ -52,3 +52,15 @@ instance
   hasDecEqType : hasDecEq Type
   isEquivalence {{hasDecEqType}} = ≡.isEquivalence
   _≐_ {{hasDecEqType}} = deceqType
+
+treal-injective : treal c ≡ treal c′ → c ≡ c′
+treal-injective refl = refl
+
+ttup-injective : ∀ {Ts Ts′} → ttup n Ts ≡ ttup n Ts′ → Ts ≡ Ts′
+ttup-injective refl = refl
+
+tarr-injective : {T₁ T₂ T₁′ T₂′ : Type} → T₁ ⇒[ e ] T₂ ≡ T₁′ ⇒[ e′ ] T₂′ → T₁ ≡ T₁′ × T₂ ≡ T₂′
+tarr-injective refl = refl , refl
+
+tdist-injective : tdist T ≡ tdist T′ → T ≡ T′
+tdist-injective refl = refl

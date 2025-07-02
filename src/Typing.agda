@@ -33,14 +33,16 @@ DistTy dbeta   = const N , treal N
 DistTy dwiener = (λ()) , (treal N ⇒[ det ] treal N)
 
 _⊙_ : Coeff → Type → Type
-c ⊙ (treal c′) = treal (c ⊔′ c′)
-c ⊙ (ttup n Ts) = ttup n $ c ⊙_ ∘ Ts
-c ⊙ T          = T
+c ⊙ treal c′ = treal (c ⊔′ c′)
+c ⊙ ttup n Ts = ttup n $ c ⊙_ ∘ Ts
+c ⊙ (T₁ ⇒[ e ] T₂) = (c ⊙ T₁) ⇒[ e ] (c ⊙ T₂)
+c ⊙ tdist T = tdist (c ⊙ T)
 
 _≤ᶜ_ : Coeff → Type → Set
 c ≤ᶜ treal d = c ≤′ d
 c ≤ᶜ ttup n Ts = ∀ i → c ≤ᶜ Ts i
-c ≤ᶜ T = 𝟙
+c ≤ᶜ (T₁ ⇒[ _ ] T₂) = c ≤ᶜ T₁ × c ≤ᶜ T₂
+c ≤ᶜ tdist T = c ≤ᶜ T
 
 _≤ᴱ_ : Coeff → TyEnv → Set
 c ≤ᴱ Γ = All (c ≤ᶜ_ ∘ π₂) Γ

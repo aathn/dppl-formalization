@@ -29,9 +29,18 @@ private
     Θ′ : Coeff ^ m
     Θ″ : Coeff ^ k
 
-record 𝔉-assumptions : Set₁ where
+record DenotAssumptions : Set₁ where
   field
     𝔉 : (Θ : Coeff ^ n) → Coeff → Pred (ℝ ^ n → ℝ) ℓ₀
+
+    ⟦_⟧ᴾ : (ϕ : Prim) → ℝ ^ PrimAr ϕ → ℝ
+
+    𝐷 :
+      (f : ℝ ^ n → ℝ)
+      (_ : ∀ i → π[ i ] Θ ≤′ P)
+      (_ : f ∈ 𝔉 Θ c)
+      → -----------------------
+      ℝ ^ (n + n) → ℝ
 
   𝔉′ : (Θ : Coeff ^ n) (Θ′ : Coeff ^ m) → Pred (ℝ ^ n → ℝ ^ m) ℓ₀
   𝔉′ Θ Θ′ f = (i : Fin _) → π[ i ] ∘ f ∈ 𝔉 Θ (π[ i ] Θ′)
@@ -66,9 +75,25 @@ record 𝔉-assumptions : Set₁ where
       → ------------------------
       f ∈ 𝔉 Θ c → f ∈ 𝔉 Θ c′
 
+    𝔉-prim :
+      {Θ : Coeff ^ PrimAr ϕ}
+      (_ : PrimTy ϕ ≡ (Θ , c))
+      → ----------------------
+      ⟦ ϕ ⟧ᴾ ∈ 𝔉 Θ c
 
-module 𝔉-lemmas (Ass : 𝔉-assumptions) where
-  open 𝔉-assumptions Ass
+    𝔉-diff :
+      {Θ′ : Coeff ^ m}
+      (f : ℝ ^ (n + m) → ℝ)
+      (H≤ : ∀ i → π[ i ] Θ ≤′ P)
+      (Hf : f ∈ 𝔉 (Θ ++ Θ′) c)
+      (Hf′ : ∀ θ′ → (λ θ → f (θ ++ θ′)) ∈ 𝔉 Θ c)
+      → ----------------------------------------------
+      (λ xvθ → 𝐷 _ H≤ (Hf′ (drop _ xvθ)) (take _ xvθ))
+        ∈ 𝔉 ((Θ ++ replicate n A) ++ Θ′) c
+
+
+module 𝔉-lemmas (Ass : DenotAssumptions) where
+  open DenotAssumptions Ass
 
   𝔉-const′ : (θ : ℝ ^ n) → const θ ∈ 𝔉′ Θ Θ′
   𝔉-const′ θ i =
@@ -116,40 +141,8 @@ module 𝔉-lemmas (Ass : 𝔉-assumptions) where
   𝔉-weaken H⊆ Hf = 𝔉-compose (𝔉-proj′ H⊆) Hf
 
 
-record DenotAssumptions : Set₁ where
-  field
-    𝔉-ass : 𝔉-assumptions
-
-  open 𝔉-assumptions 𝔉-ass public
-  open 𝔉-lemmas 𝔉-ass public
-
-  field
-    ⟦_⟧ᴾ : (ϕ : Prim) → ℝ ^ PrimAr ϕ → ℝ
-
-    𝔉-prim :
-      {Θ : Coeff ^ PrimAr ϕ}
-      (_ : PrimTy ϕ ≡ (Θ , c))
-      → ----------------------
-      ⟦ ϕ ⟧ᴾ ∈ 𝔉 Θ c
-
-    𝐷 :
-      (f : ℝ ^ n → ℝ)
-      (_ : ∀ i → π[ i ] Θ ≤′ P)
-      (_ : f ∈ 𝔉 Θ c)
-      → -----------------------
-      ℝ ^ (n + n) → ℝ
-
-    𝔉-diff :
-      {Θ′ : Coeff ^ m}
-      (f : ℝ ^ (n + m) → ℝ)
-      (H≤ : ∀ i → π[ i ] Θ ≤′ P)
-      (Hf : f ∈ 𝔉 (Θ ++ Θ′) c)
-      → ------------------------------------------------------
-      (λ xvθ → 𝐷 _ H≤ (𝔉-papply Hf (drop _ xvθ)) (take _ xvθ))
-        ∈ 𝔉 ((Θ ++ replicate n A) ++ Θ′) c
-
-
 module Denotations (Ass : DenotAssumptions) where
+  open 𝔉-lemmas Ass
   open DenotAssumptions Ass
 
   ⟦_⟧ᵀ : Type → Coeff ^ n → Set
@@ -222,13 +215,20 @@ module Denotations (Ass : DenotAssumptions) where
   if-denot {T = tdist T} s s₁ s₂ = tt
 
   term-denot : Γ ⊢ t :[ det ] T → c ≤ᴱ Γ → {Θ : Coeff ^ n} → ⟦ Γ ⟧ᴱ Θ → ⟦ c ⊙ T ⟧ᵀ Θ
-  term-denot tvar H≤ (x All.∷ _) = {!!}
-  term-denot (tabs x) H≤ γ = {!!}
-  term-denot (tapp Htype Htype₁) H≤ γ = {!!}
+  term-denot tvar (H≤ All.∷ _) {Θ} (x All.∷ _) =
+    subst (λ T → ⟦ T ⟧ᵀ Θ) (symm $ ≤ᶜ⇒⊙ H≤) x
+  term-denot (tabs {e = det} (Иi As Habs)) H≤ γ {Θ′ = Θ′} H⊆ s =
+    subst (λ T → ⟦ T ⟧ᵀ Θ′) (≤ᶜ⇒⊙ A≤ᶜ) $
+      term-denot
+        (Habs (new As) {{unfinite As}}) A≤ᴱ
+        (s All.∷ weaken-env H⊆ γ)
+  term-denot (tabs {e = rnd} _) H≤ γ = tt
+  term-denot (tapp Hf Ht) H≤ γ = {!!}
+    -- term-denot Hf ? γ ⊆-refl ? -- (term-denot Ht ? γ)
   term-denot (tprim x x₁ x₂) H≤ γ = {!!}
   term-denot treal H≤ γ = {!!}
-  term-denot (ttup x x₁) H≤ γ = {!!}
-  term-denot (tproj i Htype) H≤ γ = {!!}
+  term-denot (ttup _ Htypes) H≤ γ i = term-denot (Htypes i) H≤ γ
+  term-denot (tproj i Htype) H≤ γ = term-denot Htype H≤ γ i
   term-denot (tif Htype Htype₁ Htype₂) H≤ γ = {!!}
   term-denot (tdiff x Htype Htype₁) H≤ γ = {!!}
   term-denot (tsolve Htype Htype₁ Htype₂ x) H≤ γ = {!!}
@@ -236,10 +236,15 @@ module Denotations (Ass : DenotAssumptions) where
   term-denot (tinfer _ _) H≤ γ = tt
   term-denot (tweaken Htype H⊆ _) H≤ γ =
     term-denot Htype (all-weaken H⊆ H≤) (weaken-Γ H⊆ γ)
-  term-denot (tsub {e = det} Htype _ Hsub) H≤ γ = let foo = term-denot Htype H≤ γ in {!!} -- sub-compat Hsub (term-denot Htype H≤ γ)
-  term-denot (tpromote Htype H≤′) H≤ γ = {!!}
+  term-denot (tsub {e = det} Htype _ Hsub) H≤ γ =
+    sub-compat (sub-⊙-mono Hsub) (term-denot Htype H≤ γ)
+  term-denot (tpromote {T = T} Htype H≤′) H≤ {Θ} γ =
+    subst (λ T → ⟦ T ⟧ᵀ Θ) (⊙-action T) $ term-denot Htype (≤ᴱ-lub H≤ H≤′) γ
 
-  -- ⟦_⟧ : Γ ⊢ t :[ det ] T → {Θ : Coeff ^ n} → ⟦ Γ ⟧ᴱ Θ → ⟦ T ⟧ᵀ Θ
+  ⟦_⟧ : Γ ⊢ t :[ det ] T → {Θ : Coeff ^ n} → ⟦ Γ ⟧ᴱ Θ → ⟦ T ⟧ᵀ Θ
+  ⟦ t ⟧ {Θ} γ =
+    subst (λ T → ⟦ T ⟧ᵀ Θ) (≤ᶜ⇒⊙ A≤ᶜ) $ term-denot t A≤ᴱ γ
+
   -- ⟦ tvar ⟧ (x All.∷ _) = x
   -- ⟦ tabs {e = det} (Иi As Habs) ⟧ γ H⊆ s =
   --   ⟦ Habs (new As) {{unfinite As}} ⟧ (s All.∷ weaken-env H⊆ γ)
