@@ -46,7 +46,7 @@ record DenotAssumptions : Set₁ where
   𝔉′ Θ Θ′ f = (i : Fin _) → π[ i ] ∘ f ∈ 𝔉 Θ (π[ i ] Θ′)
 
   field
-    𝔉-const : (r : ℝ) → const r ∈ 𝔉 [] N
+    𝔉-const : (r : ℝ) → const r ∈ 𝔉 [] A
 
     𝔉-proj : id ∈ 𝔉′ Θ Θ
 
@@ -71,9 +71,8 @@ record DenotAssumptions : Set₁ where
 
     𝔉-promote :
       {f : ℝ ^ n → ℝ}
-      (_ : ∀ i → c′ ≤′ π[ i ] Θ)
-      → ------------------------
-      f ∈ 𝔉 Θ c → f ∈ 𝔉 Θ c′
+      → ------------------------------------------
+      f ∈ 𝔉 Θ c → f ∈ 𝔉 (map (c′ ⊔′_) Θ) (c′ ⊔′ c)
 
     𝔉-prim :
       {Θ : Coeff ^ PrimAr ϕ}
@@ -96,10 +95,10 @@ module 𝔉-lemmas (Ass : DenotAssumptions) where
   open DenotAssumptions Ass
 
   𝔉-const′ : (θ : ℝ ^ n) → const θ ∈ 𝔉′ Θ Θ′
-  𝔉-const′ θ i =
-    𝔉-compose {Θ′ = λ ()} {g = λ _ ()} (λ ()) $
-    𝔉-sub (λ ()) (≤-1 $ toℕ<n _) $
-    𝔉-const _
+  𝔉-const′ θ i = {!!}
+    -- 𝔉-compose {Θ′ = λ ()} {g = λ _ ()} (λ ()) $
+    -- 𝔉-promote $
+    -- 𝔉-const _
 
   𝔉-compose′ :
     {g : ℝ ^ n → ℝ ^ m}
@@ -214,36 +213,42 @@ module Denotations (Ass : DenotAssumptions) where
   if-denot {T = ttup n Ts} s s₁ s₂ i = if-denot s (s₁ i) (s₂ i)
   if-denot {T = tdist T} s s₁ s₂ = tt
 
-  term-denot : Γ ⊢ t :[ det ] T → c ≤ᴱ Γ → {Θ : Coeff ^ n} → ⟦ Γ ⟧ᴱ Θ → ⟦ c ⊙ T ⟧ᵀ Θ
-  term-denot tvar (H≤ All.∷ _) {Θ} (x All.∷ _) =
-    subst (λ T → ⟦ T ⟧ᵀ Θ) (symm $ ≤ᶜ⇒⊙ H≤) x
-  term-denot (tabs {e = det} (Иi As Habs)) H≤ γ {Θ′ = Θ′} H⊆ s =
-    subst (λ T → ⟦ T ⟧ᵀ Θ′) (≤ᶜ⇒⊙ A≤ᶜ) $
-      term-denot
-        (Habs (new As) {{unfinite As}}) A≤ᴱ
-        (s All.∷ weaken-env H⊆ γ)
-  term-denot (tabs {e = rnd} _) H≤ γ = tt
-  term-denot (tapp Hf Ht) H≤ γ = {!!}
-    -- term-denot Hf ? γ ⊆-refl ? -- (term-denot Ht ? γ)
-  term-denot (tprim x x₁ x₂) H≤ γ = {!!}
-  term-denot treal H≤ γ = {!!}
-  term-denot (ttup _ Htypes) H≤ γ i = term-denot (Htypes i) H≤ γ
-  term-denot (tproj i Htype) H≤ γ = term-denot Htype H≤ γ i
-  term-denot (tif Htype Htype₁ Htype₂) H≤ γ = {!!}
-  term-denot (tdiff x Htype Htype₁) H≤ γ = {!!}
-  term-denot (tsolve Htype Htype₁ Htype₂ x) H≤ γ = {!!}
-  term-denot (tdist _ _ _) H≤ γ = tt
-  term-denot (tinfer _ _) H≤ γ = tt
-  term-denot (tweaken Htype H⊆ _) H≤ γ =
-    term-denot Htype (all-weaken H⊆ H≤) (weaken-Γ H⊆ γ)
-  term-denot (tsub {e = det} Htype _ Hsub) H≤ γ =
-    sub-compat (sub-⊙-mono Hsub) (term-denot Htype H≤ γ)
-  term-denot (tpromote {T = T} Htype H≤′) H≤ {Θ} γ =
-    subst (λ T → ⟦ T ⟧ᵀ Θ) (⊙-action T) $ term-denot Htype (≤ᴱ-lub H≤ H≤′) γ
-
-  ⟦_⟧ : Γ ⊢ t :[ det ] T → {Θ : Coeff ^ n} → ⟦ Γ ⟧ᴱ Θ → ⟦ T ⟧ᵀ Θ
-  ⟦ t ⟧ {Θ} γ =
-    subst (λ T → ⟦ T ⟧ᵀ Θ) (≤ᶜ⇒⊙ A≤ᶜ) $ term-denot t A≤ᴱ γ
+  ⟦_⟧ : Γ ⊢ t :[ c , det ] T → {Θ : Coeff ^ n} → ⟦ Γ ⟧ᴱ Θ → ⟦ c ⊙ T ⟧ᵀ Θ
+  ⟦ tvar H∈ H≤ _ ⟧ {Θ} γ =
+    subst (λ T → ⟦ T ⟧ᵀ Θ) (symm $ ≤ᶜ⇒⊙ H≤) $ All.lookup γ (Sub.to∈ H∈)
+  ⟦ tabs {e = det} (Иi As Habs) ⟧ {Θ} γ H⊆ s =
+    ⟦ Habs (new As) {{unfinite As}} ⟧ (s All.∷ weaken-env H⊆ γ)
+  ⟦ tabs {e = rnd} Habs ⟧ _ = tt
+  ⟦ tapp Hf Ht ⟧ {Θ} γ = ⟦ Hf ⟧ γ ⊆-refl (⟦ Ht ⟧ γ)
+  ⟦ tprim Hϕ _ Hts ⟧ {Θ} γ =
+    _ , 𝔉-compose (λ i → ⟦ Hts i ⟧ γ .π₂) (𝔉-promote (𝔉-prim Hϕ))
+  ⟦ treal {r = r} _ ⟧ {Θ} γ =
+    _ , 𝔉-compose {g = λ _ ()} (λ ()) (𝔉-promote (𝔉-const r))
+  ⟦ ttup _ Hts ⟧ {Θ} γ i = ⟦ Hts i ⟧ γ
+  ⟦ tproj i Ht ⟧ {Θ} γ = ⟦ Ht ⟧ γ i
+  ⟦ tif Ht Ht₁ Ht₂ ⟧ {Θ} γ =
+    if-denot (⟦ Ht ⟧ γ) (⟦ Ht₁ ⟧ γ) (⟦ Ht₂ ⟧ γ)
+  ⟦ tdiff {n = n} {m} {c} {cs = cs} {cs′} H≤₁ H≤₂ Hf Ht ⟧ {Θ} γ =
+    abs-real-denot {T = treals m (map (c ⊔′_) cs′)} λ j →
+    _ , 𝔉-compose
+         ((𝔉-compose′ getΘ (λ i → ⟦ Ht ⟧ γ i .π₂) <++> getAs) <++> getΘ)
+         (𝔉-diff _ {!!} {!!} {!!})
+    where
+      fapp = app-real-denot {T = treals m (map (c ⊔′_) cs′)} (⟦ Hf ⟧ γ)
+      _<++>_ = 𝔉-++
+      getAs = 𝔉-proj′ (⊆-++⁺ʳ _ ⊆-refl)
+      getΘ = 𝔉-proj′ (⊆-++⁺ˡ _ ⊆-refl)
+  ⟦ tsolve Hf Ht₁ Ht₂ ⟧ {Θ} γ = {!!}
+  ⟦ tdist HD _ Hts ⟧ {Θ} γ = tt
+  ⟦ tinfer Ht ⟧ {Θ} γ = tt
+  ⟦ tsub {e = det} Ht _ Hsub ⟧ {Θ} γ =
+    sub-compat (sub-⊙-mono Hsub) $ ⟦ Ht ⟧ γ
+  ⟦ tpromote Ht H≤ ⟧ {Θ} γ =
+    subst (λ T → ⟦ T ⟧ᵀ Θ) H≡ $ ⟦ Ht ⟧ γ
+    where H≡ = ap (_⊙ _) (symm $ i≤j⇒i⊔′j≡j H≤) ； ⊙-action _
+  ⟦ tdemote Ht H≤ ⟧ {Θ} γ =
+    subst (λ T → ⟦ T ⟧ᵀ Θ) H≡ $ ⟦ Ht ⟧ γ
+    where H≡ = symm (⊙-action _) ； ap (_⊙ _) (i≤j⇒i⊔′j≡j H≤)
 
   -- ⟦ tvar ⟧ (x All.∷ _) = x
   -- ⟦ tabs {e = det} (Иi As Habs) ⟧ γ H⊆ s =

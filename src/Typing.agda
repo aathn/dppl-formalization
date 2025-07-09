@@ -36,13 +36,13 @@ _⊙_ : Coeff → Type → Type
 c ⊙ treal c′ = treal (c ⊔′ c′)
 c ⊙ ttup n Ts = ttup n $ c ⊙_ ∘ Ts
 c ⊙ (T₁ ⇒[ e ] T₂) = (c ⊙ T₁) ⇒[ e ] (c ⊙ T₂)
-c ⊙ tdist T = tdist (c ⊙ T)
+c ⊙ tdist T = tdist T
 
 _≤ᶜ_ : Coeff → Type → Set
 c ≤ᶜ treal d = c ≤′ d
 c ≤ᶜ ttup n Ts = ∀ i → c ≤ᶜ Ts i
 c ≤ᶜ (T₁ ⇒[ _ ] T₂) = c ≤ᶜ T₁ × c ≤ᶜ T₂
-c ≤ᶜ tdist T = c ≤ᶜ T
+c ≤ᶜ tdist T = 𝟙
 
 _≤ᴱ_ : Coeff → TyEnv → Set
 c ≤ᴱ Γ = All (c ≤ᶜ_ ∘ π₂) Γ
@@ -79,132 +79,135 @@ _<:ᴱ_ : TyEnv → TyEnv → Set
 _<:ᴱ_ = Pointwise (λ (x₁ , T₁) (x₂ , T₂) → x₁ ≡ x₂ × T₁ <: T₂)
 
 
-infix 4 _⊢_:[_]_
-data _⊢_:[_]_ : TyEnv → Term → Eff → Type → Set where
+infix 4 _⊢_:[_,_]_
+data _⊢_:[_,_]_ : TyEnv → Term → Coeff → Eff → Type → Set where
 
   tvar :
     {x : 𝔸}
-    → ---------------------------
-    [ x ∶ T ] ⊢ fvar x :[ det ] T
+    (_ : [ x ∶ T ] ⊆ Γ)
+    (_ : c ≤ᶜ T)
+    (_ : Distinct Γ)
+    → -----------------------
+    Γ ⊢ fvar x :[ c , det ] T
 
   tabs :
     {T₁ T₂ : Type}
     {t : Vector Term 1}
-    (_ : И x ∶ 𝔸 , Γ , x ∶ T₁ ⊢ conc (t ₀) x :[ e ] T₂)
-    → -------------------------------------------------
-    Γ ⊢ abs T₁ ▸ t :[ det ] T₁ ⇒[ e ] T₂
+    (_ : И x ∶ 𝔸 , Γ , x ∶ c ⊙ T₁ ⊢ conc (t ₀) x :[ c , e ] T₂)
+    → ---------------------------------------------------------
+    Γ ⊢ abs T₁ ▸ t :[ c , det ] T₁ ⇒[ e ] T₂
 
   tapp :
     {T₁ T₂ : Type}
     {ts : Vector Term 2}
-    (_ : Γ ⊢ ts ₀ :[ e ] T₁ ⇒[ e ] T₂)
-    (_ : Γ ⊢ ts ₁ :[ e ] T₁)
-    → --------------------------------
-    Γ ⊢ app ▸ ts :[ e ] T₂
+    (_ : Γ ⊢ ts ₀ :[ c , e ] T₁ ⇒[ e ] T₂)
+    (_ : Γ ⊢ ts ₁ :[ c , e ] T₁)
+    → ------------------------------------
+    Γ ⊢ app ▸ ts :[ c , e ] T₂
 
   tprim :
     {cs : Vector Coeff (PrimAr ϕ)}
     {ts : Vector Term (PrimAr ϕ)}
-    (_ : PrimTy ϕ ≡ (cs , c))
+    (_ : PrimTy ϕ ≡ (cs , c′))
     (_ : Distinct Γ)
-    (_ : ∀ i → Γ ⊢ ts i :[ e ] treal (cs i))
-    → --------------------------------------
-    Γ ⊢ prim ϕ ▸ ts :[ e ] treal c
+    (_ : ∀ i → Γ ⊢ ts i :[ c , e ] treal (cs i))
+    → ------------------------------------------
+    Γ ⊢ prim ϕ ▸ ts :[ c , e ] treal c′
 
   treal :
-    --------------------------
-    [] ⊢ real r :[ det ] treal N
+    (Hd : Distinct Γ)
+    → -----------------------------
+    Γ ⊢ real r :[ c , det ] treal A
 
   ttup :
     {Ts : Vector Type n}
     {ts : Vector Term n}
     (_ : Distinct Γ)
-    (_ : ∀ i → Γ ⊢ ts i :[ e ] Ts i)
-    → ------------------------------
-    Γ ⊢ tup n ▸ ts :[ e ] ttup n Ts
+    (_ : ∀ i → Γ ⊢ ts i :[ c , e ] Ts i)
+    → ----------------------------------
+    Γ ⊢ tup n ▸ ts :[ c , e ] ttup n Ts
 
   tproj :
     {Ts : Vector Type n}
     {t : Vector Term 1}
     (i : Fin n)
-    (_ : Γ ⊢ t ₀ :[ e ] ttup n Ts)
-    → ----------------------------
-    Γ ⊢ proj n i ▸ t :[ e ] Ts i
+    (_ : Γ ⊢ t ₀ :[ c , e ] ttup n Ts)
+    → --------------------------------
+    Γ ⊢ proj n i ▸ t :[ c , e ] Ts i
 
   tif :
     {ts : Vector Term 3}
-    (_ : Γ ⊢ ts ₀ :[ e ] treal P)
-    (_ : Γ ⊢ ts ₁ :[ e ] T)
-    (_ : Γ ⊢ ts ₂ :[ e ] T)
-    → ---------------------------
-    Γ ⊢ if ▸ ts :[ e ] T
+    (_ : Γ ⊢ ts ₀ :[ P , e ] treal A)
+    (_ : Γ ⊢ ts ₁ :[ c , e ] T)
+    (_ : Γ ⊢ ts ₂ :[ c , e ] T)
+    → -------------------------------
+    Γ ⊢ if ▸ ts :[ c , e ] T
 
   tdiff :
     {ts : Vector Term 2}
     {cs : Vector Coeff n}
-    {ds : Vector Coeff m}
+    {cs′ : Vector Coeff m}
     (_ : ∀ i → cs i ≤′ P)
-    (_ : Γ ⊢ ts ₀ :[ e ] treals n cs ⇒[ det ] treals m ds)
-    (_ : Γ ⊢ ts ₁ :[ e ] treals n cs)
-    → ----------------------------------------------------------
-    Γ ⊢ diff ▸ ts :[ e ] treals n (const A) ⇒[ det ] treals m ds
+    (_ : c ≤′ P)
+    (_ : Γ ⊢ ts ₀ :[ c , e ] treals n cs ⇒[ det ] treals m cs′)
+    (_ : Γ ⊢ ts ₁ :[ c , e ] treals n cs)
+    → ---------------------------------------------------------------
+    Γ ⊢ diff ▸ ts :[ c , e ] treals n (const A) ⇒[ det ] treals m cs′
 
+  -- TODO: Fix the typing rule for solve 
   tsolve :
     {Γ : TyEnv}
     {ts : Vector Term 3}
     {cs : Vector Coeff n}
-    (_ : Γ ⊢ ts ₀ :[ e ] ttup 2 (λ {₀ → treal c; ₁ → treals n cs}) ⇒[ det ] treals n cs)
-    (_ : Γ ⊢ ts ₁ :[ e ] treals n cs)
-    (_ : Γ ⊢ ts ₂ :[ e ] treal c)
-    → P ≤′ c
-    → --------------------------------------------------------------------------------
-    Γ ⊢ solve ▸ ts :[ e ] treals n cs
+    {c₀ : Coeff}
+    (_ : Γ ⊢ ts ₀ :[ c₀ , e ] (ttup 2 λ {₀ → treal c′; ₁ → treals n cs}) ⇒[ det ] treals n cs)
+    (_ : Γ ⊢ ts ₁ :[ c₀ , e ] ttup 2 λ {₀ → treal c; ₁ → treals n cs})
+    (_ : Γ ⊢ ts ₂ :[ c₀ , e ] treal c′)
+    → ------------------------------------------------------------------------------------------------------
+    Γ ⊢ solve ▸ ts :[ c₀ , e ] ttup 2 λ {₀ → treal c; ₁ → treals n cs}
 
   tdist :
     {cs : Vector Coeff (DistAr D)}
     {ts : Vector Term (DistAr D)}
     (_ : DistTy D ≡ (cs , T))
     (_ : Distinct Γ)
-    (_ : ∀ i → Γ ⊢ ts i :[ e ] treal (cs i))
-    → --------------------------------------
-    Γ ⊢ dist D ▸ ts :[ e ] tdist T
+    (_ : ∀ i → Γ ⊢ ts i :[ c , e ] treal (cs i))
+    → ------------------------------------------
+    Γ ⊢ dist D ▸ ts :[ c , e ] tdist T
 
   tassume :
     {t : Vector Term 1}
-    (_ : Γ ⊢ t ₀ :[ rnd ] tdist T)
-    → ----------------------------
-    Γ ⊢ assume ▸ t :[ rnd ] T
+    (_ : Γ ⊢ t ₀ :[ c , rnd ] tdist T)
+    → --------------------------------
+    Γ ⊢ assume ▸ t :[ c , rnd ] T
 
   tweight :
     {t : Vector Term 1}
-    (_ : Γ ⊢ t ₀ :[ rnd ] treal N)
-    → ----------------------------
-    Γ ⊢ weight ▸ t :[ rnd ] tunit
+    (_ : Γ ⊢ t ₀ :[ N , rnd ] treal A)
+    → --------------------------------
+    Γ ⊢ weight ▸ t :[ c , rnd ] tunit
 
   tinfer :
     {t : Vector Term 1}
-    (_ : Γ ⊢ t ₀ :[ e ] tunit ⇒[ rnd ] T)
-    (_ : N ≤ᴱ Γ)
-    → -----------------------------------
-    Γ ⊢ infer ▸ t :[ e ] tdist T
-
-  tweaken :
-    {t : Term}
-    (_ : Γ′ ⊢ t :[ e ] T)
-    (_ : Γ′ ⊆ Γ)
-    (_ : Distinct Γ)
-    → -------------------
-    Γ ⊢ t :[ e ] T
+    (_ : Γ ⊢ t ₀ :[ N , e ] tunit ⇒[ rnd ] T)
+    → ---------------------------------------
+    Γ ⊢ infer ▸ t :[ c , e ] tdist T
 
   tsub :
-    (_ : Γ ⊢ t :[ e ] T)
+    (_ : Γ ⊢ t :[ c , e ] T)
     (_ : e ≤′ e′)
     (_ : T <: T′)
-    → ------------------
-    Γ ⊢ t :[ e′ ] T′
+    → ----------------------
+    Γ ⊢ t :[ c , e′ ] T′
 
   tpromote :
-    (_ : Γ ⊢ t :[ e ] T)
-    (_ : c ≤ᴱ Γ)
-    → ------------------
-    Γ ⊢ t :[ e ] c ⊙ T
+    (_ : Γ ⊢ t :[ c , e ] T)
+    (_ : c′ ≤′ c)
+    → ----------------------
+    Γ ⊢ t :[ c′ ,  e ] c ⊙ T
+
+  tdemote :
+    (_ : Γ ⊢ t :[ c′ , e ] c ⊙ T)
+    (_ : c′ ≤′ c)
+    → ---------------------------
+    Γ ⊢ t :[ c , e ] T

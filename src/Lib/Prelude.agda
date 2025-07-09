@@ -399,12 +399,35 @@ wf< = <-wellFounded
 open import Data.Vec.Functional as Vec public using (Vector)
 
 open import Data.Fin public using (Fin ; zero) renaming (suc to succ ; _≤_ to _≤′_ ; _<_ to _<′_)
-open import Data.Fin using (fromℕ<)
-open import Data.Fin.Properties using (toℕ<n)
+open import Data.Fin using (toℕ ; fromℕ<)
+open import Relation.Binary.Bundles using (TotalOrder)
+open import Data.Fin.Properties using (toℕ<n ; toℕ-injective ; toℕ-fromℕ< ; ≤-totalOrder)
+open import Algebra.Construct.NaturalChoice.Base using (MaxOperator)
+import Algebra.Construct.NaturalChoice.MaxOp as MaxOp
+
+module ≤′-totalOrder {n : ℕ} = TotalOrder (≤-totalOrder n)
 
 -- Maximum on finite enumerated sets
-_⊔′_ : ∀ {n : ℕ} → Fin n → Fin n → Fin n
+_⊔′_ : {n : ℕ} → Fin n → Fin n → Fin n
 n ⊔′ m = fromℕ< (≤lub _ _ _ (toℕ<n n) (toℕ<n m))
+
+toℕ-⊔′ : {n : ℕ} (i j : Fin n) → toℕ (i ⊔′ j) ≡ max (toℕ i) (toℕ j)
+toℕ-⊔′ i j = toℕ-fromℕ< (≤lub _ _ _ (toℕ<n i) (toℕ<n j))
+
+i≤j⇒i⊔′j≡j : {n : ℕ} {i j : Fin n} → i ≤′ j → i ⊔′ j ≡ j
+i≤j⇒i⊔′j≡j {i = i} H≤ = toℕ-injective (toℕ-⊔′ i _ ； max≤ H≤)
+
+i≥j⇒i⊔′j≡i : {n : ℕ} {i j : Fin n} → j ≤′ i → i ⊔′ j ≡ i
+i≥j⇒i⊔′j≡i {i = i} H≤ = toℕ-injective (toℕ-⊔′ i _ ； max≥ H≤)
+
+⊔′-operator : {n : ℕ} → MaxOperator (≤′-totalOrder.totalPreorder {n})
+⊔′-operator = record
+  { _⊔_       = _⊔′_
+  ; x≤y⇒x⊔y≈y = i≤j⇒i⊔′j≡j
+  ; x≥y⇒x⊔y≈x = i≥j⇒i⊔′j≡i
+  }
+
+module ⊔′ {n : ℕ} = MaxOp (⊔′-operator {n})
 
 -- Maximum of finitely many numbers
 Max : {n : ℕ} → Vector ℕ n → ℕ
