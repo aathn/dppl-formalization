@@ -12,6 +12,7 @@ open import Properties.Typing R
 open import Lib.Prelude hiding ([]; _∷_; _∈_)
 open import Lib.LocallyNameless.Unfinite
 open import Lib.Env hiding ([]; _∷_)
+open import Lib.FunExt
 open import Lib.Subvec
 open import Lib.Util
 
@@ -20,6 +21,7 @@ open import Data.Fin.Properties using (toℕ<n)
 open import Data.List.Relation.Unary.All as All using (All)
 open import Data.Vec.Functional
 open import Relation.Unary using (_∈_; Pred)
+open import Relation.Binary.PropositionalEquality using (subst₂)
 import Data.List.Relation.Binary.Sublist.Propositional as Sub
 
 private
@@ -95,10 +97,11 @@ module 𝔉-lemmas (Ass : DenotAssumptions) where
   open DenotAssumptions Ass
 
   𝔉-const′ : (θ : ℝ ^ n) → const θ ∈ 𝔉′ Θ Θ′
-  𝔉-const′ θ i = {!!}
-    -- 𝔉-compose {Θ′ = λ ()} {g = λ _ ()} (λ ()) $
-    -- 𝔉-promote $
-    -- 𝔉-const _
+  𝔉-const′ {Θ = Θ} θ i =
+    𝔉-compose {Θ′ = λ ()} {g = λ _ ()} (λ ()) $
+    subst₂ (λ Θ Θ′ → const (θ i) ∈ 𝔉 Θ Θ′)
+      (funext λ ()) (i≥j⇒i⊔′j≡i 0≤)
+      (𝔉-promote (𝔉-const _))
 
   𝔉-compose′ :
     {g : ℝ ^ n → ℝ ^ m}
@@ -229,15 +232,26 @@ module Denotations (Ass : DenotAssumptions) where
   ⟦ tif Ht Ht₁ Ht₂ ⟧ {Θ} γ =
     if-denot (⟦ Ht ⟧ γ) (⟦ Ht₁ ⟧ γ) (⟦ Ht₂ ⟧ γ)
   ⟦ tdiff {n = n} {m} {c} {cs = cs} {cs′} H≤₁ H≤₂ Hf Ht ⟧ {Θ} γ =
-    abs-real-denot {T = treals m (map (c ⊔′_) cs′)} λ j →
-    _ , 𝔉-compose
-         ((𝔉-compose′ getΘ (λ i → ⟦ Ht ⟧ γ i .π₂) <++> getAs) <++> getΘ)
-         (𝔉-diff _ {!!} {!!} {!!})
+    abs-real-denot {T = c ⊙ treals m cs′} λ j →
+      let fapp = app-real-denot {T = c ⊙ treals m cs′} (⟦ Hf ⟧ γ)
+          fdiff = 𝔉-diff _ (λ i → ⊔′.⊔-lub H≤₂ (H≤₁ i))
+                         (fapp j .π₂) (λ θ → 𝔉-papply (fapp j .π₂) θ)
+      in
+      _ , 𝔉-compose
+           ((𝔉-compose′ getΘ (λ i → ⟦ Ht ⟧ γ i .π₂) <++> getAs) <++> getΘ)
+           (𝔉-sub sig-≤ ≤refl fdiff)
     where
-      fapp = app-real-denot {T = treals m (map (c ⊔′_) cs′)} (⟦ Hf ⟧ γ)
       _<++>_ = 𝔉-++
       getAs = 𝔉-proj′ (⊆-++⁺ʳ _ ⊆-refl)
       getΘ = 𝔉-proj′ (⊆-++⁺ˡ _ ⊆-refl)
+      sig-≤ : ∀ i →
+        π[ i ] ((map (c ⊔′_) cs ++ replicate n A) ++ Θ) ≤′
+        π[ i ] ((map (c ⊔′_) cs ++ replicate n (c ⊔′ A)) ++ Θ)
+      sig-≤ i with splitAt (n + n) i
+      ... | ι₂ j = ≤refl
+      ... | ι₁ i′ with splitAt n i′
+      ...   | ι₁ k = ≤refl
+      ...   | ι₂ l = ⊔′.x≤y⊔x _ _
   ⟦ tsolve Hf Ht₁ Ht₂ ⟧ {Θ} γ = {!!}
   ⟦ tdist HD _ Hts ⟧ {Θ} γ = tt
   ⟦ tinfer Ht ⟧ {Θ} γ = tt
@@ -249,32 +263,3 @@ module Denotations (Ass : DenotAssumptions) where
   ⟦ tdemote Ht H≤ ⟧ {Θ} γ =
     subst (λ T → ⟦ T ⟧ᵀ Θ) H≡ $ ⟦ Ht ⟧ γ
     where H≡ = symm (⊙-action _) ； ap (_⊙ _) (i≤j⇒i⊔′j≡j H≤)
-
-  -- ⟦ tvar ⟧ (x All.∷ _) = x
-  -- ⟦ tabs {e = det} (Иi As Habs) ⟧ γ H⊆ s =
-  --   ⟦ Habs (new As) {{unfinite As}} ⟧ (s All.∷ weaken-env H⊆ γ)
-  -- ⟦ tabs {e = rnd} (Иi As Habs) ⟧ γ = tt
-  -- ⟦ tapp Hf Ht ⟧ γ = ⟦ Hf ⟧ γ ⊆-refl (⟦ Ht ⟧ γ)
-  -- ⟦ tprim {ϕ = ϕ} {cs = cs} Hϕ _ Htypes ⟧ {Θ} γ =
-  --   _ , 𝔉-compose (λ i → ⟦ Htypes i ⟧ γ .π₂) (𝔉-prim Hϕ)
-  -- ⟦ treal {r = r} ⟧ _ = _ , 𝔉-compose {g = λ _ ()} (λ ()) (𝔉-const r)
-  -- ⟦ ttup _ Htypes ⟧ γ i = ⟦ Htypes i ⟧ γ
-  -- ⟦ tproj i Htype ⟧ γ = ⟦ Htype ⟧ γ i
-  -- ⟦ tif Htype Htype₁ Htype₂ ⟧ γ =
-  --   if-denot (⟦ Htype ⟧ γ) (⟦ Htype₁ ⟧ γ) (⟦ Htype₂ ⟧ γ)
-  -- ⟦ tdiff {n = n} {m} {cs = cs} {ds} H≤ Htype Htype₁ ⟧ {Θ} γ =
-  --   abs-real-denot {T = treals m ds} λ j →
-  --   _ , 𝔉-compose
-  --        ((𝔉-compose′ getΘ (λ i → ⟦ Htype₁ ⟧ γ i .π₂) <++> getAs) <++> getΘ)
-  --        (𝔉-diff _ H≤ (fapp _ .π₂))
-  --   where
-  --     fapp = app-real-denot {T = treals m ds} (⟦ Htype ⟧ γ)
-  --     _<++>_ = 𝔉-++
-  --     getAs = 𝔉-proj′ (⊆-++⁺ʳ _ ⊆-refl)
-  --     getΘ = 𝔉-proj′ (⊆-++⁺ˡ _ ⊆-refl)
-  -- ⟦ tsolve Htype Htype₁ Htype₂ H≤ ⟧ = {!!}
-  -- ⟦ tdist _ _ _ ⟧ γ = tt
-  -- ⟦ tinfer Htype _ ⟧ γ = tt
-  -- ⟦ tweaken Htype H⊆ Hd ⟧ γ = ⟦ Htype ⟧ (weaken-Γ H⊆ γ)
-  -- ⟦ tsub {e = det} Htype _ Hsub ⟧ γ = sub-compat Hsub (⟦ Htype ⟧ γ)
-  -- ⟦ tpromote Htype H≤ ⟧ = {!!}
