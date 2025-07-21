@@ -1,3 +1,9 @@
-depend: standard-library agda-categories
+depend: 1lab
 include: src
-flags: --with-K
+flags:
+  --cubical
+  --no-load-primitives
+  --rewriting
+  --guardedness
+  --warning=noUnsupportedIndexedMatch
+  --experimental-lazy-instances
