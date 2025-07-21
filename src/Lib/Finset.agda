@@ -7,13 +7,53 @@ open import Order.Base using (Poset)
 open import Order.Diagram.Join using (Join)
 open import Order.Instances.Nat using (Nat-poset; Nat-joins; Nat-bottom)
 open import Order.Semilattice.Join using (is-join-semilattice)
+open import Data.Dec.Base using (Discrete)
 open import Data.Nat.Base using (max)
 open import Data.Nat.Order using (¬sucx≤x)
+open import Data.Sum.Base using (_⊎_ ; inr ; inl)
 
 private variable
-  o ℓ : Level
+  ℓ : Level
+  A B : Type ℓ
 
-module _ {P : Poset o ℓ} ⦃ joins : is-join-semilattice P ⦄ where
+∷≠[] : ∀ {x : A} {xs} → ¬ x ∷ xs ≡ []
+∷≠[] {A = A} p = subst (λ x → ∣ distinguish x ∣) p tt where
+  distinguish : Finset A → Prop lzero
+  distinguish [] = el ⊥ (hlevel 1)
+  distinguish (x ∷ xs) = el ⊤ (hlevel 1)
+  distinguish (∷-dup x xs i) = el ⊤ (hlevel 1)
+  distinguish (∷-swap x y xs i) = el ⊤ (hlevel 1)
+  distinguish (squash x y p q i j) =
+    n-Type-is-hlevel 1
+      (distinguish x) (distinguish y)
+      (λ i → distinguish (p i)) (λ i → distinguish (q i)) i j
+
+inr⁻¹ : Finset (A ⊎ B) → Finset B
+inr⁻¹ = _>>= λ
+  { (inl _) → []
+  ; (inr y) → y ∷ []
+  }
+
+thereₛ-inr⁻¹
+  : {y : B} {y' : A ⊎ B} {xs : Finset (A ⊎ B)}
+  → y ∈ᶠˢ inr⁻¹ xs → y ∈ᶠˢ inr⁻¹ (y' ∷ xs)
+thereₛ-inr⁻¹ {y' = inl x} H∈ = H∈
+thereₛ-inr⁻¹ {y' = inr x} H∈ = thereₛ H∈
+
+∉inr⁻¹→inr∉ :
+  ⦃ _ : Discrete A ⦄
+  ⦃ _ : Discrete B ⦄
+  (zs : Finset (A ⊎ B))
+  (y : B)
+  → -----------------------
+  y ∉ inr⁻¹ zs → inr y ∉ zs
+∉inr⁻¹→inr∉ {A = A} {B} zs y H∉ H∈ = H∉ $
+  ∈ᶠˢ-elim (λ zs _ → y ∈ inr⁻¹ zs)
+    hereₛ
+    (λ {y' xs} _ → thereₛ-inr⁻¹ {y' = y'} {xs})
+    zs H∈
+
+module _ {o ℓ : Level} {P : Poset o ℓ} ⦃ joins : is-join-semilattice P ⦄ where
   open Poset P
   open is-join-semilattice joins
 
@@ -44,7 +84,7 @@ private instance
 
 -- Maximum of a finite set of numbers
 maxfs : Finset Nat → Nat
-maxfs xs = fold xs
+maxfs = fold
 
 maxfs+1∉ : ∀ xs → suc (maxfs xs) ∉ xs
 maxfs+1∉ xs H∈ = ¬sucx≤x _ (≤fold H∈)

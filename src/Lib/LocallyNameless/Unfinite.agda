@@ -10,10 +10,16 @@
 
 module Lib.LocallyNameless.Unfinite where
 
+open import Lib.Finset
+
 open import 1Lab.Prelude
-open import Data.Nat.Base
-open import Data.Dec.Base
 open import Data.Finset.Base
+
+open import Data.Dec.Base using (yes ; no ; Discrete ; Dec)
+open import Data.Finset.Properties using (finset-ext)
+open import Data.Nat.Base using (Nat)
+open import Data.Sum.Base using (_⊎_; inr; inl)
+open import Data.Sum.Properties using (Discrete-⊎)
 
 ----------------------------------------------------------------------
 -- The property of being an unfinite set
@@ -30,83 +36,108 @@ open Unfinite ⦃ ... ⦄ public
 -- ℕ is unfinite
 ----------------------------------------------------------------------
 instance
-  Unifiniteℕ : Unfinite Nat
-  deceq    ⦃ Unifiniteℕ ⦄    = auto
-  new      ⦃ Unifiniteℕ ⦄ xs = {!!} -- maxfs xs +1
-  unfinite ⦃ Unifiniteℕ ⦄    = {!!} -- maxfs+1∉
+  Unfinite-Nat : Unfinite Nat
+  deceq    ⦃ Unfinite-Nat ⦄    = auto
+  new      ⦃ Unfinite-Nat ⦄ xs = suc (maxfs xs)
+  unfinite ⦃ Unfinite-Nat ⦄    = maxfs+1∉
 
--- ----------------------------------------------------------------------
--- -- Unfinite disjoint union
--- ----------------------------------------------------------------------
--- Unfinite⊎ :
---   {l : Level}
---   {A B : Set l}
---   {{_ : hasDecEq A}}
---   {{_ : Unfinite B}}
---   → ----------------
---   Unfinite (A ⊎ B)
--- deceq    {{Unfinite⊎}}    = hasDecEq⊎
--- new      {{Unfinite⊎}} xs = ι₂ (new (ι₂⁻¹ xs))
--- unfinite {{Unfinite⊎}} xs =
---   ∉ι₂⁻¹→ι₂∉ xs (new (ι₂⁻¹ xs)) (unfinite (ι₂⁻¹ xs))
+----------------------------------------------------------------------
+-- Unfinite disjoint union
+----------------------------------------------------------------------
+Unfinite-⊎ :
+  {l : Level}
+  {A B : Type l}
+  ⦃ _ : Discrete A ⦄
+  ⦃ _ : Unfinite B ⦄
+  → ----------------
+  Unfinite (A ⊎ B)
+deceq    ⦃ Unfinite-⊎ ⦄    = auto
+new      ⦃ Unfinite-⊎ ⦄ xs = inr (new (inr⁻¹ xs))
+unfinite ⦃ Unfinite-⊎ ⦄ xs =
+  ∉inr⁻¹→inr∉ xs (new (inr⁻¹ xs)) (unfinite (inr⁻¹ xs))
 
--- ----------------------------------------------------------------------
--- -- Supported sets over a given unfinite set
--- ----------------------------------------------------------------------
--- record Supp {V : Set}{{_ : Unfinite V}}(S : Set) : Set where
---   field
---     § : S → Fset V
+----------------------------------------------------------------------
+-- Supported sets over a given unfinite set
+----------------------------------------------------------------------
+record Supp {V : Type} ⦃ _ : Unfinite V ⦄ (S : Type) : Type where
+  field
+    § : S → Finset V
 
--- open Supp{{...}} public
+open Supp ⦃ ... ⦄ public
 
--- {-# DISPLAY Supp.§ _ s = § s #-}
+{-# DISPLAY Supp.§ _ s = § s #-}
 
--- instance
---   SuppV : {V : Set}{{_ : Unfinite V}} → Supp V
---   § {{SuppV}} x = [ x ]
+instance
+  SuppV : {V : Type} ⦃ _ : Unfinite V ⦄ → Supp V
+  § ⦃ SuppV ⦄ x = x ∷ []
 
---   SuppFsetV : {V : Set}{{_ : Unfinite V}} → Supp (Fset V)
---   § {{SuppFsetV}} xs = xs
+  SuppFinsetV : {V : Type} ⦃ _ : Unfinite V ⦄ → Supp (Finset V)
+  § ⦃ SuppFinsetV ⦄ xs = xs
 
---   Supp× :
---     {V : Set}
---     {{_ : Unfinite V}}
---     {S S' : Set}
---     {{_ : Supp{V} S}}
---     {{_ : Supp{V} S'}}
---     → ----------------
---     Supp{V} (S × S')
---   § {{Supp×}} (s , s') = § s ∪ § s'
+  Supp× :
+    {V : Type}
+    ⦃ _ : Unfinite V ⦄
+    {S S' : Type}
+    ⦃ _ : Supp {V} S ⦄
+    ⦃ _ : Supp {V} S' ⦄
+    → ----------------
+    Supp{V} (S × S')
+  § ⦃ Supp× ⦄ (s , s') = § s <> § s'
 
--- fresh :
---   {V : Set}
---   {{_ : Unfinite V}}
---   {S : Set}
---   {{_ : Supp S}}
---   (s : S)
---   → ---------------
---   ∑ u ∶ V , u ∉ § s
--- fresh s = (new (§ s) , unfinite (§ s))
+fresh :
+  {V : Type}
+  ⦃ _ : Unfinite V ⦄
+  {S : Type}
+  ⦃ _ : Supp S ⦄
+  (s : S)
+  → ----------------
+  Σ[ u ∈ V ] u ∉ § s
+fresh s = (new (§ s) , unfinite (§ s))
 
--- ----------------------------------------------------------------------
--- -- Atoms [Section 2.1]
--- ----------------------------------------------------------------------
--- {- We could just take atoms to be given by natural numbers, but it
--- seems more elegant to use what is effectively a W-type that emphasises
--- one of the key properties of atoms (apart from having decidable
--- equality), namely that they are "unfinite" in the sense that for every
--- finite set of atoms there is an atom not in that set. -}
+----------------------------------------------------------------------
+-- Atoms [Section 2.1]
+----------------------------------------------------------------------
+{- We could just take atoms to be given by natural numbers, but it
+seems more elegant to use what is effectively a W-type that emphasises
+one of the key properties of atoms (apart from having decidable
+equality), namely that they are "unfinite" in the sense that for every
+finite set of atoms there is an atom not in that set. -}
 
--- data 𝔸 : Set where
---   new𝔸 : Fset 𝔸 → 𝔸
+data 𝔸 : Type where
+  new𝔸 : Finset 𝔸 → 𝔸
 
--- -- Equality of atoms is decidable
--- deceq𝔸 : (x y : 𝔸) → Dec (x ≡ y)
--- deceq𝔸s : (xs ys : Fset 𝔸) → Dec (xs ≡ ys)
+new𝔸-inj : {xs ys : Finset 𝔸} → new𝔸 xs ≡ new𝔸 ys → xs ≡ ys
+new𝔸-inj path = ap (λ {(new𝔸 xs) → xs}) path
 
--- deceq𝔸 (new𝔸 xs) (new𝔸 ys) with deceq𝔸s xs ys
--- ... | neq f = neq λ{refl → f refl}
--- ... | equ   = equ
+open Discrete
+
+-- Equality of atoms is decidable
+private
+  Dec-𝔸 : (x y : 𝔸) → Dec (x ≡ y)
+  Dec-𝔸s : (xs ys : Finset 𝔸) → Dec (xs ≡ ys)
+  
+  Dec-𝔸 (new𝔸 xs) (new𝔸 ys) with Dec-𝔸s xs ys
+  ... | no  H≢ = no (H≢ ∘ new𝔸-inj)
+  ... | yes H≡ = yes (ap new𝔸 H≡)
+  
+  Dec-𝔸s [] [] = yes refl
+  Dec-𝔸s [] (_ ∷ _) = no (∷≠[] ∘ sym)
+  Dec-𝔸s (x ∷ xs) [] = no ∷≠[]
+  Dec-𝔸s (x ∷ xs) (y ∷ ys)
+    with Dec-𝔸 x y | Dec-𝔸s xs ys
+  ... | yes p | yes q = yes (ap₂ _∷_ p q)
+  ... | yes p | no ¬q = {!!}
+  ... | no ¬p | yes q = {!!}
+  ... | no ¬p | no ¬q = {!!}
+  Dec-𝔸s [] (∷-dup x ys i) = {!!}
+  Dec-𝔸s [] (∷-swap x y ys i) = {!!}
+  Dec-𝔸s [] (squash ys ys₁ x y i i₁) = {!!}
+  Dec-𝔸s (x ∷ xs) (∷-dup x₁ ys i) = {!!}
+  Dec-𝔸s (x ∷ xs) (∷-swap x₁ y ys i) = {!!}
+  Dec-𝔸s (x ∷ xs) (squash ys ys₁ x₁ y i i₁) = {!!}
+  Dec-𝔸s (∷-dup x xs i) ys = {!!}
+  Dec-𝔸s (∷-swap x y xs i) ys = {!!}
+  Dec-𝔸s (squash xs xs₁ x y i i₁) ys = {!!}
 -- deceq𝔸s Ø Ø = equ
 -- deceq𝔸s [ x ] [ y ] with deceq𝔸 x y
 -- ... | neq f = neq λ{refl → f refl}
