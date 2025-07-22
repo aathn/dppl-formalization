@@ -1,6 +1,6 @@
 module Lib.Finset where
 
-open import 1Lab.Prelude hiding (_∉_)
+open import 1Lab.Prelude hiding (_≠_ ; _∉_)
 
 open import Lib.Dec
 open import Data.Finset.Base
@@ -94,6 +94,26 @@ thereₛ-inr⁻¹ {y' = inr x} H∈ = thereₛ H∈
     (λ {y' xs} _ → thereₛ-inr⁻¹ {y' = y'} {xs})
     zs H∈
 
+∉∷₁ :
+  ⦃ _ : Discrete A ⦄
+  {x y : A}
+  {ys : Finset A}
+  ⦃ H∉ : x ∉ (y ∷ ys) ⦄
+  → ------------------
+  x ≠ y
+∉∷₁ {A = A} ⦃ H∉ = p ⦄ = ¬≡→≠ λ H≡ →
+  ∉→¬∈ {ℙA = Finset A} p (hereₛ' (Id≃path.from H≡))
+
+∉∷₂ :
+  ⦃ _ : Discrete A ⦄
+  {x y : A}
+  {ys : Finset A}
+  ⦃ H∉ : x ∉ (y ∷ ys) ⦄
+  → ------------------
+  x ∉ ys
+∉∷₂ {A = A} ⦃ H∉ = p ⦄ = ¬∈→∉ {ℙA = Finset A} λ H∈ →
+  ∉→¬∈ {ℙA = Finset A} p (thereₛ H∈)
+
 map-∉ :
   {ℓ : Level}
   {A B : Type ℓ}
@@ -107,3 +127,7 @@ map-∉ :
   x ∉ xs
 map-∉ {A = A} {B = B} ⦃ p = p ⦄ =
   ¬∈→∉ {ℙA = Finset A} λ q → ∉→¬∈ {ℙA = Finset B} p (map-∈ᶠˢ _ _ q)
+
+module FinsetSyntax where
+  pattern Ø = []
+  pattern [_] a = a ∷ []

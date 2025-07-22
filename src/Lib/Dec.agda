@@ -2,7 +2,8 @@ module Lib.Dec where
 
 open import 1Lab.Prelude hiding (_≠_ ; _∉_)
 
-open import Data.Dec.Base using (Dec ; yes ; no ; Discrete ; _≡?_ ; holds? ; is-yes ; ifᵈ_then_else_)
+open import Data.Dec.Base
+  using (Dec ; yes ; no ; Discrete ; _≡?_ ; holds? ; is-yes ; ifᵈ_then_else_)
 
 module _ {ℓ : Level} {A : Type ℓ} where
 

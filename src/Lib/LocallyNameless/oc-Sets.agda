@@ -111,7 +111,7 @@ private
     (x : Nat𝔸)
     → -----------------------------
     opn i a (opn i b x) ≡ opn i b x
-  ax₁ i _ _ (inl j) with i ≡? j in eq
+  ax₁ i _ _ (inl j) with i ≡? j
   ... | no i≠j = ifᵈ-≠ i≠j
   ... | yes _ = refl
   ax₁ i _ _ (inr _) = refl
@@ -242,63 +242,50 @@ private
   ax₉ _ _ _ b (inr _) | no b≠c | no _ = sym $ ifᵈ-≠ b≠c
   ax₉ i j _ b (inr _) | no _ | yes _ = sym $
     ap (cls j b) (ifᵈ-≡ (refl' i)) ∙ ifᵈ-≡ (refl' b) 
-  ax₉ i j a b (inr _) | yes b≡c with a ≡? b
-  ax₉ i j _ _ (inr _) | yes b≡c | yes a≡b = {!!}
-    -- cls j a (opn i a x) ≡ x
-  ax₉ i j _ _ (inr _) | yes b≡c | no  a≠b = {!!}
-  -- with i ≡? j
-  -- ax₉ _ _ a b (inr _) | yes b≡c | no _ with a ≡? b
-  -- ax₉ i j a b (inr _) | yes b≡c | no _ | no a≠b = sym $
-  --   ap (cls j b ∘ opn i b) (ifᵈ-≠ a≠c) ∙ ifᵈ-≡ b≡c
-  --   where a≠c = λ H≡ → a≠b (H≡ ∙ sym b≡c)
-  -- ax₉ i j a b (inr _) | yes b≡c | no _ | yes a≡b = sym $
-  --   ap (cls j b ∘ opn i b) (ifᵈ-≡ (a≡b ∙ b≡c)) ∙
-  --   ap (cls j b) (ifᵈ-≡ (refl' i)) ∙ ifᵈ-≡ (refl' b)
-  -- ax₉ _ _ a b (inr _) | yes b≡c | yes _ with a ≡? b
-  -- ax₉ i j a b (inr _) | yes b≡c | yes _ | no a≠b = sym $
-  --   ap (cls j b ∘ opn i b) (ifᵈ-≠ a≠c) ∙ ifᵈ-≡ b≡c ∙
-  --   sym (ifᵈ-≡ (refl' a))
-  --   where a≠c = λ H≡ → a≠b (H≡ ∙ sym b≡c)
-  -- ax₉ i j a b (inr _) | yes b≡c | yes _ | yes a≡b = sym $
-  --   ap (cls j b ∘ opn i b) (ifᵈ-≡ (a≡b ∙ b≡c)) ∙
-  --   ap (cls j b) (ifᵈ-≡ (refl' i)) ∙ ifᵈ-≡ (refl' b) ∙
-  --   sym (ifᵈ-≡ (refl' a))
+  ax₉ i j a b (inr _) | yes b≡c with i ≡? j
+  ax₉ _ _ a b (inr _) | yes b≡c | no _ with a ≡? b
+  ax₉ i j a b (inr _) | yes b≡c | no _ | no a≠b = sym $
+    ap (cls j b ∘ opn i b) (ifᵈ-≠ a≠c) ∙ ifᵈ-≡ b≡c
+    where a≠c = λ H≡ → a≠b (H≡ ∙ sym b≡c)
+  ax₉ i j a b (inr _) | yes b≡c | no _ | yes a≡b = sym $
+    ap (cls j b ∘ opn i b) (ifᵈ-≡ (a≡b ∙ b≡c)) ∙
+    ap (cls j b) (ifᵈ-≡ (refl' i)) ∙ ifᵈ-≡ (refl' b)
+  ax₉ _ _ a b (inr _) | yes b≡c | yes _ with a ≡? b
+  ax₉ i j a b (inr _) | yes b≡c | yes _ | no a≠b = sym $
+    ap (cls j b ∘ opn i b) (ifᵈ-≠ a≠c) ∙ ifᵈ-≡ b≡c ∙
+    sym (ifᵈ-≡ (refl' a))
+    where a≠c = λ H≡ → a≠b (H≡ ∙ sym b≡c)
+  ax₉ i j a b (inr _) | yes b≡c | yes _ | yes a≡b = sym $
+    ap (cls j b ∘ opn i b) (ifᵈ-≡ (a≡b ∙ b≡c)) ∙
+    ap (cls j b) (ifᵈ-≡ (refl' i)) ∙ ifᵈ-≡ (refl' b) ∙
+    sym (ifᵈ-≡ (refl' a))
 
--- instance
---   ocNat𝔸 : oc Nat𝔸
---   ocNat𝔸 = mkoc opn cls ax₁ ax₂ ax₃ ax₄ ax₅ ax₆ ax₇ ax₈ ax₉
+instance
+  ocNat𝔸 : oc Nat𝔸
+  ocNat𝔸 = mkoc opn cls ax₁ ax₂ ax₃ ax₄ ax₅ ax₆ ax₇ ax₈ ax₉
 
--- -- Nat𝔸 is unfinite
--- instance
---   UnfiniteNat𝔸 : Unfinite Nat𝔸
---   UnfiniteNat𝔸 = Unfinite⊎
+-- Nat𝔸 is unfinite
+instance
+  Unfinite-Nat𝔸 : Unfinite Nat𝔸
+  Unfinite-Nat𝔸 = Unfinite-⊎
 
--- ----------------------------------------------------------------------
--- -- Product of oc-sets
--- ----------------------------------------------------------------------
--- oc× :
---   {X Y : Set}
---   ⦃ _ : oc X ⦄
---   ⦃ _ : oc Y ⦄
---   → ----------
---   oc (X × Y)
--- _~>_ ⦃ oc× ⦄ i a (x , y) = ((i ~> a)x  , ((i ~> a)y))
--- _<~_ ⦃ oc× ⦄ i a (x , y) = ((i <~ a)x  , ((i <~ a)y))
--- oc₁ ⦃ oc× ⦄ i a b (x , y)
---   rewrite oc₁ i a b x | oc₁ i a b y = refl
--- oc₂ ⦃ oc× ⦄ i j a (x , y)
---   rewrite oc₂ i j a x | oc₂ i j a y = refl
--- oc₃ ⦃ oc× ⦄ i a (x , y)
---   rewrite oc₃ i a x | oc₃ i a y = refl
--- oc₄ ⦃ oc× ⦄ i a (x , y)
---   rewrite oc₄ i a x | oc₄ i a y = refl
--- oc₅ ⦃ oc× ⦄ i j a b (x , y)
---   rewrite oc₅ i j a b x ⦃ it ⦄ | oc₅ i j a b y ⦃ it ⦄ = refl
--- oc₆ ⦃ oc× ⦄ i j a b (x , y)
---   rewrite oc₆ i j a b x ⦃ it ⦄ | oc₆ i j a b y ⦃ it ⦄ = refl
--- oc₇ ⦃ oc× ⦄ i j a b (x , y)
---   rewrite oc₇ i j a b x ⦃ it ⦄ ⦃ it ⦄ | oc₇ i j a b y ⦃ it ⦄ ⦃ it ⦄ = refl
--- oc₈ ⦃ oc× ⦄ i j a b (x , y)
---   rewrite oc₈ i j a b x | oc₈ i j a b y = refl
--- oc.oc₉ oc× i j a b (x , y)
---   rewrite oc₉ i j a b x | oc₉ i j a b y = refl
+----------------------------------------------------------------------
+-- Product of oc-sets
+----------------------------------------------------------------------
+oc× :
+  {X Y : Type}
+  ⦃ _ : oc X ⦄
+  ⦃ _ : oc Y ⦄
+  → ----------
+  oc (X × Y)
+_~>_ ⦃ oc× ⦄ i a (x , y) = (i ~> a)x , (i ~> a)y
+_<~_ ⦃ oc× ⦄ i a (x , y) = (i <~ a)x , (i <~ a)y
+oc₁ ⦃ oc× ⦄ i a b (x , y) = ap₂ _,_ (oc₁ i a b x) (oc₁ i a b y)
+oc₂ ⦃ oc× ⦄ i j a (x , y) = ap₂ _,_ (oc₂ i j a x) (oc₂ i j a y)
+oc₃ ⦃ oc× ⦄ i a (x , y) = ap₂ _,_ (oc₃ i a x) (oc₃ i a y)
+oc₄ ⦃ oc× ⦄ i a (x , y) = ap₂ _,_ (oc₄ i a x) (oc₄ i a y)
+oc₅ ⦃ oc× ⦄ i j a b (x , y) = ap₂ _,_ (oc₅ i j a b x) (oc₅ i j a b y)
+oc₆ ⦃ oc× ⦄ i j a b (x , y) = ap₂ _,_ (oc₆ i j a b x) (oc₆ i j a b y)
+oc₇ ⦃ oc× ⦄ i j a b (x , y) = ap₂ _,_ (oc₇ i j a b x) (oc₇ i j a b y)
+oc₈ ⦃ oc× ⦄ i j a b (x , y) = ap₂ _,_ (oc₈ i j a b x) (oc₈ i j a b y)
+oc₉ ⦃ oc× ⦄ i j a b (x , y) = ap₂ _,_ (oc₉ i j a b x) (oc₉ i j a b y)

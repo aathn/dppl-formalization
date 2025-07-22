@@ -7,10 +7,17 @@ open import Lib.Dec public
 open import Lib.Finset public
 
 open import Data.Dec.Base public using (Dec ; yes ; no ; ifᵈ_then_else_ ; _≡?_ ; Discrete)
-open import Data.Finset.Base public using (Finset)
+open import Data.Finset.Base public
+  using (Finset ; Membership-Finset ; Dec-∈ᶠˢ)
 open import Data.Nat.Base public using (Discrete-Nat)
 open import Data.Sum.Base public using (_⊎_ ; inl ; inr)
 open import Data.Sum.Properties public using (Discrete-⊎)
+
+module NatOrd where
+  open import Data.Nat.Base public using (_≤_ ; ≤-trans)
+  open import Data.Nat.Order public using (≤-refl)
+
+  _≥_ = flip _≤_
 
 ----------------------------------------------------------------------
 -- Empty type

@@ -18,32 +18,27 @@ open import Lib.LocallyNameless.oc-Sets
 -- Freshness [Section 2.3]
 ----------------------------------------------------------------------
 infix 4 _#_
-_#_ : {X : Set}{{_ : oc X}} → 𝔸 → X → Set
+_#_ : {X : Type}⦃ _ : oc X ⦄ → 𝔸 → X → Type
 a # x = (0 <~ a)x ≡ x -- Equation (3)
 
-module _ {X : Set}{{_ : oc X}} where
+module _ {X : Type}⦃ _ : oc X ⦄ where
   #1 : -- Equation (4)
-    {i j : ℕ}
+    {i j : Nat}
     {a : 𝔸}
     {x : X}
     (p : (i <~ a)x ≡ x)
     → -----------------
     (j <~ a)x ≡ x
   #1 {i = i} {j} {a} {x} p =
-    proof
-      (j <~ a)x
-    [ ap (j <~ a) p ]≡
-      (j <~ a)((i <~ a)x)
-    ≡[ oc₂ _ _ _ _ ]
-    (i <~ a)x
-    ≡[ p ]
-      x
-    qed
+    (j <~ a)x           ≡˘⟨ ap (j <~ a) p ⟩
+    (j <~ a)((i <~ a)x) ≡⟨ oc₂ _ _ _ _ ⟩
+    (i <~ a)x           ≡⟨ p ⟩
+    x                   ∎
 
   #2 : -- Lemma 2.4
     {a : 𝔸}
     {x : X}
-    {i : ℕ}
+    {i : Nat}
     (p : a # x)
     → -----------
     (i <~ a)x ≡ x
@@ -52,7 +47,7 @@ module _ {X : Set}{{_ : oc X}} where
   #3 : -- Lemma 2.4, cont.
     {a : 𝔸}
     {x : X}
-    {i : ℕ}
+    {i : Nat}
     (p : (i <~ a)x ≡ x)
     → -----------------
     a # x
@@ -61,15 +56,11 @@ module _ {X : Set}{{_ : oc X}} where
   close-open-var : -- Corollary 2.5
     {a : 𝔸}
     {x : X}
-    {i : ℕ}
+    {i : Nat}
     (p : a # x)
     → ---------------------
     (i <~ a)((i ~> a)x) ≡ x
   close-open-var {a} {x} {i} p =
-    proof
-      (i <~ a)((i ~> a)x)
-    ≡[ oc₃ _ _ _ ]
-      (i <~ a)x
-    ≡[ #1 p ]
-      x
-    qed
+    (i <~ a)((i ~> a)x) ≡⟨ oc₃ _ _ _ ⟩
+    (i <~ a)x           ≡⟨ #1 p ⟩
+    x                   ∎

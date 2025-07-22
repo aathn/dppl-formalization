@@ -13,7 +13,6 @@ module Lib.LocallyNameless.Unfinite where
 open import Lib.Prelude
 
 open import Data.Finset.Base
-open import Data.Finset.Properties using (finset-ext)
 
 ----------------------------------------------------------------------
 -- The property of being an unfinite set
@@ -124,7 +123,7 @@ record Cof
   constructor Иi
   field
     Иe₁ : Finset A
-    Иe₂ : (x : A) → x ∉ Иe₁ → P x
+    Иe₂ : (x : A) → ⦃ x ∉ Иe₁ ⦄ → P x
 
 open Cof public
 
