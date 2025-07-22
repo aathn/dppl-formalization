@@ -1,6 +1,8 @@
 module Lib.Finset where
 
-open import 1Lab.Prelude
+open import 1Lab.Prelude hiding (_∉_)
+
+open import Lib.Dec
 open import Data.Finset.Base
 
 open import Order.Base using (Poset)
@@ -11,6 +13,8 @@ open import Data.Dec.Base using (Discrete)
 open import Data.Nat.Base using (max)
 open import Data.Nat.Order using (¬sucx≤x)
 open import Data.Sum.Base using (_⊎_ ; inr ; inl)
+open import Data.Sum.Properties using (Discrete-⊎)
+open import Data.Finset.Properties using (map-∈ᶠˢ)
 
 private variable
   ℓ : Level
@@ -27,31 +31,6 @@ private variable
     n-Type-is-hlevel 1
       (distinguish x) (distinguish y)
       (λ i → distinguish (p i)) (λ i → distinguish (q i)) i j
-
-inr⁻¹ : Finset (A ⊎ B) → Finset B
-inr⁻¹ = _>>= λ
-  { (inl _) → []
-  ; (inr y) → y ∷ []
-  }
-
-thereₛ-inr⁻¹
-  : {y : B} {y' : A ⊎ B} {xs : Finset (A ⊎ B)}
-  → y ∈ᶠˢ inr⁻¹ xs → y ∈ᶠˢ inr⁻¹ (y' ∷ xs)
-thereₛ-inr⁻¹ {y' = inl x} H∈ = H∈
-thereₛ-inr⁻¹ {y' = inr x} H∈ = thereₛ H∈
-
-∉inr⁻¹→inr∉ :
-  ⦃ _ : Discrete A ⦄
-  ⦃ _ : Discrete B ⦄
-  (zs : Finset (A ⊎ B))
-  (y : B)
-  → -----------------------
-  y ∉ inr⁻¹ zs → inr y ∉ zs
-∉inr⁻¹→inr∉ {A = A} {B} zs y H∉ H∈ = H∉ $
-  ∈ᶠˢ-elim (λ zs _ → y ∈ inr⁻¹ zs)
-    hereₛ
-    (λ {y' xs} _ → thereₛ-inr⁻¹ {y' = y'} {xs})
-    zs H∈
 
 module _ {o ℓ : Level} {P : Poset o ℓ} ⦃ joins : is-join-semilattice P ⦄ where
   open Poset P
@@ -86,5 +65,45 @@ private instance
 maxfs : Finset Nat → Nat
 maxfs = fold
 
-maxfs+1∉ : ∀ xs → suc (maxfs xs) ∉ xs
-maxfs+1∉ xs H∈ = ¬sucx≤x _ (≤fold H∈)
+maxfs+1∉ : (xs : Finset Nat) → suc (maxfs xs) ∉ xs
+maxfs+1∉ xs = ¬∈→∉ {ℙA = Finset Nat} λ H∈ → ¬sucx≤x _ (≤fold H∈)
+
+inr⁻¹ : Finset (A ⊎ B) → Finset B
+inr⁻¹ = _>>= λ
+  { (inl _) → []
+  ; (inr y) → y ∷ []
+  }
+
+thereₛ-inr⁻¹
+  : {y : B} {y' : A ⊎ B} {xs : Finset (A ⊎ B)}
+  → y ∈ᶠˢ inr⁻¹ xs → y ∈ᶠˢ inr⁻¹ (y' ∷ xs)
+thereₛ-inr⁻¹ {y' = inl x} H∈ = H∈
+thereₛ-inr⁻¹ {y' = inr x} H∈ = thereₛ H∈
+
+∉inr⁻¹→inr∉ :
+  ⦃ _ : Discrete A ⦄
+  ⦃ _ : Discrete B ⦄
+  (zs : Finset (A ⊎ B))
+  (y : B)
+  → -----------------------
+  y ∉ inr⁻¹ zs → inr y ∉ zs
+∉inr⁻¹→inr∉ {A = A} {B = B} zs y H∉ =
+  ¬∈→∉ {ℙA = Finset (A ⊎ B)} λ H∈ → ∉→¬∈ {ℙA = Finset B} H∉ $
+  ∈ᶠˢ-elim (λ zs _ → y ∈ inr⁻¹ zs)
+    hereₛ
+    (λ {y' xs} _ → thereₛ-inr⁻¹ {y' = y'} {xs})
+    zs H∈
+
+map-∉ :
+  {ℓ : Level}
+  {A B : Type ℓ}
+  ⦃ _ : Discrete A ⦄
+  ⦃ _ : Discrete B ⦄
+  {f : A → B}
+  {x : A}
+  {xs : Finset A}
+  ⦃ p : f x ∉ map f xs ⦄
+  → --------------------
+  x ∉ xs
+map-∉ {A = A} {B = B} ⦃ p = p ⦄ =
+  ¬∈→∉ {ℙA = Finset A} λ q → ∉→¬∈ {ℙA = Finset B} p (map-∈ᶠˢ _ _ q)

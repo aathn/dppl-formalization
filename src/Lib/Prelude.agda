@@ -1,14 +1,16 @@
 module Lib.Prelude where
 
-----------------------------------------------------------------------
--- Instance
--- Case expressions
--- Identity function
--- Composition
-----------------------------------------------------------------------
+open import 1Lab.Prelude public
+  hiding (_≠_; _∉_)
 
-open import 1Lab.Type public
-  using (id ; _∘_ ; _$_)
+open import Lib.Dec public
+open import Lib.Finset public
+
+open import Data.Dec.Base public using (Dec ; yes ; no ; ifᵈ_then_else_ ; _≡?_ ; Discrete)
+open import Data.Finset.Base public using (Finset)
+open import Data.Nat.Base public using (Discrete-Nat)
+open import Data.Sum.Base public using (_⊎_ ; inl ; inr)
+open import Data.Sum.Properties public using (Discrete-⊎)
 
 ----------------------------------------------------------------------
 -- Empty type
@@ -518,29 +520,6 @@ open import 1Lab.Type public
 --     → -----------------
 --     x ∉ [ x' ] → x ≠ x'
 --   ∉[]₁ ∉[] = it
-
---   ¬∈→∉ :
---     {x : A}
---     {xs : Fset A}
---     → ----------------
---     ¬(x ∈ xs) → x ∉ xs
---   ¬∈→∉ {xs = Ø}     _ = ∉Ø
---   ¬∈→∉ {xs = [ x' ]} p =
---     ∉[] {x' = x'} {{¬≡→≠{{α}} λ{refl → p ∈[]}}}
---   ¬∈→∉ {xs = xs ∪ xs'} p =
---     ∉∪ {xs = xs} {xs' = xs'}
---     {{¬∈→∉ λ q → p (∈∪₁ q)}}
---     {{¬∈→∉ λ q → p (∈∪₂ q)}}
-
---   ∉→¬∈ :
---     {x : A}
---     {xs : Fset A}
---     {{p : x ∉ xs}}
---     → ------------
---     ¬ (x ∈ xs)
---   ∉→¬∈ {x = x} {{p = ∉[]}} ∈[] with () ← ¬≠ x it
---   ∉→¬∈ {{p = ∉∪}} (∈∪₁ q) = ∉→¬∈ q
---   ∉→¬∈ {{p = ∉∪}} (∈∪₂ q) = ∉→¬∈ q
 
 -- Fset′∉ :
 --   {l : Level}
