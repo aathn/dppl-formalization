@@ -17,16 +17,18 @@ open import Lib.LocallyNameless.Freshness
 open import Lib.LocallyNameless.LocalClosedness
 open import Lib.LocallyNameless.Support
 
+open FinsetSyntax
+
 ----------------------------------------------------------------------
 -- Locally closed part of an oc-set [Definition 2.14]
 ----------------------------------------------------------------------
-lc : (i : ℕ)(X : Set){{_ : oc X}} → Set
-lc i X = ∑ x ∶ X , i ≻ x
+lc : (i : Nat)(X : Type)⦃ _ : oc X ⦄ → Type
+lc i X = Σ[ x ∈ X ] (i ≻ x)
 
 ----------------------------------------------------------------------
 -- Abstraction & Concretion [Equation (13)]
 ----------------------------------------------------------------------
-module _ {X : Set}{{_ : lns X}} where
+module _ {X : Type}⦃ _ : lns X ⦄ where
   abs : 𝔸 → X → X     -- paper's notation: \ᵃx
   abs a x = (0 <~ a)x
 
@@ -48,14 +50,14 @@ module _ {X : Set}{{_ : lns X}} where
 ----------------------------------------------------------------------
 -- "Body" predicate [Remark 2.15]
 ----------------------------------------------------------------------
-module Body {X : Set}{{_ : lns X}} where
-  body : X → Set
-  body x = И a ∶ 𝔸 , 0 ≻ conc x a
+module Body {X : Type}⦃ _ : lns X ⦄ where
+  body : X → Type
+  body x = И[ a ∈ 𝔸 ] (0 ≻ conc x a)
 
   body→1≻ : ∀ x → body x → 1 ≻ x -- Equation (18)
   body→1≻ x p with (a , ∉∪) ← fresh{𝔸} (Иe₁ (asupp x) ∪ Иe₁ p) =
-    subst (1 ≻_) (abs-conc a x (Иe₂ (asupp x) a))
-    (abs-lc a (conc x a) (Иe₂ p a))
+    subst (1 ≻_) (abs-conc a x (Иe₂ (asupp x) a ⦃ ∉∪₁ ∉∪ ⦄))
+    (abs-lc a (conc x a) (Иe₂ p a ⦃ ∉∪₂ (Иe₁ (asupp x)) ∉∪ ⦄))
 
   1≻→body : ∀ x → 1 ≻ x → body x -- Equation (18), cont.
   1≻→body x p = Иi Ø λ a → conc-lc x a p

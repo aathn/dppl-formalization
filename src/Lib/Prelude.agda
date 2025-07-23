@@ -21,6 +21,7 @@ module NatOrd where
   open import Data.Nat.Order public using (≤-refl)
 
   _≥_ = flip _≤_
+  _>_ = flip _<_
 
 ----------------------------------------------------------------------
 -- Empty type

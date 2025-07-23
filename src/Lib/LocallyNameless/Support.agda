@@ -53,7 +53,7 @@ asupp ⦃ lnsNat𝔸 ⦄ (inl i) = Иi Ø λ _ → refl
 asupp ⦃ lnsNat𝔸 ⦄ (inr a) = Иi [ a ] и₂
   where
   и₂ : (b : 𝔸)⦃ _ : b ∉ [ a ] ⦄ → b # inr a
-  и₂ b ⦃ p ⦄ = ifᵈ-no (b ≡? a) ∉∷₁
+  и₂ b ⦃ p ⦄ = ifᵈ-no (b ≡? a) (∉∷₁ auto)
 isupp ⦃ lnsNat𝔸 ⦄ (inl i) = (suc i , s₂)
   where
   s₂ : suc i ≻ inl i
@@ -383,7 +383,7 @@ module _
   ~>atom-supports : A ∪ [ a ] atom-supports (i ~> a)x
   ~>atom-supports b p =
     #1 {i = suc i}{0}
-    ((suc i <~ b) ((i ~> a) x) ≡˘⟨ oc₇ i (suc i) a b x ⦃ ¬≡→≠ (<-not-equal auto) ⦄ ⦃ sym≠ b a (∉∷₁ ⦃ H∉ = ∉∪₂ A p ⦄) ⦄ ⟩
+    ((suc i <~ b) ((i ~> a) x) ≡˘⟨ oc₇ i (suc i) a b x ⦃ ¬≡→≠ (<-not-equal auto) ⦄ ⦃ sym≠ b a (∉∷₁ (∉∪₂ A p)) ⦄ ⟩
      (i ~> a) ((suc i <~ b)x)  ≡⟨ ap (i ~> a) (#1 {j = suc i} (f b (∉∪₁ p))) ⟩
      (i ~> a) x                ∎)
 
@@ -391,7 +391,7 @@ module _
   <~atom-supports b p with b ≡? a
   ... | no g =
     (0 <~ b) ((i <~ a) x) ≡⟨ oc₆ 0 i b a x ⦃ ¬≡→≠ g ⦄ ⟩
-    (i <~ a) ((0 <~ b)x)  ≡⟨ ap (i <~ a) (f b (∉-minus p g)) ⟩
+    (i <~ a) ((0 <~ b)x)  ≡⟨ ap (i <~ a) (f b (minus-∉ p g)) ⟩
     (i <~ a) x            ∎
   ... | yes b≡a = ap (λ b → (0 <~ b)((i <~ a) x)) b≡a ∙ oc₂ 0 i a x
 
@@ -464,7 +464,7 @@ module _
     max j (suc i) ≻ (i <~ a) x
   <~index-supports p k with (b , q) ← fresh{𝔸} [ a ] =
     (b ,
-      ((k ~> b)((i <~ a) x) ≡⟨ oc₇ _ _ _ _ _ ⦃ i≠k ⦄ ⦃ ∉∷₁ ⦃ H∉ = q ⦄ ⦄ ⟩
+      ((k ~> b)((i <~ a) x) ≡⟨ oc₇ _ _ _ _ _ ⦃ i≠k ⦄ ⦃ ∉∷₁ q ⦄ ⟩
        (i <~ a)((k ~> b) x) ≡⟨ ap (i <~ a) (≻3 p (≤-trans (max-≤l _ _) auto)) ⟩
        (i <~ a) x           ∎))
     where i≠k = ¬≡→≠ (<-not-equal (≤-trans (max-≤r _ _) auto) ∘ sym)
