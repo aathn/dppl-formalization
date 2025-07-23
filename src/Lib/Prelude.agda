@@ -5,13 +5,16 @@ open import 1Lab.Prelude public
 
 open import Lib.Dec public
 open import Lib.Finset public
+open import Lib.Vector public
 
 open import Data.Dec.Base public using (Dec ; yes ; no ; ifᵈ_then_else_ ; _≡?_ ; Discrete)
+open import Data.Fin.Base public using (Fin ; fin ; fzero ; fsuc ; fin-view ; zero ; suc)
 open import Data.Finset.Base public
   using (Finset ; Membership-Finset ; Dec-∈ᶠˢ)
 open import Data.Nat.Base public using (Discrete-Nat)
 open import Data.Sum.Base public using (_⊎_ ; inl ; inr)
 open import Data.Sum.Properties public using (Discrete-⊎)
+open import Data.Vec.Base public using (Vec ; lookup)
 
 module NatOrd where
   open import Data.Nat.Base public
@@ -22,6 +25,9 @@ module NatOrd where
 
   _≥_ = flip _≤_
   _>_ = flip _<_
+
+module VecSyntax where
+  open import Data.Vec.Base public using ([] ; _∷_)
 
 ----------------------------------------------------------------------
 -- Empty type
