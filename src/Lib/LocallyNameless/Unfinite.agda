@@ -104,9 +104,15 @@ opaque
     Discrete-𝔸 : Discrete 𝔸
     Discrete-𝔸 = Discrete-Nat
 
-  instance
-    Unfinite-𝔸 : Unfinite 𝔸
-    Unfinite-𝔸 = Unfinite-Nat
+instance
+  Unfinite-𝔸 : Unfinite 𝔸
+  Unfinite-𝔸 = record { new = new𝔸 ; unfinite = unfinite𝔸 } where
+    opaque
+      unfolding 𝔸
+      new𝔸 : Finset 𝔸 → 𝔸
+      new𝔸 = Unfinite-Nat .new
+      unfinite𝔸 : (xs : Finset 𝔸) → new𝔸 xs ∉ xs
+      unfinite𝔸 = Unfinite-Nat .unfinite
 
 ----------------------------------------------------------------------
 -- Cofinite quantifer ("for all but finitely many...") [Definition 2.1]

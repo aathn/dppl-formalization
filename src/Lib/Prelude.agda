@@ -14,7 +14,10 @@ open import Data.Sum.Base public using (_⊎_ ; inl ; inr)
 open import Data.Sum.Properties public using (Discrete-⊎)
 
 module NatOrd where
-  open import Data.Nat.Base public using (_≤_ ; ≤-trans)
+  open import Data.Nat.Base public
+    using (_≤_ ; s≤s ; ≤-trans ; _<_ ; max)
+  open import Data.Nat.Properties public
+    using (max-≤l ; max-≤r ; max-univ)
   open import Data.Nat.Order public using (≤-refl)
 
   _≥_ = flip _≤_

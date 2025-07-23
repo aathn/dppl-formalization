@@ -14,7 +14,7 @@ open import Data.Nat.Base using (max)
 open import Data.Nat.Order using (¬sucx≤x)
 open import Data.Sum.Base using (_⊎_ ; inr ; inl)
 open import Data.Sum.Properties using (Discrete-⊎)
-open import Data.Finset.Properties using (map-∈ᶠˢ)
+open import Data.Finset.Properties using (map-∈ᶠˢ ; unionl-∈ᶠˢ ; unionr-∈ᶠˢ ; ∈ᶠˢ-union ; filter-∈ᶠˢ)
 
 private variable
   ℓ : Level
@@ -68,6 +68,16 @@ maxfs = fold
 maxfs+1∉ : (xs : Finset Nat) → suc (maxfs xs) ∉ xs
 maxfs+1∉ xs = ¬∈→∉ {ℙA = Finset Nat} λ H∈ → ¬sucx≤x _ (≤fold H∈)
 
+-- Subtract an element
+infix 6 _-[_]
+_-[_] :
+  ⦃ _ : Discrete A ⦄
+  (xs : Finset A)
+  (x : A)
+  → ----------------
+  Finset A
+xs -[ x ] = filter (¬_ ∘ (_≡ x)) xs
+
 inr⁻¹ : Finset (A ⊎ B) → Finset B
 inr⁻¹ = _>>= λ
   { (inl _) → []
@@ -101,8 +111,7 @@ thereₛ-inr⁻¹ {y' = inr x} H∈ = thereₛ H∈
   ⦃ H∉ : x ∉ (y ∷ ys) ⦄
   → ------------------
   x ≠ y
-∉∷₁ {A = A} ⦃ H∉ = p ⦄ = ¬≡→≠ λ H≡ →
-  ∉→¬∈ {ℙA = Finset A} p (hereₛ' (Id≃path.from H≡))
+∉∷₁ {A = A} = ¬≡→≠ λ H≡ → ∉→¬∈ {ℙA = Finset A} auto (hereₛ' (Id≃path.from H≡))
 
 ∉∷₂ :
   ⦃ _ : Discrete A ⦄
@@ -111,8 +120,55 @@ thereₛ-inr⁻¹ {y' = inr x} H∈ = thereₛ H∈
   ⦃ H∉ : x ∉ (y ∷ ys) ⦄
   → ------------------
   x ∉ ys
-∉∷₂ {A = A} ⦃ H∉ = p ⦄ = ¬∈→∉ {ℙA = Finset A} λ H∈ →
-  ∉→¬∈ {ℙA = Finset A} p (thereₛ H∈)
+∉∷₂ {A = A} = ¬∈→∉ {ℙA = Finset A} λ H∈ → ∉→¬∈ {ℙA = Finset A} auto (thereₛ H∈)
+
+∉∪₁ :
+  ⦃ _ : Discrete A ⦄
+  {x : A}
+  {xs ys : Finset A}
+  (_ : x ∉ (xs <> ys))
+  → ---------------------
+  x ∉ xs
+∉∪₁ {A = A} p = ¬∈→∉ {ℙA = Finset A} λ H∈ →
+  ∉→¬∈ {ℙA = Finset A} p (unionl-∈ᶠˢ _ _ _ H∈)
+
+∉∪₂ :
+  ⦃ _ : Discrete A ⦄
+  {x : A}
+  (xs : Finset A)
+  {ys : Finset A}
+  (_ : x ∉ (xs <> ys))
+  → ---------------------
+  x ∉ ys
+∉∪₂ {A = A} xs p = ¬∈→∉ {ℙA = Finset A} λ H∈ →
+  ∉→¬∈ {ℙA = Finset A} p (unionr-∈ᶠˢ _ xs _ H∈)
+
+∉∪ :
+  ⦃ _ : Discrete A ⦄
+  {x : A}
+  {xs ys : Finset A}
+  (_ : x ∉ xs)
+  (_ : x ∉ ys)
+  → ---------------------
+  x ∉ (xs <> ys)
+∉∪ {A = A} p q = ¬∈→∉ {ℙA = Finset A} λ H∈ →
+  ∥-∥-rec
+   (hlevel 1)
+   (λ { (inl ∈xs) → ∉→¬∈ {ℙA = Finset A} p ∈xs
+      ; (inr ∈ys) → ∉→¬∈ {ℙA = Finset A} q ∈ys
+      })
+   (∈ᶠˢ-union _ _ _ H∈)
+
+∉-minus :
+  ⦃ _ : Discrete A ⦄
+  {xs : Finset A}
+  {x y : A}
+  (_ : y ∉ (xs -[ x ]))
+  (_ : ¬ y ≡ x)
+  → -----------------
+  y ∉ xs
+∉-minus {A = A} H∉ H≠ = ¬∈→∉ {ℙA = Finset A} λ H∈ →
+  ∉→¬∈ {ℙA = Finset A} H∉ (filter-∈ᶠˢ _ H∈ H≠)
 
 map-∉ :
   {ℓ : Level}
@@ -131,3 +187,6 @@ map-∉ {A = A} {B = B} ⦃ p = p ⦄ =
 module FinsetSyntax where
   pattern Ø = []
   pattern [_] a = a ∷ []
+
+  _∪_ : Finset A → Finset A → Finset A
+  _∪_ = _<>_
