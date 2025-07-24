@@ -21,9 +21,11 @@ open import Lib.LocallyNameless.RenamingReindexingSwapping
 open import Lib.LocallyNameless.Category
 open import Lib.LocallyNameless.Shift
 
+open import Data.Nat.Base using (Nat-is-set ; suc-inj)
 open import Data.Nat.Properties
   using (+-inj ; +-preserves-≤r ; +-≤l ; +-≤r ; monus-swapr ; monus-inversel)
   renaming (+-commutative to +-comm)
+open import Data.Nat.Order using (<-from-not-≤ ; <-not-equal)
 
 open NatOrd
 open VecSyntax
@@ -55,6 +57,19 @@ private
   ≤-Max f k with fin-view k
   ... | zero  = max-≤l _ _
   ... | suc k = ≤-trans (≤-Max (tail f) k) (max-≤r _ _)
+
+  pair-inj' :
+    {n : Nat}
+    {X : Nat → Type}
+    {xs xs' : X n}
+    → _,_ {B = X} n xs ≡ (n , xs')
+    → xs ≡ xs'
+  pair-inj' {X = X} {xs} {xs'} p =
+    let n≡n      = ap fst p
+        xs≡xs'   = ap snd p
+        n≡n-refl = Nat-is-set _ _ n≡n refl
+    in
+    subst (λ x → PathP (λ i → X (x i)) xs xs') n≡n-refl xs≡xs'
 
 ----------------------------------------------------------------------
 -- Plotkin's binding signatures [Section 4.1]
@@ -216,11 +231,20 @@ op-inj {Σ} {c} {ts = ts} p = ap f p where
 op-inj' :
   {Σ : Sig}
   {c : Op Σ}
-  {ts ts'  : Trm Σ ^ length (ar Σ c)}
-  (_ : op(c , ts) ≡ op(c , ts'))
+  {ts ts' : Trm Σ ^ length (ar Σ c)}
+  (p : op(c , ts) ≡ op(c , ts'))
   → --------------------------------------
   ts ≡ ts'
-op-inj' p i = let bar = ap fst (op-inj p) i ; foo = ap snd (op-inj p) i in {!!}
+op-inj' {Σ} {c} {ts} {ts'} p = pair-inj' q where
+  q : _,_ {B = Trm Σ ^_} (length (ar Σ c)) ts ≡ (length (ar Σ c) , ts')
+  q i = length (ar Σ (op-inj p i .fst)) , op-inj p i .snd
+
+bvar≠fvar : {Σ : Sig} {i : Nat} {a : 𝔸} → ¬ _≡_ {A = Trm Σ} (bvar i) (fvar a)
+bvar≠fvar p = subst distinguish p tt where
+  distinguish : Trm _ → Type
+  distinguish (bvar _) = ⊤
+  distinguish (fvar _) = ⊥
+  distinguish _ = ⊤
 
 ----------------------------------------------------------------------
 -- The terms form a locally nameless set
@@ -369,308 +393,293 @@ instance
   e' : (j ~> a)(ts k) ≡ ts k
   e' =
     (j ~> a)(ts k)                                         ≡˘⟨ ap (λ j' → (j' ~> a)(ts k)) H≡ ⟩
-    ((j - index (ar Σ c) k + index (ar Σ c) k) ~> a)(ts k) ≡⟨ {!!} ⟩
+    ((j - index (ar Σ c) k + index (ar Σ c) k) ~> a)(ts k) ≡⟨ happly (op-inj' q) k ⟩
     ts k                                                   ∎
 
--- -- The finite support properties
--- lnsTrm : {Σ : Sig} → lns (Trm Σ)
--- lnsTrm {Σ} = mklns asp isp
---   where
---   instance
---     _ : lns Nat𝔸
---     _ = lnsNat𝔸
---   asp : (t : Trm Σ) → И a ∶ 𝔸 , a # t
---   asp (var v) with Иi и₁ и₂ ← asupp v =
---     Иi и₁ (λ a → ap var (и₂ a))
---   asp (op(c , ts)) = Иi
---     (⋃ λ k →  Иe₁ (asp (ts k)))
---     (λ a → #Trm c ts a λ k → Иe₂ (asp (ts k)) a ⦃ ∉⋃ _ k ⦄)
---   isp : (t : Trm Σ) → ∑ i ∶ Nat , i ≻ t
---   isp (var v) with (i , p) ← isupp v =
---     (i , λ j → (π₁ (p j)) , ap var (π₂ (p j)))
---   isp (op(c , ts)) =
---     let i = Max λ k →  π₁ (isp (ts k)) in
---     (i ,  ≻Trm c ts i λ k → ≻1 (≤+ _ (≤Max _ k)) (π₂ (isp (ts k))) )
+-- The finite support properties
+lnsTrm : {Σ : Sig} → lns (Trm Σ)
+lnsTrm {Σ} = mklns asp isp
+  where
+  instance
+    _ : lns Nat𝔸
+    _ = lnsNat𝔸
+  asp : (t : Trm Σ) → И[ a ∈ 𝔸 ] a # t
+  asp (var v) with Иi и₁ и₂ ← asupp v =
+    Иi и₁ (λ a → ap var (и₂ a))
+  asp (op(c , ts)) = Иi
+    (⋃ λ k →  Иe₁ (asp (ts k)))
+    (λ a → #Trm c ts a λ k → Иe₂ (asp (ts k)) a ⦃ ∉⋃ _ k ⦄)
+  isp : (t : Trm Σ) → Σ[ i ∈ Nat ] (i ≻ t)
+  isp (var v) with (i , p) ← isupp v =
+    (i , λ j → (fst (p j)) , ap var (snd (p j)))
+  isp (op(c , ts)) =
+    let i = Max λ k → fst (isp (ts k)) in
+    (i ,  ≻Trm c ts i λ k → ≻1 (≤-trans (≤-Max _ k) (+-≤l _ _)) (snd (isp (ts k))))
 
--- ----------------------------------------------------------------------
--- -- The locally nameless set Trm Σ is the free Σ∙_-algebra on Nat𝔸
--- -- [Theorem 4.1]
--- ----------------------------------------------------------------------
--- module UniversalProperty
---   {- We can prove the universal property with respect to all oc-sets
---      X, rather than just locally nameless ones. -}
---   {Σ : Sig}
---   {X : Type}
---   (f : Nat𝔸 → X)
---   (g : Σ ∙ X → X)
---   where
---   instance
---     _ : lns Nat𝔸
---     _ = lnsNat𝔸
---     _ : lns (Trm Σ)
---     _ = lnsTrm
---   -- Existence
---   rec : Trm Σ → X
---   rec (var v)      = f v
---   rec (op(c , ts)) = g (c , λ k → rec (ts k))
---   -- Uniqueness [Equation (61)]
---   module _
---     (h : Trm Σ → X)
---     (hvar : ∀ v → h (var v) ≡ f v)
---     (hop : ∀ x → h(op x) ≡ g ((Σ ∙′ h) x))
---     where
---     uniq : h ≡ rec
---     uniq = funext uniq'
---       where
---       uniq' : ∀ t → h t ≡ rec t
---       uniq' (var v) = hvar v
---       uniq' (op(c , ts)) =
---         proof
---           h (op (c , ts))
---         ≡[ hop (c , ts) ]
---           g ((Σ ∙′ h)(c , ts))
---         ≡[]
---           g (c , (h ∘ ts))
---         ≡[ ap (λ x → g (c , x)) (funext λ k → uniq' (ts k)) ]
---           g (c , λ k → rec (ts k))
---         qed
+----------------------------------------------------------------------
+-- The locally nameless set Trm Σ is the free Σ∙_-algebra on Nat𝔸
+-- [Theorem 4.1]
+----------------------------------------------------------------------
+module UniversalProperty
+  {- We can prove the universal property with respect to all oc-sets
+     X, rather than just locally nameless ones. -}
+  {Σ : Sig}
+  {X : Type}
+  (f : Nat𝔸 → X)
+  (g : Σ ∙ X → X)
+  where
+  instance
+    _ : lns Nat𝔸
+    _ = lnsNat𝔸
+    _ : lns (Trm Σ)
+    _ = lnsTrm
+  -- Existence
+  rec : Trm Σ → X
+  rec (var v)      = f v
+  rec (op(c , ts)) = g (c , λ k → rec (ts k))
+  -- Uniqueness [Equation (61)]
+  module _
+    (h : Trm Σ → X)
+    (hvar : ∀ v → h (var v) ≡ f v)
+    (hop : ∀ x → h(op x) ≡ g ((Σ ∙′ h) x))
+    where
+    uniq : h ≡ rec
+    uniq = funext uniq'
+      where
+      uniq' : ∀ t → h t ≡ rec t
+      uniq' (var v) = hvar v
+      uniq' (op(c , ts)) =
+        h (op (c , ts))          ≡⟨ hop (c , ts) ⟩
+        g ((Σ ∙′ h)(c , ts))     ≡⟨⟩
+        g (c , (h ∘ ts))         ≡⟨ ap (λ x → g (c , x)) (funext λ k → uniq' (ts k)) ⟩
+        g (c , λ k → rec (ts k)) ∎
 
---     -- If we assume X is also an oc-set and that
---     -- f, g and h are morphisms of oc-sets...
---     module _
---       ⦃ _ : oc X ⦄
---       ⦃ homf : oc-hom f ⦄
---       ⦃ homg : oc-hom ⦃ oc∙{Σ} ⦄ g ⦄
---       ⦃ _ : oc-hom h ⦄
---       where
---     -- ...then rec is also a morphism
---         rec-hom : oc-hom rec
---         rec-hom = mkoc-hom hopn hcls
---           where
---           hopn :
---             {i : Nat}
---             {a : 𝔸}
---             (t : Trm Σ)
---             → --------------------------------
---             rec ((i ~> a)t) ≡ (i ~> a) (rec t)
---           hopn (var v) = oc-hom-open v
---           hopn {i} {a} (op(c , ts)) =
---             proof
---               g (c , λ k → rec ((i + index (ar Σ c) k ~> a)(ts k)))
---             ≡[ ap (λ t → g(c , t)) (funext λ k →
---               hopn {i + index (ar Σ c) k} {a} (ts k))]
---               g (_~>_ ⦃ oc∙{Σ} ⦄ i a (c , λ k → rec (ts k)))
---             ≡[ oc-hom-open _ ]
---               (i ~> a) (g (c , λ k → rec (ts k)))
---             qed
---           hcls :
---             {i : Nat}
---             {a : 𝔸}
---             (t : Trm Σ)
---             → --------------------------------
---             rec ((i <~ a)t) ≡ (i <~ a) (rec t)
---           hcls (var v) = oc-hom-close v
---           hcls {i} {a} (op(c , ts)) =
---             proof
---               g (c , λ k → rec ((i + index (ar Σ c) k <~ a)(ts k)))
---             ≡[ ap (λ t → g(c , t)) (funext λ k →
---               hcls {i + index (ar Σ c) k} {a} (ts k))]
---               g (_<~_ ⦃ oc∙{Σ} ⦄ i a (c , λ k → rec (ts k)))
---             ≡[ oc-hom-close _ ]
---               (i <~ a) (g(c , λ k → rec (ts k)))
---             qed
+    -- If we assume X is also an oc-set and that
+    -- f, g and h are morphisms of oc-sets...
+    module _
+      ⦃ _ : oc X ⦄
+      ⦃ homf : oc-hom f ⦄
+      ⦃ homg : oc-hom ⦃ oc∙{Σ} ⦄ g ⦄
+      ⦃ _ : oc-hom h ⦄
+      where
+    -- ...then rec is also a morphism
+        rec-hom : oc-hom rec
+        rec-hom = mkoc-hom hopn hcls
+          where
+          hopn :
+            {i : Nat}
+            {a : 𝔸}
+            (t : Trm Σ)
+            → --------------------------------
+            rec ((i ~> a)t) ≡ (i ~> a) (rec t)
+          hopn (var v) = oc-hom-open v
+          hopn {i} {a} (op(c , ts)) =
+            g (c , λ k → rec ((i + index (ar Σ c) k ~> a)(ts k))) ≡⟨ ap (λ t → g(c , t))
+                                                                        (funext λ k → hopn {i + index (ar Σ c) k} {a} (ts k)) ⟩
+            g (_~>_ ⦃ oc∙{Σ} ⦄ i a (c , λ k → rec (ts k)))        ≡⟨ oc-hom-open _ ⟩
+            (i ~> a) (g (c , λ k → rec (ts k)))                   ∎
+          hcls :
+            {i : Nat}
+            {a : 𝔸}
+            (t : Trm Σ)
+            → --------------------------------
+            rec ((i <~ a)t) ≡ (i <~ a) (rec t)
+          hcls (var v) = oc-hom-close v
+          hcls {i} {a} (op(c , ts)) =
+            g (c , λ k → rec ((i + index (ar Σ c) k <~ a)(ts k))) ≡⟨ ap (λ t → g(c , t))
+                                                                        (funext λ k → hcls {i + index (ar Σ c) k} {a} (ts k)) ⟩
+            g (_<~_ ⦃ oc∙{Σ} ⦄ i a (c , λ k → rec (ts k)))        ≡⟨ oc-hom-close _ ⟩
+            (i <~ a) (g(c , λ k → rec (ts k)))                    ∎
 
--- ----------------------------------------------------------------------
--- -- Freshness in Trm Σ versus free variables [Proposition 4.2]
--- ----------------------------------------------------------------------
--- fv : {Σ : Sig} → Trm Σ → Fset 𝔸 -- Equation (66)
--- fv (bvar i)  = Ø
--- fv (fvar a)  = [ a ]
--- fv (op(c , ts)) = ⋃ λ k → fv (ts k)
+----------------------------------------------------------------------
+-- Freshness in Trm Σ versus free variables [Proposition 4.2]
+----------------------------------------------------------------------
+fv : {Σ : Sig} → Trm Σ → Finset 𝔸 -- Equation (66)
+fv (bvar i)  = Ø
+fv (fvar a)  = [ a ]
+fv (op(c , ts)) = ⋃ λ k → fv (ts k)
 
--- -- a # t ↔ a ∉ fv t
--- module FreeVar {Σ : Sig} where
---   #→∉ :
---     (a : 𝔸)
---     (t : Trm Σ)
---     → --------------
---     a # t → a ∉ fv t
---   #→∉ a (bvar i) _ = ∉Ø
---   #→∉ a (fvar b) p with a ≐ b
---   ... | neq f = ∉[]{x' = b}⦃ ¬≡→≠ f ⦄
---   ... | equ with () ← p
---   #→∉ a (op(c , ts)) p with f ← op-inj p =
---     ∉⋃′ ( λ k → fv (ts k)) λ k → #→∉ a (ts k) (#1 {j = 0} (f k))
+-- a # t ↔ a ∉ fv t
+module FreeVar {Σ : Sig} where
+  #→∉ :
+    (a : 𝔸)
+    (t : Trm Σ)
+    → --------------
+    a # t → a ∉ fv t
+  #→∉ a (bvar i) _ = tt
+  #→∉ a (fvar b) p with a ≡? b
+  ... | no _ = tt
+  ... | yes _ = absurd (bvar≠fvar p)
+  #→∉ a (op(c , ts)) p with f ← op-inj' p =
+    ∉⋃' (λ k → fv (ts k)) λ k → #→∉ a (ts k) (#1 {j = 0} (happly f k))
 
---   ∉→# :
---     (a : 𝔸)
---     (t : Trm Σ)
---     → --------------
---     a ∉ fv t → a # t
---   ∉→# a (bvar _) ∉Ø = refl
---   ∉→# a (fvar b) (∉[]⦃ p ⦄) rewrite p = refl
---   ∉→# a (op(c , ts)) p =
---     ap (λ ts' → op(c , ts'))
---     (funext λ k → #1 (∉→# a (ts k) (∉⋃ (fv ∘ ts) k ⦃ p ⦄)))
+  ∉→# :
+    (a : 𝔸)
+    (t : Trm Σ)
+    → --------------
+    a ∉ fv t → a # t
+  ∉→# a (bvar _) _ = refl
+  ∉→# a (fvar b) p = ap var (ifᵈ-no (a ≡? b) (∉∷₁ p))
+  ∉→# a (op(c , ts)) p =
+    ap (λ ts' → op(c , ts'))
+    (funext λ k → #1 (∉→# a (ts k) (∉⋃ (fv ∘ ts) k ⦃ p ⦄)))
 
--- ----------------------------------------------------------------------
--- -- Local closedness in Trm Σ [Proposition 4.3]
--- ----------------------------------------------------------------------
--- data lc-at {Σ : Sig}(i : Nat) : Trm Σ → Type where
---   lc-at-bvar :
---     {j : Nat}
---     ⦃ _ : j < i ⦄
---     → --------------
---     lc-at i (bvar j)
---   lc-at-fvar :
---     {a : 𝔸}
---     → --------------
---     lc-at i (fvar a)
---   lc-at-op :
---     {c : Op Σ}
---     {ts : Fin (length (ar Σ c)) → Trm Σ}
---     (_ : ∀ k → lc-at (i + index (ar Σ c) k) (ts k))
---     → ---------------------------------------------
---     lc-at i (op(c , ts))
+----------------------------------------------------------------------
+-- Local closedness in Trm Σ [Proposition 4.3]
+----------------------------------------------------------------------
+data lc-at {Σ : Sig}(i : Nat) : Trm Σ → Type where
+  lc-at-bvar :
+    {j : Nat}
+    ⦃ _ : j < i ⦄
+    → --------------
+    lc-at i (bvar j)
+  lc-at-fvar :
+    {a : 𝔸}
+    → --------------
+    lc-at i (fvar a)
+  lc-at-op :
+    {c : Op Σ}
+    {ts : Fin (length (ar Σ c)) → Trm Σ}
+    (_ : ∀ k → lc-at (i + index (ar Σ c) k) (ts k))
+    → ---------------------------------------------
+    lc-at i (op(c , ts))
 
--- -- i ≻ t ↔ lc-at i t
--- module LocalClosed {Σ : Sig} where
---   ≻→lc-at :
---     (i : Nat)
---     (t : Trm Σ)
---     → ---------------
---     i ≻ t → lc-at i t
---   ≻→lc-at i (bvar j) i≻bvarj = lc-at-bvar⦃ trich' p ⦄
---     where
---     p : ¬ i ≤ j
---     p i≤j
---       with q ← π₂ (i≻bvarj j ⦃ i≤j ⦄)
---       rewrite dec-equ j
---       with () ← q
---   ≻→lc-at _ (fvar _) _ = lc-at-fvar
---   ≻→lc-at i (op(c , ts)) p = lc-at-op λ k →
---     ≻→lc-at (i + index (ar Σ c) k) (ts k) (≻Trm′ c ts i p k)
+-- i ≻ t ↔ lc-at i t
+module LocalClosed {Σ : Sig} where
+  ≻→lc-at :
+    (i : Nat)
+    (t : Trm Σ)
+    → ---------------
+    i ≻ t → lc-at i t
+  ≻→lc-at i (bvar j) i≻bvarj = lc-at-bvar ⦃ <-from-not-≤ _ _ p ⦄
+    where
+    p : ¬ i ≤ j
+    p i≤j with q ← snd (i≻bvarj j ⦃ i≤j ⦄) =
+      absurd (bvar≠fvar $ sym q ∙ᵖ ap var (ifᵈ-≡ (refl {x = j})))
+  ≻→lc-at _ (fvar _) _ = lc-at-fvar
+  ≻→lc-at i (op(c , ts)) p = lc-at-op λ k →
+    ≻→lc-at (i + index (ar Σ c) k) (ts k) (≻Trm′ c ts i p k)
 
---   lc-at→≻ :
---     (i : Nat)
---     (t : Trm Σ)
---     → ---------------
---     lc-at i t → i ≻ t
---   lc-at→≻ _ (bvar j) lc-at-bvar k ⦃ p ⦄
---     rewrite <→≠ j k (<≤ it p) = (new Ø , refl)
---   lc-at→≻ _ (fvar _) lc-at-fvar _ = (new Ø , refl)
---   lc-at→≻ i (op(c , ts)) (lc-at-op f) =
---     ≻Trm c ts i λ k → lc-at→≻ (i + index (ar Σ c) k) (ts k) (f k)
+  lc-at→≻ :
+    (i : Nat)
+    (t : Trm Σ)
+    → ---------------
+    lc-at i t → i ≻ t
+  lc-at→≻ _ (bvar j) lc-at-bvar k ⦃ p ⦄ = new Ø , ap var (ifᵈ-≠ $ <-not-equal (≤-trans auto p) ∘ sym)
+    -- rewrite <→≠ j k (<≤ it p) = (new Ø , refl)
+  lc-at→≻ _ (fvar _) lc-at-fvar _ = (new Ø , refl)
+  lc-at→≻ i (op(c , ts)) (lc-at-op f) =
+    ≻Trm c ts i λ k → lc-at→≻ (i + index (ar Σ c) k) (ts k) (f k)
 
--- ----------------------------------------------------------------------
--- -- Example 4.4
--- ----------------------------------------------------------------------
--- module DenotationsViaInitiality
---   {- For simplicity we use Agda types in place of domains -}
---   (D : Type)
---   (apD : D → D → D)
---   (lmD : (D → D) → D)
---   where
---   CD : Type -- Equation (67)
---   CD = (Nat𝔸 → D) → D
+----------------------------------------------------------------------
+-- Example 4.4
+----------------------------------------------------------------------
+module DenotationsViaInitiality
+  {- For simplicity we use Agda types in place of domains -}
+  (D : Type)
+  (apD : D → D → D)
+  (lmD : (D → D) → D)
+  where
+  CD : Type -- Equation (67)
+  CD = (Nat𝔸 → D) → D
 
---   -- CD is an oc-set
---   ocCD : oc CD
---   _~>_ ⦃ ocCD ⦄ i a κ ρ = κ (ρ ∘ (i ~> a))
---   _<~_ ⦃ ocCD ⦄ i a κ ρ = κ (ρ ∘ (i <~ a))
---   oc₁ ⦃ ocCD ⦄ i a b κ =
---     funext λ ρ → ap κ (funext λ c → ap ρ (oc₁ i a b c))
---   oc₂ ⦃ ocCD ⦄ i j a κ =
---     funext λ ρ → ap κ (funext λ b → ap ρ (oc₂ i j a b))
---   oc₃ ⦃ ocCD ⦄ i a κ =
---     funext λ ρ →  ap κ (funext λ b → ap ρ (oc₃ i a b))
---   oc₄ ⦃ ocCD ⦄ i a κ =
---     funext λ ρ →  ap κ (funext λ b → ap ρ (oc₄ i a b))
---   oc₅ ⦃ ocCD ⦄ i j a b κ =
---     funext λ ρ → ap κ (funext λ c → ap ρ (oc₅ i j a b c))
---   oc₆ ⦃ ocCD ⦄ i j a b κ =
---     funext λ ρ → ap κ (funext λ c → ap ρ (oc₆ i j a b c))
---   oc₇ ⦃ ocCD ⦄ i j a b κ =
---     funext λ ρ → ap κ (funext λ c → ap ρ (oc₇ i j a b c))
---   oc.oc₈ ocCD i j a b κ =
---     funext λ ρ → ap κ (funext λ c → ap ρ (oc₈ i j a b c))
---   oc.oc₉ ocCD i j a b κ =
---     funext λ ρ → ap κ (funext λ c → ap ρ (oc₉ i j a b c))
+  -- CD is an oc-set
+  ocCD : oc CD
+  _~>_ ⦃ ocCD ⦄ i a κ ρ = κ (ρ ∘ (i ~> a))
+  _<~_ ⦃ ocCD ⦄ i a κ ρ = κ (ρ ∘ (i <~ a))
+  oc₁ ⦃ ocCD ⦄ i a b κ =
+    funext λ ρ → ap κ (funext λ c → ap ρ (oc₁ i a b c))
+  oc₂ ⦃ ocCD ⦄ i j a κ =
+    funext λ ρ → ap κ (funext λ b → ap ρ (oc₂ i j a b))
+  oc₃ ⦃ ocCD ⦄ i a κ =
+    funext λ ρ →  ap κ (funext λ b → ap ρ (oc₃ i a b))
+  oc₄ ⦃ ocCD ⦄ i a κ =
+    funext λ ρ →  ap κ (funext λ b → ap ρ (oc₄ i a b))
+  oc₅ ⦃ ocCD ⦄ i j a b κ =
+    funext λ ρ → ap κ (funext λ c → ap ρ (oc₅ i j a b c))
+  oc₆ ⦃ ocCD ⦄ i j a b κ =
+    funext λ ρ → ap κ (funext λ c → ap ρ (oc₆ i j a b c))
+  oc₇ ⦃ ocCD ⦄ i j a b κ =
+    funext λ ρ → ap κ (funext λ c → ap ρ (oc₇ i j a b c))
+  oc.oc₈ ocCD i j a b κ =
+    funext λ ρ → ap κ (funext λ c → ap ρ (oc₈ i j a b c))
+  oc.oc₉ ocCD i j a b κ =
+    funext λ ρ → ap κ (funext λ c → ap ρ (oc₉ i j a b c))
 
---   infix 6 [[_,_]]
---   [[_,_]] : (Nat𝔸 → D) → D → Nat𝔸 → D
---   [[ ρ , d ]] (ι₁ 0)      = d
---   [[ ρ , d ]] (ι₁ (i +1)) = ρ (ι₁ i)
---   [[ ρ , d ]] (ι₂ a)      = ρ (ι₂ a)
+  infix 6 [[_,_]]
+  [[_,_]] : (Nat𝔸 → D) → D → Nat𝔸 → D
+  [[ ρ , d ]] (inl 0)       = d
+  [[ ρ , d ]] (inl (suc i)) = ρ (inl i)
+  [[ ρ , d ]] (inr a)       = ρ (inr a)
 
---   [[,]]∘+1~>≡[[∘i~>,]] :
---     (ρ : Nat𝔸 → D)
---     (d : D)
---     (a : 𝔸)
---     (i : Nat)
---     (jb : Nat𝔸)
---     → ------------------------------------------------------
---     [[ ρ , d ]] ((i +1 ~> a) jb) ≡ [[ ρ ∘ (i ~> a) , d ]] jb
---   [[,]]∘+1~>≡[[∘i~>,]] ρ d a i (ι₁ 0) = refl
---   [[,]]∘+1~>≡[[∘i~>,]] ρ d a i (ι₁ (j +1)) with  i ≐ j
---   ... | equ   = refl
---   ... | neq _ = refl
---   [[,]]∘+1~>≡[[∘i~>,]] ρ d a i (ι₂ b) = refl
+  [[,]]∘+1~>≡[[∘i~>,]] :
+    (ρ : Nat𝔸 → D)
+    (d : D)
+    (a : 𝔸)
+    (i : Nat)
+    (jb : Nat𝔸)
+    → ------------------------------------------------------
+    [[ ρ , d ]] ((suc i ~> a) jb) ≡ [[ ρ ∘ (i ~> a) , d ]] jb
+  [[,]]∘+1~>≡[[∘i~>,]] ρ d a i (inl 0) = refl
+  [[,]]∘+1~>≡[[∘i~>,]] ρ d a i (inl (suc j)) with i ≡? j
+  ... | yes i≡j = ap [[ ρ , d ]] (ifᵈ-≡ {A = Nat} (ap suc i≡j))
+  ... | no  i≠j = ap [[ ρ , d ]] (ifᵈ-≠ (i≠j ∘ suc-inj))
+  [[,]]∘+1~>≡[[∘i~>,]] ρ d a i (inr b) = refl
 
---   [[,]]∘+1<~≡[[∘i<~,]] :
---     (ρ : Nat𝔸 → D)
---     (d : D)
---     (a : 𝔸)
---     (i : Nat)
---     (jb : Nat𝔸)
---     → ------------------------------------------------------
---     [[ ρ , d ]] ((i +1 <~ a) jb) ≡ [[ ρ ∘ (i <~ a) , d ]] jb
---   [[,]]∘+1<~≡[[∘i<~,]] ρ d a i (ι₁ 0) = refl
---   [[,]]∘+1<~≡[[∘i<~,]] ρ d a i (ι₁ (j +1)) = refl
---   [[,]]∘+1<~≡[[∘i<~,]] ρ d a i (ι₂ b) with a ≐ b
---   ... | equ   = refl
---   ... | neq _ = refl
+  [[,]]∘+1<~≡[[∘i<~,]] :
+    (ρ : Nat𝔸 → D)
+    (d : D)
+    (a : 𝔸)
+    (i : Nat)
+    (jb : Nat𝔸)
+    → ------------------------------------------------------
+    [[ ρ , d ]] ((suc i <~ a) jb) ≡ [[ ρ ∘ (i <~ a) , d ]] jb
+  [[,]]∘+1<~≡[[∘i<~,]] ρ d a i (inl 0) = refl
+  [[,]]∘+1<~≡[[∘i<~,]] ρ d a i (inl (suc j)) = refl
+  [[,]]∘+1<~≡[[∘i<~,]] ρ d a i (inr b) with a ≡? b
+  ... | yes _ = refl
+  ... | no  _ = refl
 
---   lmCD : CD → CD -- Equation (68), ignoring finite support
---   lmCD κ ρ = lmD (λ d → κ [[ ρ , d ]])
+  lmCD : CD → CD -- Equation (68), ignoring finite support
+  lmCD κ ρ = lmD (λ d → κ [[ ρ , d ]])
 
---   -- lmCD is an oc-set morphism from ↑(CD) to CD
---   oc-homlmCD : oc-hom ⦃ oc↑⦃ ocCD ⦄ ⦄ ⦃ ocCD ⦄ lmCD
---   oc-hom-open  ⦃ oc-homlmCD ⦄ {i} {a} κ =
---     funext λ ρ → ap lmD (
---     funext λ d → ap κ (funext ([[,]]∘+1~>≡[[∘i~>,]] ρ d a i)))
---   oc-hom-close ⦃ oc-homlmCD ⦄ {i} {a} κ =
---     funext λ ρ → ap lmD (
---     funext λ d → ap κ (funext ([[,]]∘+1<~≡[[∘i<~,]] ρ d a i)))
+  -- lmCD is an oc-set morphism from ↑(CD) to CD
+  oc-homlmCD : oc-hom ⦃ oc↑ ⦃ ocCD ⦄ ⦄ ⦃ ocCD ⦄ lmCD
+  oc-hom-open  ⦃ oc-homlmCD ⦄ {i} {a} κ =
+    funext λ ρ → ap lmD (
+    funext λ d → ap κ (funext ([[,]]∘+1~>≡[[∘i~>,]] ρ d a i)))
+  oc-hom-close ⦃ oc-homlmCD ⦄ {i} {a} κ =
+    funext λ ρ → ap lmD (
+    funext λ d → ap κ (funext ([[,]]∘+1<~≡[[∘i<~,]] ρ d a i)))
 
---   apCD : CD × CD → CD -- Equation (69), ignoring finite support
---   apCD (κ , κ') ρ = apD (κ ρ) (κ' ρ)
+  apCD : CD × CD → CD -- Equation (69), ignoring finite support
+  apCD (κ , κ') ρ = apD (κ ρ) (κ' ρ)
 
---   -- apCD is an oc-Set morphism from CD × CD to CD
---   oc-homapCD : oc-hom⦃ oc×⦃ ocCD ⦄⦃ ocCD ⦄ ⦄⦃ ocCD ⦄ apCD
---   oc-hom-open  ⦃ oc-homapCD ⦄ (κ , κ') =
---     funext λ ρ → ap₂ apD
---       (ap κ  (funext (λ _ → refl)))
---       (ap κ' (funext (λ _ → refl)))
---   oc-hom-close ⦃ oc-homapCD ⦄ (κ , κ') =
---     funext λ ρ → ap₂ apD
---       (ap κ  (funext (λ _ → refl)))
---       (ap κ' (funext (λ _ → refl)))
+  -- apCD is an oc-Set morphism from CD × CD to CD
+  oc-homapCD : oc-hom ⦃ oc× ⦃ ocCD ⦄ ⦃ ocCD ⦄ ⦄ ⦃ ocCD ⦄ apCD
+  oc-hom-open  ⦃ oc-homapCD ⦄ (κ , κ') =
+    funext λ ρ → ap₂ apD
+      (ap κ  (funext (λ _ → refl)))
+      (ap κ' (funext (λ _ → refl)))
+  oc-hom-close ⦃ oc-homapCD ⦄ (κ , κ') =
+    funext λ ρ → ap₂ apD
+      (ap κ  (funext (λ _ → refl)))
+      (ap κ' (funext (λ _ → refl)))
 
---   vrCD : Nat𝔸 → CD -- Equation (70), ignoring finite support
---   vrCD na ρ = ρ na
+  vrCD : Nat𝔸 → CD -- Equation (70), ignoring finite support
+  vrCD na ρ = ρ na
 
---   -- vrCD is an oc-set morphism from Nat𝔸 to CD
---   oc-homvrCD : oc-hom⦃ ocNat𝔸 ⦄⦃ ocCD ⦄ vrCD
---   oc-hom-open  ⦃ oc-homvrCD ⦄ _ = funext λ _ → refl
---   oc-hom-close ⦃ oc-homvrCD ⦄ _ = funext λ _ → refl
+  -- vrCD is an oc-set morphism from Nat𝔸 to CD
+  oc-homvrCD : oc-hom ⦃ ocNat𝔸 ⦄ ⦃ ocCD ⦄ vrCD
+  oc-hom-open  ⦃ oc-homvrCD ⦄ _ = funext λ _ → refl
+  oc-hom-close ⦃ oc-homvrCD ⦄ _ = funext λ _ → refl
 
---   -- lmCD and apCD combine to give a ΛSig-algebra structure for CD
---   alg : ΛSig ∙ CD → CD
---   alg (Λlam , f) = lmCD (f zero)
---   alg (Λapp , f) = apCD (f zero , f (succ zero))
+  -- -- lmCD and apCD combine to give a ΛSig-algebra structure for CD
+  -- alg : ΛSig ∙ CD → CD
+  -- alg (Λlam , f) = lmCD (f (fin 0))
+  -- alg (Λapp , f) = apCD (f (fin 0) , f (fin 1))
 
---   -- The unique alegra morphism from the intial algebra Trm (ΛSig)
---   infix 6 ⟦_⟧
---   ⟦_⟧ : Trm (ΛSig) → CD
---   ⟦_⟧ = UniversalProperty.rec vrCD alg
+  -- -- The unique alegra morphism from the intial algebra Trm (ΛSig)
+  -- infix 6 ⟦_⟧
+  -- ⟦_⟧ : Trm (ΛSig) → CD
+  -- ⟦_⟧ = UniversalProperty.rec vrCD alg

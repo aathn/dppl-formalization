@@ -85,8 +85,8 @@ module LambdaTerm where
     f₁ = λ {(app(t₁ , _)) → t₁ ; _ → t₁}
     f₂ = λ {(app(_ , t₂)) → t₂ ; _ → t₁}
 
-  bvar≠fvar : ∀ {i a} → ¬ bvar i ≡ fvar a
-  bvar≠fvar H≡ = subst distinguish H≡ tt where
+  bvar≠fvar : ∀{i a} → ¬ bvar i ≡ fvar a
+  bvar≠fvar p = subst distinguish p tt where
     distinguish : Lam → Type
     distinguish (bvar _) = ⊤
     distinguish (fvar _) = ⊥
