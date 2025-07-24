@@ -71,7 +71,7 @@ module _ {ℓ : Level} {A B : Type ℓ} ⦃ _ : Discrete A ⦄ ⦃ _ : Discrete 
     {x y : A}
     → -----------------
     f x ≠ f y → x ≠ y
-  ap≠ {f} p = ¬≡→≠ λ H≡ → ≠→¬≡ p (ap f H≡)
+  ap≠ {f} p = ¬≡→≠ λ q → ≠→¬≡ p (ap f q)
 
 module _
   {ℓ ℓ' ℓ'' : Level} {A : Type ℓ} {ℙA : Type ℓ'}  ⦃ _ : Discrete A ⦄

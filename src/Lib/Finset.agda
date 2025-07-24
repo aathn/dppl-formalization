@@ -3,6 +3,7 @@ module Lib.Finset where
 open import 1Lab.Prelude hiding (_≠_ ; _∉_)
 
 open import Lib.Dec
+open import Lib.Vector
 open import Data.Finset.Base
 
 open import Order.Base using (Poset)
@@ -10,6 +11,7 @@ open import Order.Diagram.Join using (Join)
 open import Order.Instances.Nat using (Nat-poset; Nat-joins; Nat-bottom)
 open import Order.Semilattice.Join using (is-join-semilattice)
 open import Data.Dec.Base using (Discrete)
+open import Data.Fin using (Fin ; fzero ; fsuc ; fin-view ; suc ; zero)
 open import Data.Nat.Base using (max)
 open import Data.Nat.Order using (¬sucx≤x)
 open import Data.Sum.Base using (_⊎_ ; inr ; inl)
@@ -80,6 +82,12 @@ maxfs = fold
 maxfs+1∉ : (xs : Finset Nat) → suc (maxfs xs) ∉ xs
 maxfs+1∉ xs = ¬∈→∉ {ℙA = Finset Nat} λ H∈ → ¬sucx≤x _ (≤fold H∈)
 
+open FinsetSyntax
+
+-- Finite union of finite subsets
+⋃ : {n : Nat} → Vector (Finset A) n → Finset A
+⋃ = foldr _∪_ Ø
+
 inr⁻¹ : Finset (A ⊎ B) → Finset B
 inr⁻¹ = _>>= λ
   { (inl _) → []
@@ -105,8 +113,6 @@ thereₛ-inr⁻¹ {y' = inr x} H∈ = thereₛ H∈
     hereₛ
     (λ {y' xs} _ → thereₛ-inr⁻¹ {y' = y'} {xs})
     zs H∈
-
-open FinsetSyntax
 
 module _ {ℓ : Level} {A : Type ℓ} ⦃ _ : Discrete A ⦄ where
 
@@ -198,6 +204,28 @@ module _ {ℓ : Level} {A : Type ℓ} ⦃ _ : Discrete A ⦄ where
     x ∉ (xs -[ x ])
   ∉-minus xs = ¬∈→∉ {ℙA = Finset A} λ H∈ →
     ∥-∥-rec (hlevel 1) (_$ refl) (snd (∈ᶠˢ-filter xs H∈))
+
+  ∉⋃ :
+    {n : Nat}
+    (f : Vector (Finset A) n)
+    {x : A}
+    (k : Fin n)
+    ⦃ p : x ∉ ⋃ f ⦄
+    → ------------------
+    x ∉ f k
+  ∉⋃ f k ⦃ p ⦄ with fin-view k
+  ... | zero  = ∉∪₁ p
+  ... | suc k = ∉⋃ (tail f) k ⦃ ∉∪₂ (head f) p ⦄
+
+  ∉⋃' :
+    {n : Nat}
+    (f : Vector (Finset A) n)
+    {x : A}
+    (g : (k : Fin n) → x ∉ f k)
+    → -------------------------
+    x ∉ ⋃ f
+  ∉⋃' {n = zero}  f g = tt
+  ∉⋃' {n = suc n} f g = ∉∪ (g fzero) (∉⋃' (tail f) (g ∘ fsuc))
 
   map-∉ :
     ⦃ _ : Discrete B ⦄

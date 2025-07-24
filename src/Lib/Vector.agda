@@ -2,10 +2,52 @@ module Lib.Vector where
 
 open import 1Lab.Prelude
 
-open import Data.Fin.Base using (Fin)
+open import Data.Fin.Base using (Fin ; fzero ; fsuc ; fin-view ; zero ; suc ; split-+)
+open import Data.Sum.Base using (inl ; inr)
+
+open import Data.Fin.Base public using (_[_≔_] ; delete)
 
 Vector : {l : Level} → Type l → Nat → Type l
 Vector A n = Fin n → A
+
+_^_ = Vector
+
+private variable
+  l l' : Level
+  A : Type l
+  B : Type l'
+  n m : Nat
+
+module VectorSyntax where
+
+  [] : A ^ zero
+  [] i with () ← fin-view i
+
+  _∷_ : A → A ^ n → A ^ suc n
+  (x ∷ xs) i with fin-view i
+  ... | zero = x
+  ... | suc j = xs j
+
+open VectorSyntax
+
+head : A ^ suc n → A
+head = _$ fzero
+
+tail : A ^ suc n → A ^ n
+tail = _∘ fsuc
+
+instance
+  Map-List : Map (eff (_^ n))
+  Map-List = record { map = λ f xs → f ∘ xs }
+
+foldr : (A → B → B) → B → A ^ n → B
+foldr {n = zero} f z xs = z
+foldr {n = suc n} f z xs = f (head xs) (foldr f z (tail xs))
+
+_++_ : A ^ n → A ^ m → A ^ (n + m)
+(xs ++ ys) i with split-+ i
+... | inl j = xs j
+... | inr k = ys k
 
 ----------------------------------------------------------------------
 -- Arrays
@@ -14,6 +56,6 @@ record Array {l : Level}(A : Type l) : Type l where
   constructor mkArray
   field
     length : Nat
-    index  : Vector A length
+    index  : A ^ length
 
 open Array public
