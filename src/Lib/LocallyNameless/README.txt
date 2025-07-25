@@ -1,3 +1,11 @@
+The code in this folder was adapted for Cubical Agda from the
+code accompanying the paper
+
+Andrew M. Pitts, "Locally Nameless Sets", POPL 2023
+
+Below follows the original README.txt of that development.
+
+
 Locally Nameless Sets (Agda code)
 
 (UPDATED VERSION 2023-02-18)
