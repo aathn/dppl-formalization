@@ -36,6 +36,9 @@ head = _$ fzero
 tail : A ^ suc n → A ^ n
 tail = _∘ fsuc
 
+π[_] : Fin n → A ^ n → A
+π[ i ] = _$ i
+
 instance
   Map-List : Map (eff (_^ n))
   Map-List = record { map = λ f xs → f ∘ xs }

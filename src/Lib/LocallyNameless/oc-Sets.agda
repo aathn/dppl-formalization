@@ -11,6 +11,7 @@
 module Lib.LocallyNameless.oc-Sets where
 
 open import Lib.Prelude
+open import Lib.Dec
 open import Lib.LocallyNameless.Unfinite
 
 ----------------------------------------------------------------------

@@ -10,7 +10,12 @@
 
 module Lib.LocallyNameless.BindingSignature where
 
-open import Lib.Prelude renaming (_∙_ to _∙ᵖ_)
+open import Lib.Prelude hiding (⟦_⟧) renaming (_∙_ to _∙ᵖ_)
+open import Lib.Dec
+open import Lib.Finset
+open import Lib.Nat
+open import Lib.Vector
+
 open import Lib.LocallyNameless.Unfinite
 open import Lib.LocallyNameless.oc-Sets
 open import Lib.LocallyNameless.Freshness
@@ -23,53 +28,14 @@ open import Lib.LocallyNameless.Shift
 
 open import Data.Nat.Base using (Nat-is-set ; suc-inj)
 open import Data.Nat.Properties
-  using (+-inj ; +-preserves-≤r ; +-≤l ; +-≤r ; monus-swapr ; monus-inversel)
+  using (+-preserves-≤r ; +-≤l ; +-≤r ; monus-inversel)
   renaming (+-commutative to +-comm)
 open import Data.Nat.Order using (<-from-not-≤ ; <-not-equal)
+open import Data.Irr using (Irr)
 
 open NatOrd
 open VecSyntax
 open FinsetSyntax
-
-private
-  +-inj' : ∀ k x y → x + k ≡ y + k → x ≡ y
-  +-inj' k x y p = +-inj k x y (+-comm k x ∙ᵖ p ∙ᵖ +-comm y k)
-
-  monus-preserves-≤ : ∀ x y z → x ≤ y → x - z ≤ y - z
-  monus-preserves-≤ x y zero H≤ = H≤
-  monus-preserves-≤ zero y (suc z) H≤ = 0≤x
-  monus-preserves-≤ (suc x) (suc y) (suc z) (s≤s H≤) = monus-preserves-≤ x y z H≤
-
-  monus-adj : ∀ x y z → x + y ≤ z → x ≤ z - y
-  monus-adj x y z H≤ =
-    subst (λ x → x ≤ z - y) (sym $ monus-swapr _ y _ refl)
-    (monus-preserves-≤ (x + y) z y H≤)
-
-  Max : {n : Nat} → Nat ^ n → Nat
-  Max = foldr max 0
-
-  ≤-Max :
-    {n : Nat}
-    (f : Nat ^ n)
-    (k : Fin n)
-    → -------------
-    f k ≤ Max f
-  ≤-Max f k with fin-view k
-  ... | zero  = max-≤l _ _
-  ... | suc k = ≤-trans (≤-Max (tail f) k) (max-≤r _ _)
-
-  pair-inj' :
-    {n : Nat}
-    {X : Nat → Type}
-    {xs xs' : X n}
-    → _,_ {B = X} n xs ≡ (n , xs')
-    → xs ≡ xs'
-  pair-inj' {X = X} {xs} {xs'} p =
-    let n≡n      = ap fst p
-        xs≡xs'   = ap snd p
-        n≡n-refl = Nat-is-set _ _ n≡n refl
-    in
-    subst (λ x → PathP (λ i → X (x i)) xs xs') n≡n-refl xs≡xs'
 
 ----------------------------------------------------------------------
 -- Plotkin's binding signatures [Section 4.1]
@@ -235,7 +201,7 @@ op-inj' :
   (p : op(c , ts) ≡ op(c , ts'))
   → --------------------------------------
   ts ≡ ts'
-op-inj' {Σ} {c} {ts} {ts'} p = pair-inj' q where
+op-inj' {Σ} {c} {ts} {ts'} p = pair-inj' Nat-is-set q where
   q : _,_ {B = Trm Σ ^_} (length (ar Σ c)) ts ≡ (length (ar Σ c) , ts')
   q i = length (ar Σ (op-inj p i .fst)) , op-inj p i .snd
 
@@ -674,12 +640,12 @@ module DenotationsViaInitiality
   oc-hom-open  ⦃ oc-homvrCD ⦄ _ = funext λ _ → refl
   oc-hom-close ⦃ oc-homvrCD ⦄ _ = funext λ _ → refl
 
-  -- -- lmCD and apCD combine to give a ΛSig-algebra structure for CD
-  -- alg : ΛSig ∙ CD → CD
-  -- alg (Λlam , f) = lmCD (f (fin 0))
-  -- alg (Λapp , f) = apCD (f (fin 0) , f (fin 1))
+  -- lmCD and apCD combine to give a ΛSig-algebra structure for CD
+  alg : ΛSig ∙ CD → CD
+  alg (Λlam , f) = lmCD (f (fin 0))
+  alg (Λapp , f) = apCD (f (fin 0) , f (fin 1))
 
-  -- -- The unique alegra morphism from the intial algebra Trm (ΛSig)
-  -- infix 6 ⟦_⟧
-  -- ⟦_⟧ : Trm (ΛSig) → CD
-  -- ⟦_⟧ = UniversalProperty.rec vrCD alg
+  -- The unique algebra morphism from the intial algebra Trm (ΛSig)
+  infix 6 ⟦_⟧
+  ⟦_⟧ : Trm (ΛSig) → CD
+  ⟦_⟧ = UniversalProperty.rec vrCD alg

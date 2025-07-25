@@ -11,6 +11,8 @@
 module Lib.LocallyNameless.RenamingReindexingSwapping where
 
 open import Lib.Prelude
+open import Lib.Dec
+open import Lib.Finset
 open import Lib.LocallyNameless.Unfinite
 open import Lib.LocallyNameless.oc-Sets
 open import Lib.LocallyNameless.Freshness

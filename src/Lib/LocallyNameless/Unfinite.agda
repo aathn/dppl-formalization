@@ -11,6 +11,7 @@
 module Lib.LocallyNameless.Unfinite where
 
 open import Lib.Prelude
+open import Lib.Finset
 
 open import Data.Finset.Base
 
