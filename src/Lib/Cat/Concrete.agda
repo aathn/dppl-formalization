@@ -3,10 +3,20 @@ module Lib.Cat.Concrete where
 -- Our definitions of concrete categories, sites, and sheaves.
 
 open import Cat.Prelude
+open import Cat.Diagram.Limit.Base
+open import Cat.Diagram.Colimit.Base
 open import Cat.Diagram.Terminal
 open import Cat.Functor.Adjoint
+open import Cat.Functor.Adjoint.Continuous
+open import Cat.Functor.Adjoint.Monadic
+open import Cat.Functor.Adjoint.Reflective
+open import Cat.Functor.Equivalence
+open import Cat.Functor.Equivalence.Properties
 open import Cat.Functor.FullSubcategory
 open import Cat.Functor.Properties
+open import Cat.Instances.Algebras.Limits
+open import Cat.Instances.Functor
+open import Cat.Instances.Sheaves
 open import Cat.Site.Base
 import Cat.Functor.Hom as Hom
 
@@ -62,10 +72,7 @@ module _ {o ℓ ℓc}
   open Functor
   module JC = Conc-coverage Conc-J
 
-  private variable
-    ℓs : Level
-
-  module _ (A : Functor (C ^op) (Sets ℓs)) where
+  module _ {ℓs} (A : Functor (C ^op) (Sets ℓs)) where
     -- We take the "concrete sections" of A at U to be the maps
     -- g : ob∣ U ∣ → A ʻ ⋆
     -- given by the contravariant action of A on a morphism
@@ -75,17 +82,25 @@ module _ {o ℓ ℓc}
     conc-sections : (U : ⌞ C ⌟) → A ʻ U → ob∣ U ∣ → A ʻ ⋆
     conc-sections U AU f = A ⟪ f ⟫ AU
 
-    -- And a presheaf is concrete if the concrete sections are a
+    -- A presheaf is *concrete* if the concrete sections are a
     -- faithful representation of the functor's action.
     is-concrete : Type (o ⊔ ℓ ⊔ ℓs)
     is-concrete = ∀ {U} → injective (conc-sections U)
 
-  -- The category of concrete sheaves is given as a subcategory of
-  -- sheaves.
-  ConcSheaves : Precategory (o ⊔ ℓ ⊔ ℓc ⊔ lsuc ℓs) (o ⊔ ℓ ⊔ ℓs)
-  ConcSheaves {ℓs} = Restrict {C = Sheaves J ℓs} (is-concrete ⊙ fst)
+  module _ ℓs where
+    -- The category of concrete sheaves is the subcategory of sheaves
+    -- which are concrete.
+    ConcSheaves : Precategory (o ⊔ ℓ ⊔ ℓc ⊔ lsuc ℓs) (o ⊔ ℓ ⊔ ℓs)
+    ConcSheaves = Restrict {C = Sheaves J ℓs} (is-concrete ⊙ fst)
 
-  module _ (A : Functor (C ^op) (Sets ℓs)) where
+    -- The evident forgetful functor from ConcSheaves to Sheaves
+    forget-conc : Functor ConcSheaves (Sheaves J ℓs)
+    forget-conc .F₀ = fst
+    forget-conc .F₁ x = x
+    forget-conc .F-id = refl
+    forget-conc .F-∘ f g = refl
+
+  module _ {ℓs} (A : Functor (C ^op) (Sets ℓs)) where
     -- Interestingly, the concrete sections can be used to define a
     -- concretized version of any presheaf.  The idea is to take the
     -- sections of the original presheaf A and identify any two
@@ -146,16 +161,67 @@ module _ {o ℓ ℓc}
     concretize-is-sheaf : is-sheaf J A → is-sheaf J concretize-presheaf
     concretize-is-sheaf shf .whole S p =
       let foo = p .part
+          -- bar = p .patch
       in {!!}
     concretize-is-sheaf shf .glues S p = {!!}
     concretize-is-sheaf shf .separate = concretize-is-separated
 
-  -- The evident forgetful functor from ConcSheaves to Sheaves
-  forget-conc : Functor ConcSheaves (Sheaves J ℓs)
-  forget-conc .F₀ = fst
-  forget-conc .F₁ x = x
-  forget-conc .F-id = refl
-  forget-conc .F-∘ f g = refl
+  -- Concretization provides a left adjoint to forget-conc.
+  open Free-object
 
-  make-free-conc : ∀ F → Free-object (forget-conc {ℓs}) F
-  make-free-conc = {!!}
+  make-free-conc : ∀ F → Free-object (forget-conc ℓ) F
+  make-free-conc F = {!!}
+  -- make-free-conc (F , shf) .free =
+  --   (concretize-presheaf F , concretize-is-sheaf F shf) , concretize-is-concrete F
+  -- make-free-conc F .unit = {!!}
+  -- make-free-conc F .fold = {!!}
+  -- make-free-conc F .commute = {!!}
+  -- make-free-conc F .unique = {!!}
+
+-- Next, we show the main properties of the category of concrete
+-- sheaves.  We follow the conventions in Cat.Instances.Sheaves, using
+-- homogeneous levels; the properties and proofs are the same as in
+-- that module.
+
+CSh[_,_]
+  : ∀ {ℓ} {C : Precategory ℓ ℓ} (CC : Conc-category C)
+    {J : Coverage C ℓ} (JC : Conc-coverage CC J) → Precategory (lsuc ℓ) ℓ
+CSh[ CC , JC ] = ConcSheaves JC _
+
+module _
+  {ℓ} {C : Precategory ℓ ℓ} {CC : Conc-category C}
+  {J : Coverage C ℓ} {JC : Conc-coverage CC J}
+  where
+
+  Concretization : Functor Sh[ C , J ] CSh[ CC , JC ]
+  Concretization = free-objects→functor (make-free-conc JC)
+
+  Concretization⊣ι : Concretization ⊣ forget-conc JC _
+  Concretization⊣ι = free-objects→left-adjoint (make-free-conc JC)
+
+  Concretization-is-reflective : is-reflective Concretization⊣ι
+  Concretization-is-reflective = id-equiv
+
+  Concretization-is-monadic : is-monadic Concretization⊣ι
+  Concretization-is-monadic = is-reflective→is-monadic _ id-equiv
+
+  CSh[]-is-complete : is-complete ℓ ℓ CSh[ CC , JC ]
+  CSh[]-is-complete = equivalence→complete
+    (is-equivalence.inverse-equivalence Concretization-is-monadic)
+    (Eilenberg-Moore-is-complete _ Sh[]-is-complete)
+
+  -- Todo: check if concretization is needed, or if the colimit of
+  -- concrete sheaves in Sh is already guaranteed to be concrete.
+  CSh[]-is-cocomplete : is-cocomplete ℓ ℓ CSh[ CC , JC ]
+  CSh[]-is-cocomplete F = done where
+    sh-colim : Colimit (forget-conc JC _ F∘ F)
+    sh-colim = Sh[]-is-cocomplete _
+
+    concretized : Colimit ((Concretization F∘ forget-conc JC _) F∘ F)
+    concretized = subst Colimit F∘-assoc $
+      left-adjoint-colimit Concretization⊣ι sh-colim
+
+    done = natural-iso→colimit
+      (F∘-iso-id-l (is-reflective→counit-iso Concretization⊣ι id-equiv))
+      concretized
+
