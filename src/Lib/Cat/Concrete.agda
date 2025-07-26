@@ -60,6 +60,7 @@ module _ {o ℓ ℓc}
   open Precategory C
   open Conc-category Conc
   open Functor
+  module JC = Conc-coverage Conc-J
 
   private variable
     ℓs : Level
@@ -69,31 +70,30 @@ module _ {o ℓ ℓc}
     -- g : ob∣ U ∣ → A ʻ ⋆
     -- given by the contravariant action of A on a morphism
     -- h : ob∣ U ∣ = Hom ⋆ U.
-    -- In other words, given h which intuitively represents a constant
-    -- map into U, we obtain a point in A ʻ ⋆ by restricting along h.
+    -- In other words, given h which selects a point in U, we obtain a
+    -- point in A ʻ ⋆ by restricting along h.
     conc-sections : (U : ⌞ C ⌟) → A ʻ U → ob∣ U ∣ → A ʻ ⋆
     conc-sections U AU f = A ⟪ f ⟫ AU
 
     -- And a presheaf is concrete if the concrete sections are a
     -- faithful representation of the functor's action.
-    is-conc-presheaf : Type (o ⊔ ℓ ⊔ ℓs)
-    is-conc-presheaf = ∀ {U} → injective (conc-sections U)
-
-    is-conc-sheaf : Type _
-    is-conc-sheaf = is-conc-presheaf × is-sheaf J A
+    is-concrete : Type (o ⊔ ℓ ⊔ ℓs)
+    is-concrete = ∀ {U} → injective (conc-sections U)
 
   -- The category of concrete sheaves is given as a subcategory of
   -- sheaves.
   ConcSheaves : Precategory (o ⊔ ℓ ⊔ ℓc ⊔ lsuc ℓs) (o ⊔ ℓ ⊔ ℓs)
-  ConcSheaves {ℓs} = Restrict {C = Sheaves J ℓs} (is-conc-presheaf ⊙ fst)
+  ConcSheaves {ℓs} = Restrict {C = Sheaves J ℓs} (is-concrete ⊙ fst)
 
   module _ (A : Functor (C ^op) (Sets ℓs)) where
     -- Interestingly, the concrete sections can be used to define a
-    -- concretized version of any presheaf.
+    -- concretized version of any presheaf.  The idea is to take the
+    -- sections of the original presheaf A and identify any two
+    -- sections giving rise to distinct concrete sections.
     -- Due to reasons explained in Data.Image, the resulting universe
     -- level is potentially raised by this construction.  This could
     -- be resolved using the Image type of that module, but for now
-    -- this works for us.
+    -- this will work for us.
     concretize-presheaf : Functor (C ^op) (Sets (ℓ ⊔ ℓs))
     concretize-presheaf .F₀ U = el (image (conc-sections A U)) (hlevel 2)
     concretize-presheaf .F₁ f (fr , ∥r∥) =
@@ -108,21 +108,47 @@ module _ {o ℓ ℓc}
       funext λ (fr , ∥r∥) → Σ-pathp.to
         (ap (fr ⊙_) (funext (sym ⊙ assoc g f)) , is-prop→pathp (λ i → hlevel 1) _ _)
 
-    -- We check that this indeed gives a concrete presheaf.
-    concretize-is-concrete : is-conc-presheaf concretize-presheaf
-    concretize-is-concrete {x = x} {y} p = {!!}
+    -- We check that this indeed gives a concrete presheaf.  Let A' be
+    -- the concretization of A. The statement to prove is that if x, y
+    -- are two sections of A' (in other words, two concrete sections
+    -- of A), and they map to the same concrete section under
+    -- conc-sections, then they must be identical.  But note that the
+    -- functorial action of A' on a morphism f : V → U takes a section
+    -- x : ob∣ U ∣ → A ʻ ⋆ to λ h → x (f ∘ h), so that conc-sections
+    -- on x is just the map f ↦ h ↦ x (f ∘ h).  Thus, the premise says
+    -- that for any f and h, we have x (f ∘ h) ≡ y (f ∘ h).  To
+    -- conclude that x ≡ y, we just instantiate h with id.
+    concretize-is-concrete : is-concrete concretize-presheaf
+    concretize-is-concrete {x = x , _} {y , _} p = Σ-pathp.to
+      ( funext (λ g → ap x (sym (idr g)) ∙ happly (ap fst (happly p g)) id ∙ ap y (idr g))
+      , is-prop→pathp (λ i → hlevel 1) _ _
+      )
 
-    -- This also works at the level of sheaves.
-    concretize-is-separated : is-separated J A → is-separated J concretize-presheaf
-    concretize-is-separated sep S {x , _} {y , _} p-eq = Σ-pathp.to
-      ( funext (λ g → {!!})
+    -- The construction also lifts to the level of sheaves.  We begin
+    -- by showing separation.  Note that this holds even if the
+    -- original presheaf was not separated.  We need to show that two
+    -- concrete sections x, y are equal if they agree on all
+    -- restrictions of a cover.  This holds iff they map points
+    -- g : Hom ⋆ U to equal elements of A ʻ ⋆.  The crucial
+    -- observation is that the concreteness of J lets us find a map
+    -- f : Hom V U in the cover and a point h of V, such that
+    -- g ≡ f ∘ h.  In other words, g is a restriction of h, and
+    -- x and y must agree on it.
+    concretize-is-separated : is-separated J concretize-presheaf
+    concretize-is-separated S {x , _} {y , _} p = Σ-pathp.to
+      ( funext (λ g → ∥-∥-rec (A .F₀ ⋆ .is-tr _ _)
+          (λ (V , f , h , Hf , Hg) →
+            ap x (sym Hg) ∙ happly (ap fst (p f Hf)) h ∙ ap y Hg)
+          (JC.is-concrete g))
       , is-prop→pathp (λ i → hlevel 1) _ _
       )
 
     concretize-is-sheaf : is-sheaf J A → is-sheaf J concretize-presheaf
-    concretize-is-sheaf shf .whole S p = {!!}
+    concretize-is-sheaf shf .whole S p =
+      let foo = p .part
+      in {!!}
     concretize-is-sheaf shf .glues S p = {!!}
-    concretize-is-sheaf shf .separate = concretize-is-separated (shf .separate)
+    concretize-is-sheaf shf .separate = concretize-is-separated
 
   -- The evident forgetful functor from ConcSheaves to Sheaves
   forget-conc : Functor ConcSheaves (Sheaves J ℓs)
