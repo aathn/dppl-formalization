@@ -14,7 +14,7 @@ open import Data.Image
 
 record Conc-category {o ℓ} (C : Precategory o ℓ) : Type (o ⊔ ℓ) where
   no-eta-equality
-  open Precategory C
+  open Precategory C public
   open Hom C
 
   -- We use a more restrictive definition of concrete category than
@@ -42,7 +42,6 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
 
   record Conc-coverage {ℓc} (J : Coverage C ℓc) : Type (o ⊔ ℓ ⊔ ℓc) where
     no-eta-equality
-    open Precategory C
     open Conc-category Conc
     open Coverage J
 
@@ -90,18 +89,29 @@ module _ {o ℓ ℓc ℓs}
         conc-sections-locally-small : ∀ {U} → is-identity-system {A = ob∣ U ∣ → A ʻ ⋆} (λ x y → □ (x ≡ y)) (λ x → inc refl)
         conc-sections-locally-small = is-set→locally-small conc-sections-is-set
 
-      module Im {U : ⌞ C ⌟} = Replacement (conc-sections-locally-small {U})
+      module Im {U : ⌞ C ⌟} = Replacement (conc-sections-locally-small {U}) (conc-sections U)
+
+    -- concretize-presheaf : Functor (C ^op) (Sets (ℓ ⊔ ℓs))
+    -- concretize-presheaf .F₀ U = el (image (conc-sections U)) (hlevel 2)
+    -- concretize-presheaf .F₁ {x = U} {y = V} f (fr , ∥r∥) =
+    --   fr ⊙ hom∣ f ∣ ,
+    --   ∥-∥-rec (hlevel 1)
+    --     (λ (r , Hr) → inc (A ⟪ f ⟫ r , funext λ g → happly (sym (F-∘ A g f)) r ∙ happly Hr (f ∘ g)))
+    --     ∥r∥
+    -- concretize-presheaf .F-id = funext λ (fr , ∥r∥) i → {!!}
+    -- concretize-presheaf .F-∘  = {!!}
 
     concretize-presheaf : Functor (C ^op) (Sets ℓs)
-    ∣ concretize-presheaf .F₀ U ∣ = Im.Image (conc-sections U)
-    concretize-presheaf .F₀ U .is-tr =
-      Im.Image-is-hlevel (conc-sections U) 1 conc-sections-is-set
-    concretize-presheaf .F₁ {x = U} {y = V} f (Im.inc x) = Im.inc (A ⟪ f ⟫ x)
-    concretize-presheaf .F₁ {x = U} {y = V} f (Im.quot p i) = {!!}
-      -- Im.inc (conc-sections (f)
-      -- let foo = Im.quot
+    concretize-presheaf .F₀ U =
+      el (Im.Image {U}) (Im.Image-is-hlevel 1 conc-sections-is-set)
+    concretize-presheaf .F₁ {x = U} {y = V} f r with fr , ∥r∥ ← Im.Image→image r =
+      equiv→inverse Im.Image→image-is-equiv
+      (fr ⊙ hom∣ f ∣ ,
+       ∥-∥-rec (hlevel 1)
+         (λ (r , Hr) → inc (A ⟪ f ⟫ r , funext λ g → happly (sym (F-∘ A g f)) r ∙ happly Hr (f ∘ g)))
+         ∥r∥)
     concretize-presheaf .F-id = {!!}
-    concretize-presheaf .F-∘ = {!!}
+    concretize-presheaf .F-∘  = {!!}
 
 
   ConcSheaves : Precategory (o ⊔ ℓ ⊔ ℓc ⊔ lsuc ℓs) (o ⊔ ℓ ⊔ ℓs)
