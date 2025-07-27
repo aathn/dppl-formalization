@@ -359,7 +359,7 @@ instance
   e' : (j ~> a)(ts k) ≡ ts k
   e' =
     (j ~> a)(ts k)                                         ≡˘⟨ ap (λ j' → (j' ~> a)(ts k)) H≡ ⟩
-    ((j - index (ar Σ c) k + index (ar Σ c) k) ~> a)(ts k) ≡⟨ happly (op-inj' q) k ⟩
+    ((j - index (ar Σ c) k + index (ar Σ c) k) ~> a)(ts k) ≡⟨ op-inj' q $ₚ k ⟩
     ts k                                                   ∎
 
 -- The finite support properties
@@ -477,7 +477,7 @@ module FreeVar {Σ : Sig} where
   ... | no _ = tt
   ... | yes _ = absurd (bvar≠fvar p)
   #→∉ a (op(c , ts)) p with f ← op-inj' p =
-    ∉⋃' (λ k → fv (ts k)) λ k → #→∉ a (ts k) (#1 {j = 0} (happly f k))
+    ∉⋃' (λ k → fv (ts k)) λ k → #→∉ a (ts k) (#1 {j = 0} (f $ₚ k))
 
   ∉→# :
     (a : 𝔸)
