@@ -2,6 +2,8 @@ module Lib.Cat.Concrete where
 
 -- Our definitions of concrete categories, sites, and sheaves.
 
+open import Lib.Cat.Sheafification
+
 open import Cat.Prelude
 open import Cat.Diagram.Limit.Base
 open import Cat.Diagram.Colimit.Base
@@ -139,15 +141,21 @@ module _ {o ℓ ℓc}
     , is-prop→pathp (λ i → hlevel 1) _ _
     )
 
-  -- Sheafification preserves concreteness
+  -- Sheafification also preserves concreteness.  This follows by a
+  -- fairly direct argument, noting that equality on sheaves is a
+  -- local property by definition (by separatedness), and using the
+  -- fact that the unit map from a presheaf into its sheafification is
+  -- injective if the presheaf is separated (or indeed concrete).
+  -- This result appears as Lemma 5.22 in Baez and Hoffnung (2011).
   sheafify-is-concrete : is-concrete A → is-concrete (Sheafification.Sheafify J A)
   sheafify-is-concrete {A = A} conc {x = x} {y} =
-    Sheafify-elim-prop A (λ {U} x → ∀ y → conc-sections (Sheafify A) U x ≡ conc-sections (Sheafify A) U y → x ≡ y)
+    Sheafify-elim-prop A (λ {U} x → ∀ y → cs U x ≡ cs U y → x ≡ y)
       (λ _ → hlevel 1)
       (λ x₀ y →
-        Sheafify-elim-prop A (λ {U} y → ∀ x₀ → conc-sections (Sheafify A) U (inc x₀) ≡ conc-sections (Sheafify A) U y → inc x₀ ≡ y)
+        Sheafify-elim-prop A (λ {U} y → ∀ x₀ → cs U (inc x₀) ≡ cs U y → inc x₀ ≡ y)
           (λ _ → hlevel 1)
-          (λ y₀ x₀ p → {!!}) -- ap inc (conc (funext λ g → inc-inj (inc-natural x₀ ∙ p $ₚ g ∙ sym (inc-natural y₀)))))
+          (λ y₀ x₀ p → ap inc $ conc $ funext λ g →
+            inc-inj (is-concrete→is-separated A conc) (inc-natural x₀ ∙ p $ₚ g ∙ sym (inc-natural y₀)))
           (λ {U} S x p x₀ q → sep S λ f Hf →
             sym (inc-natural x₀) ∙ p f Hf (A ⟪ f ⟫ x₀) (funext λ g →
               ap (map g) (inc-natural x₀) ∙ sym (map-∘ _) ∙ q $ₚ (f ∘ g) ∙ map-∘ _))
@@ -157,23 +165,29 @@ module _ {o ℓ ℓc}
       x y
     where
     open Sheafification J
+    cs = conc-sections (Sheafify A)
     instance
       _ : ∀ {U} → H-Level (Sheafify₀ A U) 2
       _ = hlevel-instance squash
 
-  concretize-is-sheaf : is-sheaf J A → is-sheaf J (concretize-presheaf A)
-  concretize-is-sheaf shf .whole {U} S p =
-    (λ g → p .part g (JC.is-concrete S g) .fst id)
-   , let prt = p .part
-         p' : pre.Parts C (A .F₁) ⟦ S ⟧
-         p' = {!!} -- let zot = ∥-∥-map fst (prt f Hf .snd) in {!!}
-     in
-     {!!}
-      -- let Hr = pullback-patch g p .patch
-      -- in
-  concretize-is-sheaf shf .glues S p = {!!}
-  concretize-is-sheaf {A = A} shf .separate =
-    is-concrete→is-separated (concretize-presheaf A) (concretize-is-concrete A)
+  -- The converse, that concretization preserves the sheaf property,
+  -- appears impossible to prove.  Given a patch of concrete sections,
+  -- each induced by some av : A ʻ V, we must make a global concrete
+  -- section induced by some au : A ʻ U.  The obvious idea would be to
+  -- glue the avs to obtain au, but the first issue is that we do not
+  -- have a concrete choice of av for each section, only mere
+  -- existence.  If we assume the axiom of choice, we can say that a
+  -- choice of av : A ʻ V is given, but we get no guarantee that they
+  -- agree on arbitrary restrictions.  The patch condition for the
+  -- concretization only ensures that the induced concrete sections
+  -- are compatible with restrictions, not that the av themselves are.
+  -- Making that implication go through requires A to have been a
+  -- concrete sheaf to begin with.
+  --
+  -- Luckily, we do not really need this property, since we can always
+  -- apply sheafification as an extra step, preserving concreteness.
+  --
+  -- concretize-is-sheaf : is-sheaf J A → is-sheaf J (concretize-presheaf A)
 
   module _ ℓs where
     -- The category of concrete sheaves is the subcategory of sheaves
