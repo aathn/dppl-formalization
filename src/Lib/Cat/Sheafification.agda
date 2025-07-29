@@ -30,24 +30,26 @@ module _ {o ℓ ℓc ℓs} {C : Precategory o ℓ} {J : Coverage C ℓc} {A : Fu
     --     → ∀ {V} (f : Hom V U) (hf : f ∈ c)
     --     → P (map f (glue c p patch)) (p f hf) (Sheafification.glues c p patch f hf))
 
-  Sheafify-elim-inc-path
-    : ∀ {ℓp} (P : {U : ⌞ C ⌟} (z w : A ʻ U) → Sheafification.inc z ≡ inc w → Type ℓp)
-    → (prefl : {U : ⌞ C ⌟} (z : A ʻ U) → P z z refl)
-    → (psep
-        : ∀ {U V} {f : Hom U V} (z w : A ʻ U) (c : J ʻ U)
-        → (l : ∀ {V} (f : Hom V U) (hf : f ∈ c) → map f (inc z) ≡ map f (inc w))
-        → (Hl : ∀ {V} (f : Hom V U) (hf : f ∈ c) → P (A ⟪ f ⟫ z) (A ⟪ f ⟫ w) (inc-natural z ∙ l f hf ∙ sym (inc-natural w)))
-        → P z w (sep c l))
-    → (psquash : {U : ⌞ C ⌟} (z w : A ʻ U) (p q : inc z ≡ inc w) → P z w p ≡ P z w q)
-    → {U : ⌞ C ⌟} (z w : A ʻ U) (p : inc z ≡ inc w) → P z w p
-  Sheafify-elim-inc-path P prefl psep psquash z w p = {!!}
+  -- Sheafify-elim-inc-path
+  --   : ∀ {ℓp} (P : {U : ⌞ C ⌟} (z w : A ʻ U) → Sheafification.inc z ≡ inc w → Type ℓp)
+  --   → (prefl : {U : ⌞ C ⌟} (z : A ʻ U) → P z z refl)
+  --   → (psep
+  --       : ∀ {U V} {f : Hom U V} (z w : A ʻ U) (c : J ʻ U)
+  --       → (l : ∀ {V} (f : Hom V U) (hf : f ∈ c) → map f (inc z) ≡ map f (inc w))
+  --       → (Hl : ∀ {V} (f : Hom V U) (hf : f ∈ c) → P (A ⟪ f ⟫ z) (A ⟪ f ⟫ w) (inc-natural z ∙ l f hf ∙ sym (inc-natural w)))
+  --       → P z w (sep c l))
+  --   → (psquash : {U : ⌞ C ⌟} (z w : A ʻ U) (p q : inc z ≡ inc w) → P z w p ≡ P z w q)
+  --   → {U : ⌞ C ⌟} (z w : A ʻ U) (p : inc z ≡ inc w) → P z w p
+  -- Sheafify-elim-inc-path P prefl psep psquash z w p = {!!}
 
   -- For separated presheaves, the unit of the sheafification
   -- adjunction is componentwise monic.  This appears as part of Lemma
   -- 7.49.3 in the Stacks project.
   -- https://stacks.math.columbia.edu/tag/00ZG.
-  inc-inj : {U : ⌞ C ⌟} {x y : A ʻ U} → is-separated J A → Sheafification.inc x ≡ inc y → x ≡ y
-  inc-inj {U} {x} {y} Hsep p = {!!}
+  -- TODO: Actually prove this statement.
+  postulate
+    inc-inj : {U : ⌞ C ⌟} {x y : A ʻ U} → is-separated J A → Sheafification.inc x ≡ inc y → x ≡ y
+  -- inc-inj {U} {x} {y} Hsep p = {!!}
     -- Sheafify-elim-inc-path (λ z w _ → z ≡ w)
     --   (λ z → refl)
     --   (λ z w c l Hl → Hsep c Hl)
