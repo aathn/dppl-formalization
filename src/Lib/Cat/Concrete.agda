@@ -253,7 +253,7 @@ module Free {ℓ} {C : Precategory ℓ ℓ} {J : Coverage C ℓ} (JC : Conc-cove
       eta .η _ au ,
       (conc-sections JC B U (eta .η _ au) ≡⟨ funext (λ g → sym (eta .is-natural _ _ g $ₚ au)) ⟩
        eta .η _ ⊙ conc-sections JC A U au ≡⟨ ap (eta .η _ ⊙_) p ⟩
-       eta .η _ ⊙ ca                   ∎)
+       eta .η _ ⊙ ca                      ∎)
   univ {A = A} B conc eta .is-natural U V f = funext λ (ca , p) →
     ∥-∥-elim {P = λ p → univ B conc eta .η V (Concretize A ⟪ f ⟫ (ca , p)) ≡
                         B ⟪ f ⟫ univ B conc eta .η U (ca , p)}
