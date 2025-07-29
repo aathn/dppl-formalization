@@ -1,6 +1,6 @@
 module Lib.Cat.Concrete where
 
--- Our definitions of concrete categories, sites, and sheaves.
+-- Our definitions of concrete sites and sheaves.
 
 open import Lib.Cat.Sheafification
 
@@ -10,6 +10,7 @@ open import Cat.Diagram.Colimit.Base
 open import Cat.Diagram.Sieve
 open import Cat.Diagram.Terminal
 open import Cat.Functor.Adjoint
+open import Cat.Functor.Adjoint.Compose
 open import Cat.Functor.Adjoint.Continuous
 open import Cat.Functor.Adjoint.Monadic
 open import Cat.Functor.Adjoint.Reflective
@@ -19,20 +20,18 @@ open import Cat.Functor.FullSubcategory
 open import Cat.Functor.Properties
 open import Cat.Instances.Algebras.Limits
 open import Cat.Instances.Functor
-open import Cat.Instances.Sheaves
+open import Cat.Instances.Functor.Limits
+open import Cat.Instances.Sets.Complete
+open import Cat.Instances.Sets.Cocomplete
 open import Cat.Site.Base
 open import Cat.Site.Sheafification
 import Cat.Functor.Hom as Hom
 
-record Conc-category {o ℓ} (C : Precategory o ℓ) : Type (o ⊔ ℓ) where
+record Conc-coverage {o ℓ ℓc} {C : Precategory o ℓ} (J : Coverage C ℓc) : Type (o ⊔ ℓ ⊔ ℓc) where
   no-eta-equality
   open Precategory C
   open Hom C
-
-  -- We use a more restrictive definition of concrete category than
-  -- the standard presentation in that we require the forgetful
-  -- functor to be representable by a terminal object (following
-  -- Matache et al.).
+  open Coverage J
 
   field
     terminal : Terminal C
@@ -50,30 +49,22 @@ record Conc-category {o ℓ} (C : Precategory o ℓ) : Type (o ⊔ ℓ) where
   hom∣_∣ : {o₁ o₂ : ⌞ C ⌟} → Hom o₁ o₂ → ob∣ o₁ ∣ → ob∣ o₂ ∣
   hom∣_∣ = Hom[ ⋆ ,-] .F₁
 
-module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
-  record Conc-coverage {ℓc} (J : Coverage C ℓc) : Type (o ⊔ ℓ ⊔ ℓc) where
-    no-eta-equality
-    open Conc-category Conc
-    open Coverage J
+  field
+    -- We reformulate the usual joint surjectivity condition as
+    -- below, stating that any covering sieve must contain all the
+    -- points of U.
+    covers-points : ∀ {U} (S : J ʻ U) (x : ob∣ U ∣) → x ∈ S
 
-    field
-      -- We reformulate the usual joint surjectivity condition as
-      -- below, stating that any covering sieve must contain all the
-      -- points of U.
-      is-concrete : ∀ {U} (S : J ʻ U) (x : ob∣ U ∣) → x ∈ S
-
-module _ {o ℓ ℓc}
+module Concrete {o ℓ ℓc}
   {C : Precategory o ℓ}
-  {Conc : Conc-category C}
   {J : Coverage C ℓc}
-  (JC : Conc-coverage Conc J)
+  (JC : Conc-coverage J)
   where
 
   open Precategory C
-  open Conc-category Conc
+  open Conc-coverage JC
   open Coverage J using (Sem-covers)
   open Functor
-  module JC = Conc-coverage JC
 
   private variable
     ℓs : Level
@@ -101,7 +92,7 @@ module _ {o ℓ ℓc}
     -- can be restricted to its points.  Hence, x and y must agree.
     is-concrete→is-separated : is-concrete → is-separated J A
     is-concrete→is-separated conc S p =
-      conc $ funext λ g → p g (JC.is-concrete S g)
+      conc $ funext λ g → p g (covers-points S g)
 
     -- Interestingly, the concrete sections can be used to define a
     -- concretized version of any presheaf.  The idea is to take the
@@ -111,80 +102,73 @@ module _ {o ℓ ℓc}
     -- level is potentially raised by this construction.  This could
     -- be resolved using the Image type of that module, but for now
     -- this will work for us.
-    concretize-presheaf : Functor (C ^op) (Sets (ℓ ⊔ ℓs))
-    concretize-presheaf .F₀ U = el (image (conc-sections U)) (hlevel 2)
-    concretize-presheaf .F₁ f (fr , ∥r∥) =
+    Concretize : Functor (C ^op) (Sets (ℓ ⊔ ℓs))
+    Concretize .F₀ U = el (image (conc-sections U)) (hlevel 2)
+    Concretize .F₁ f (fr , ∥r∥) =
       fr ⊙ hom∣ f ∣ ,
       ∥-∥-rec (hlevel 1)
         (λ (r , Hr) → inc (A ⟪ f ⟫ r , funext λ g → sym (F-∘ A g f) $ₚ r ∙ Hr $ₚ (f ∘ g)))
         ∥r∥
-    concretize-presheaf .F-id =
+    Concretize .F-id =
       funext λ (fr , ∥r∥) → Σ-pathp.to
         (ap (fr ⊙_) (funext idl) , is-prop→pathp (λ i → hlevel 1) _ _)
-    concretize-presheaf .F-∘ f g =
+    Concretize .F-∘ f g =
       funext λ (fr , ∥r∥) → Σ-pathp.to
         (ap (fr ⊙_) (funext (sym ⊙ assoc g f)) , is-prop→pathp (λ i → hlevel 1) _ _)
 
     -- If A is already concrete, concretization has no effect.
-    is-concrete→conc-sections-equiv : is-concrete → ∀ {U} → image (conc-sections U) ≃ A ʻ U
-    is-concrete→conc-sections-equiv conc {U} = f , f-equiv where
-      im-prop : ∀ {ca} → is-prop $ Σ[ au ∈ A ʻ U ] conc-sections U au ≡ ca
-      im-prop (x , p) (y , q) = Σ-pathp.to
-        (conc (p ∙ sym q) , is-prop→pathp (λ i → hlevel 1) _ _)
+    is-concrete→Concretize-equiv : is-concrete → ∀ {U} → A ʻ U ≃ image (conc-sections U)
+    is-concrete→Concretize-equiv conc {U} =
+      image-inc (conc-sections U) ,
+      is-embedding→image-inc-is-equiv λ ca (x , p) (y , q) →
+        Σ-pathp.to (conc (p ∙ sym q) , is-prop→pathp (λ i → hlevel 1) _ _)
 
-      f : image (conc-sections U) → A ʻ U
-      f (ca , p) = ∥-∥-out im-prop p .fst
+  module _ {ℓs} (A : Functor (C ^op) (Sets ℓs)) where
 
-      f-equiv : is-equiv f
-      f-equiv .is-eqv y .centre = (conc-sections U y , inc (y , refl)) , refl
-      f-equiv .is-eqv y .paths ((ca , p) , q) = Σ-pathp.to
-        (Σ-pathp.to ({!!} , {!!}) , {!!})
+    -- We check that concretization indeed gives a concrete presheaf.
+    -- Let A' be the concretization of A. The statement to prove is that
+    -- if x , y are two sections of A' (in other words, two concrete
+    -- sections of A), and they map to the same concrete section under
+    -- conc-sections, then they must be identical.  But note that the
+    -- functorial action of A' on a morphism f : V → U takes a section
+    -- x : ob∣ U ∣ → A ʻ ⋆ to λ h → x (f ∘ h), so that conc-sections on
+    -- x is just the map f ↦ h ↦ x (f ∘ h).  Thus, the premise says that
+    -- for any f and h, we have x (f ∘ h) ≡ y (f ∘ h).  To conclude that
+    -- x ≡ y, we just instantiate h with id.
+    Concretize-is-concrete : is-concrete (Concretize A)
+    Concretize-is-concrete {x = x , _} {y , _} p = Σ-pathp.to
+      ( funext (λ g → ap x (sym (idr g)) ∙ ap fst (p $ₚ g) $ₚ id ∙ ap y (idr g))
+      , is-prop→pathp (λ i → hlevel 1) _ _
+      )
 
-
-  -- We check that this indeed gives a concrete presheaf.  Let A' be
-  -- the concretization of A. The statement to prove is that if x , y
-  -- are two sections of A' (in other words, two concrete sections
-  -- of A), and they map to the same concrete section under
-  -- conc-sections, then they must be identical.  But note that the
-  -- functorial action of A' on a morphism f : V → U takes a section
-  -- x : ob∣ U ∣ → A ʻ ⋆ to λ h → x (f ∘ h), so that conc-sections
-  -- on x is just the map f ↦ h ↦ x (f ∘ h).  Thus, the premise says
-  -- that for any f and h, we have x (f ∘ h) ≡ y (f ∘ h).  To
-  -- conclude that x ≡ y, we just instantiate h with id.
-  concretize-is-concrete : (A : Functor (C ^op) (Sets ℓs)) → is-concrete (concretize-presheaf A)
-  concretize-is-concrete A {x = x , _} {y , _} p = Σ-pathp.to
-    ( funext (λ g → ap x (sym (idr g)) ∙ ap fst (p $ₚ g) $ₚ id ∙ ap y (idr g))
-    , is-prop→pathp (λ i → hlevel 1) _ _
-    )
-
-  -- Sheafification also preserves concreteness.  This follows by a
-  -- fairly direct argument, noting that equality on sheaves is a
-  -- local property by definition (by separatedness), and using the
-  -- fact that the unit map from a presheaf into its sheafification is
-  -- injective if the presheaf is separated (or indeed concrete).
-  -- This result appears as Lemma 5.22 in Baez and Hoffnung (2011).
-  sheafify-is-concrete : is-concrete A → is-concrete (Sheafification.Sheafify J A)
-  sheafify-is-concrete {A = A} conc {x = x} {y} =
-    Sheafify-elim-prop A (λ {U} x → ∀ y → cs U x ≡ cs U y → x ≡ y)
-      (λ _ → hlevel 1)
-      (λ x₀ y →
-        Sheafify-elim-prop A (λ {U} y → ∀ x₀ → cs U (inc x₀) ≡ cs U y → inc x₀ ≡ y)
-          (λ _ → hlevel 1)
-          (λ y₀ x₀ p → ap inc $ conc $ funext λ g →
-            inc-inj (is-concrete→is-separated A conc) (inc-natural x₀ ∙ p $ₚ g ∙ sym (inc-natural y₀)))
-          (λ {U} S x p x₀ q → sep S λ f Hf →
-            sym (inc-natural x₀) ∙ p f Hf (A ⟪ f ⟫ x₀) (funext λ g →
-              ap (map g) (inc-natural x₀) ∙ sym (map-∘ _) ∙ q $ₚ (f ∘ g) ∙ map-∘ _))
-          y x₀)
-      (λ {U} S x p x₀ q → sep S λ f Hf →
-        p f Hf (map f x₀) (funext λ g → sym (map-∘ _) ∙ q $ₚ (f ∘ g) ∙ map-∘ _))
-      x y
-    where
-    open Sheafification J
-    cs = conc-sections (Sheafify A)
-    instance
-      _ : ∀ {U} → H-Level (Sheafify₀ A U) 2
-      _ = hlevel-instance squash
+    -- Sheafification also preserves concreteness.  This follows by a
+    -- fairly direct argument, noting that equality on sheaves is a
+    -- local property by definition (by separatedness), and using the
+    -- fact that the unit map from a presheaf into its sheafification is
+    -- injective if the presheaf is separated (or indeed concrete).
+    -- This result appears as Lemma 5.22 in Baez and Hoffnung (2011).
+    Sheafify-is-concrete : is-concrete A → is-concrete (Sheafification.Sheafify J A)
+    Sheafify-is-concrete conc {x = x} {y} =
+      Sheafify-elim-prop A (λ {U} x → ∀ y → cs U x ≡ cs U y → x ≡ y)
+        (λ _ → hlevel 1)
+        (λ x₀ y →
+          Sheafify-elim-prop A (λ {U} y → ∀ x₀ → cs U (inc x₀) ≡ cs U y → inc x₀ ≡ y)
+            (λ _ → hlevel 1)
+            (λ y₀ x₀ p → ap inc $ conc $ funext λ g →
+              inc-inj (is-concrete→is-separated A conc) (inc-natural x₀ ∙ p $ₚ g ∙ sym (inc-natural y₀)))
+            (λ {U} S x p x₀ q → sep S λ f Hf →
+              sym (inc-natural x₀) ∙ p f Hf (A ⟪ f ⟫ x₀) (funext λ g →
+                ap (map g) (inc-natural x₀) ∙ sym (map-∘ _) ∙ q $ₚ (f ∘ g) ∙ map-∘ _))
+            y x₀)
+        (λ {U} S x p x₀ q → sep S λ f Hf →
+          p f Hf (map f x₀) (funext λ g → sym (map-∘ _) ∙ q $ₚ (f ∘ g) ∙ map-∘ _))
+        x y
+      where
+      open Sheafification J
+      cs = conc-sections (Sheafify A)
+      instance
+        _ : ∀ {U} → H-Level (Sheafify₀ A U) 2
+        _ = hlevel-instance squash
 
   -- The converse, that concretization preserves the sheaf property,
   -- appears impossible to prove.  Given a patch of concrete sections,
@@ -203,85 +187,143 @@ module _ {o ℓ ℓc}
   -- Luckily, we do not really need this property, since we can always
   -- apply sheafification as an extra step, preserving concreteness.
   --
-  -- concretize-is-sheaf : is-sheaf J A → is-sheaf J (concretize-presheaf A)
+  -- Concretize-is-sheaf : is-sheaf J A → is-sheaf J (Concretize A)
 
   module _ ℓs where
-    -- The full subcategory of concrete presheaves
+    -- The concrete presheaves as a full subcategory of presheaves
     ConcPSh : Precategory (o ⊔ ℓ ⊔ lsuc ℓs) (o ⊔ ℓ ⊔ ℓs)
     ConcPSh = Restrict {C = PSh ℓs C} is-concrete
 
-    -- The evident forgetful functor from ConcPSh to PSh
-    forget-conc : Functor ConcPSh (PSh ℓs C)
-    forget-conc .F₀ = fst
-    forget-conc .F₁ x = x
-    forget-conc .F-id = refl
-    forget-conc .F-∘ f g = refl
+    -- The forgetful functor from ConcPSh to PSh
+    Forget-conc : Functor ConcPSh (PSh ℓs C)
+    Forget-conc .F₀ = fst
+    Forget-conc .F₁ x = x
+    Forget-conc .F-id = refl
+    Forget-conc .F-∘ f g = refl
 
-  -- Concretization provides a left adjoint to forget-conc.
-  open Free-object
+    -- The concrete sheaves as a full subcategory of concrete presheaves
+    ConcSh : Precategory (o ⊔ ℓ ⊔ ℓc ⊔ lsuc ℓs) (o ⊔ ℓ ⊔ ℓs)
+    ConcSh = Restrict {C = ConcPSh} (is-sheaf J ⊙ fst)
+
+    -- The forgetful functor from ConcSh to ConcPSh
+    Forget-sheaf-to-conc : Functor ConcSh ConcPSh
+    Forget-sheaf-to-conc .F₀ = fst
+    Forget-sheaf-to-conc .F₁ x = x
+    Forget-sheaf-to-conc .F-id = refl
+    Forget-sheaf-to-conc .F-∘ f g = refl
+
+    -- And their composite
+    Forget-conc-sheaf : Functor ConcSh (PSh ℓs C)
+    Forget-conc-sheaf = Forget-conc F∘ Forget-sheaf-to-conc
+
+
+module Free {ℓ} {C : Precategory ℓ ℓ} {J : Coverage C ℓ} (JC : Conc-coverage J) where
+  -- Concretization provides a left adjoint to the forget-conc functors.
+  -- Regarding the universe level ℓ here, see the comment in
+  -- Cat.Site.Sheafification.
+
   open _=>_
+  open Functor
+  open Concrete JC
+  open Sheafification J
+  module FreeSheaf = Small J
 
-  conc-unit : {A : Functor (C ^op) (Sets ℓ)} → A => concretize-presheaf A
-  conc-unit {A} .η U au = conc-sections A U au , inc (au , refl)
-  conc-unit {A} .is-natural x y f = funext λ au → Σ-pathp.to
+  private variable A : Functor (C ^op) (Sets ℓ)
+
+  unit : A => Concretize A
+  unit {A = A} .η U au = image-inc (conc-sections A U) au
+  unit {A = A} .is-natural x y f = funext λ au → Σ-pathp.to
     (funext (λ g → sym (F-∘ A g f) $ₚ au) , is-prop→pathp (λ i → hlevel 1) _ _)
 
-  conc-univ : (B : Functor (C ^op) (Sets ℓ)) → is-concrete B → A => B → concretize-presheaf A => B
-  conc-univ {A = A} B conc eta .η U (ca , im) =
-    is-concrete→conc-sections-equiv B conc .fst im' where
+  univ : (B : Functor (C ^op) (Sets ℓ)) → is-concrete B → A => B → Concretize A => B
+  univ {A = A} B conc eta .η U (ca , im) =
+    equiv→inverse (is-concrete→Concretize-equiv B conc .snd) im' where
     im' : image (conc-sections B U)
-    im' = eta .η _ ⊙ ca , ∥-∥-map (λ (au , p) → eta .η _ au , {!!}) im
-  conc-univ {A = A} B conc eta .is-natural = {!!}
+    im' = eta .η _ ⊙ ca , flip ∥-∥-map im λ (au , p) →
+      eta .η _ au ,
+      (conc-sections B U (eta .η _ au) ≡⟨ funext (λ g → sym (eta .is-natural _ _ g $ₚ au)) ⟩
+       eta .η _ ⊙ conc-sections A U au ≡⟨ ap (eta .η _ ⊙_) p ⟩
+       eta .η _ ⊙ ca                   ∎)
+  univ {A = A} B conc eta .is-natural U V f = funext λ (ca , p) →
+    ∥-∥-elim {P = λ p → univ B conc eta .η V (Concretize A ⟪ f ⟫ (ca , p)) ≡
+                        B ⟪ f ⟫ univ B conc eta .η U (ca , p)}
+      (λ _ → hlevel 1)
+      (λ (au , _) → eta .is-natural _ _ f $ₚ au)
+      p
 
-  make-free-conc : ∀ A → Free-object (forget-conc ℓ) A
-  make-free-conc A .free = concretize-presheaf A , concretize-is-concrete A
-  make-free-conc A .unit = conc-unit
-  make-free-conc A .fold {Y , Y-conc} nt = conc-univ Y Y-conc nt
-  make-free-conc A .commute = trivial!
-  make-free-conc A .unique = {!!}
+  unique
+    : (B : Functor (C ^op) (Sets ℓ)) (conc : is-concrete B) (eta : A => B) (eps : Concretize A => B)
+    → (∀ U (au : A ʻ U) → eps .η U (image-inc (conc-sections A U) au) ≡ eta .η U au)
+    → univ B conc eta ≡ eps
+  unique {A = A} B conc eta eps comm = ext λ U ca au p →
+    eta .η U au                         ≡⟨ sym (comm U au) ⟩
+    eps .η U (conc-sections A U au , _) ≡⟨ ap (eps .η _) (Σ-pathp.to (p , is-prop→pathp (λ i → hlevel 1) _ _)) ⟩
+    eps .η U (ca , inc (au , p)) ∎
 
--- -- Next, we show the main properties of the category of concrete
--- -- sheaves.  We follow the conventions in Cat.Instances.Sheaves, using
--- -- homogeneous levels; the properties and proofs are the same as in
--- -- that module.
+  private module fo = Free-object
 
--- CSh[_,_]
---   : ∀ {ℓ} (C : Precategory ℓ ℓ) {CC : Conc-category C}
---     {J : Coverage C ℓ} (JC : Conc-coverage CC J) → Precategory (lsuc ℓ) ℓ
--- CSh[ C , JC ] = ConcSheaves JC _
+  make-free-conc-psh : ∀ A → Free-object (Forget-conc ℓ) A
+  make-free-conc-psh A .fo.free = Concretize A , Concretize-is-concrete A
+  make-free-conc-psh A .fo.unit = unit
+  make-free-conc-psh A .fo.fold {B , conc} = univ B conc
+  make-free-conc-psh A .fo.commute = trivial!
+  make-free-conc-psh A .fo.unique {B , conc} {f} g p = sym $
+    unique B conc _ _ λ U x → p ηₚ _ $ₚ _
 
--- module _
---   {ℓ} {C : Precategory ℓ ℓ} {CC : Conc-category C}
---   {J : Coverage C ℓ} {JC : Conc-coverage CC J}
---   where
+  make-free-conc-sh : ∀ A → Free-object (Forget-sheaf-to-conc ℓ) A
+  make-free-conc-sh (A , conc) .fo.free =
+    (Sheafify A , Sheafify-is-concrete A conc) , Sheafify-is-sheaf _
+  make-free-conc-sh A .fo.unit = FreeSheaf.unit
+  make-free-conc-sh A .fo.fold {(B , _) , shf} = FreeSheaf.univ B shf
+  make-free-conc-sh A .fo.commute = trivial!
+  make-free-conc-sh (A , _) .fo.unique {(B , _) , shf} =
+    FreeSheaf.make-free-sheaf A .fo.unique {B , shf}
 
---   Concretization : Functor Sh[ C , J ] CSh[ C , JC ]
---   Concretization = free-objects→functor (make-free-conc JC)
+-- Next, we show the main properties of the category of concrete
+-- sheaves.  We follow the conventions in Cat.Instances.Sheaves, using
+-- homogeneous levels; the properties and proofs are the same as in
+-- that module.
 
---   Concretization⊣ι : Concretization ⊣ forget-conc JC _
---   Concretization⊣ι = free-objects→left-adjoint (make-free-conc JC)
+CSh[_,_]
+  : ∀ {ℓ} (C : Precategory ℓ ℓ) {J : Coverage C ℓ} (JC : Conc-coverage J)
+  → Precategory (lsuc ℓ) ℓ
+CSh[ C , JC ] = ConcSh JC _ where open Concrete
 
---   Concretization-is-reflective : is-reflective Concretization⊣ι
---   Concretization-is-reflective = id-equiv
+module _ {ℓ} {C : Precategory ℓ ℓ} {J : Coverage C ℓ} {JC : Conc-coverage J} where
 
---   Concretization-is-monadic : is-monadic Concretization⊣ι
---   Concretization-is-monadic = is-reflective→is-monadic _ id-equiv
+  open Concrete JC
 
---   CSh[]-is-complete : is-complete ℓ ℓ CSh[ C , JC ]
---   CSh[]-is-complete = equivalence→complete
---     (is-equivalence.inverse-equivalence Concretization-is-monadic)
---     (Eilenberg-Moore-is-complete _ Sh[]-is-complete)
+  ConcShfication : Functor (PSh ℓ C) CSh[ C , JC ]
+  ConcShfication = Sheafification F∘ Concretization where
+    Concretization = free-objects→functor (Free.make-free-conc-psh JC)
+    Sheafification = free-objects→functor (Free.make-free-conc-sh JC)
 
---   CSh[]-is-cocomplete : is-cocomplete ℓ ℓ CSh[ C , JC ]
---   CSh[]-is-cocomplete F = done where
---     sh-colim : Colimit (forget-conc JC _ F∘ F)
---     sh-colim = Sh[]-is-cocomplete _
+  ConcShfication⊣ι : ConcShfication ⊣ Forget-conc-sheaf _
+  ConcShfication⊣ι = LF⊣GR Concretization⊣ι Sheafification⊣ι where
+    Concretization⊣ι = free-objects→left-adjoint (Free.make-free-conc-psh JC)
+    Sheafification⊣ι = free-objects→left-adjoint (Free.make-free-conc-sh JC)
 
---     concretized : Colimit ((Concretization F∘ forget-conc JC _) F∘ F)
---     concretized = subst Colimit F∘-assoc $
---       left-adjoint-colimit Concretization⊣ι sh-colim
+  ConcShfication-is-reflective : is-reflective ConcShfication⊣ι
+  ConcShfication-is-reflective = id-equiv
 
---     done = natural-iso→colimit
---       (F∘-iso-id-l (is-reflective→counit-iso Concretization⊣ι id-equiv))
---       concretized
+  ConcShfication-is-monadic : is-monadic ConcShfication⊣ι
+  ConcShfication-is-monadic = is-reflective→is-monadic _ id-equiv
+
+  CSh[]-is-complete : is-complete ℓ ℓ CSh[ C , JC ]
+  CSh[]-is-complete = equivalence→complete
+    (is-equivalence.inverse-equivalence ConcShfication-is-monadic)
+    (Eilenberg-Moore-is-complete _ (Functor-cat-is-complete (Sets-is-complete {ι = ℓ} {ℓ} {ℓ})))
+
+  CSh[]-is-cocomplete : is-cocomplete ℓ ℓ CSh[ C , JC ]
+  CSh[]-is-cocomplete F = done where
+    psh-colim : Colimit (Forget-conc-sheaf _ F∘ F)
+    psh-colim = Functor-cat-is-cocomplete (Sets-is-cocomplete {ι = ℓ} {ℓ} {ℓ}) _
+
+    concretized : Colimit ((ConcShfication F∘ Forget-conc-sheaf _) F∘ F)
+    concretized = subst Colimit F∘-assoc $
+      left-adjoint-colimit ConcShfication⊣ι psh-colim
+
+    done = natural-iso→colimit
+      (F∘-iso-id-l (is-reflective→counit-iso ConcShfication⊣ι id-equiv))
+      concretized
 
