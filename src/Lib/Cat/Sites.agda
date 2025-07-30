@@ -3,13 +3,14 @@ module Lib.Cat.Sites where
 open import Lib.Cat.Concrete
 
 open import Cat.Prelude
-open import Cat.Diagram.Limit.Cone
+open import Cat.Diagram.Limit.Finite
 open import Cat.Diagram.Sieve
 open import Cat.Finite
 open import Cat.Functor.Base
 open import Cat.Functor.Compose
 open import Cat.Functor.Constant
 open import Cat.Site.Base
+open import Cat.Site.Instances.Canonical
 import Cat.Reasoning as Reasoning
 
 open _=>_
@@ -33,9 +34,11 @@ module _ {oc ℓc oe ℓe}
   module E = Precategory E
   module F = Functor F
 
+  open is-lex
+
   cone-sieve
-    : ∀ {oj} {ℓj} {I : Precategory oj ℓj} (D : Functor I C) {U : ⌞ E ⌟} (T : Const U => F F∘ D)
-    → Sieve E U
+    : ∀ {oj} {ℓj} {I : Precategory oj ℓj} (D : Functor I C) {U : ⌞ E ⌟}
+    → (T : Const U => F F∘ D) → Sieve E U
   cone-sieve D T .arrows {V} h =
     elΩ $ Σ[ w ∈ C ] Σ[ S ∈ Const w => D ] Σ[ g ∈ Const V => F F∘ Const w ]
           T ∘nt constⁿ h ≡ (F ▸ S) ∘nt g
@@ -44,10 +47,10 @@ module _ {oc ℓc oe ℓe}
     pure (w , S , g' ∘nt constⁿ g , ext λ i → extendl (p ηₚ i))
     where open Reasoning E
 
-  is-flat : ∀ {ℓcov} (oj ℓj : Level) (J : Coverage E ℓcov) → Type _
+  is-flat : ∀ {ℓE} (oj ℓj : Level) (J : Coverage E ℓE) → Type _
   is-flat oj ℓj J =
-    ∀ {I : Precategory oj ℓj} {I-fin : is-finite-precategory I} (D : Functor I C) {U : ⌞ E ⌟} (T : Const U => F F∘ D)
-    → ∃[ S ∈ J ʻ U ] ⟦ S ⟧ ⊆ cone-sieve D T
+    ∀ {I : Precategory oj ℓj} {I-fin : is-finite-precategory I} (D : Functor I C) {U : ⌞ E ⌟}
+    → (T : Const U => F F∘ D) → ∃[ S ∈ J ʻ U ] ⟦ S ⟧ ⊆ cone-sieve D T
     where open Coverage J
 
   map-sieve : {u : ⌞ C ⌟} → Sieve C u → Sieve E (F.₀ u)
@@ -66,3 +69,24 @@ module _ {oc ℓc oe ℓe}
 
   is-site-morphism : ∀ {ℓC ℓE} (oj ℓj : Level) (JC : Coverage C ℓC) (JE : Coverage E ℓE) → Type _
   is-site-morphism oj ℓj JC JE = is-flat oj ℓj JE × preserves-covers JC JE
+
+  -- A theorem about flatness is that when the codomain site E is
+  -- subcanonical, flat functors preserve finite limits: this appears
+  -- as Proposition 4.13 in Shulman (2012) and also in a comment to
+  -- the blog post above.  In Shulman's paper the requirement is that
+  -- the covering families of E are strong-epic, which is slightly
+  -- weaker than subcanonicity.  In particular, subcanonicity is
+  -- equivalent to covering families being *effective-epic* (see
+  -- Cat.Site.Instances.Canonical), which implies being strong epic
+  -- (definition 2.22 in Shulman).
+  -- https://arxiv.org/pdf/1203.4318
+  --
+  -- This means that if we restrict our attention to subcanonical
+  -- sites, the standard notion of site morphism automatically
+  -- preserves concrete structure, namely terminal objects.
+  postulate
+    -- TODO: Actually prove this statement (or its weakened version),
+    -- or add additional requirements to our definition of concrete
+    -- site morphisms.
+    subcanonical+is-flat→is-lex
+      : ∀ {ℓE oj ℓj} (J : Coverage E ℓE) → is-subcanonical E J → is-flat oj ℓj J → is-lex F
