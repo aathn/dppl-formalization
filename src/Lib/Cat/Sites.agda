@@ -24,8 +24,8 @@ open Functor
 -- We define the notion of a site morphism and the bicategory of
 -- sites.
 
--- First, we must define the notion of flatness which forms a
--- principal part of the definition.
+-- The notion of flatness which forms a principal part of the
+-- definition is somewhat subtle, see references below.
 --
 -- golem.ph.utexas.edu/category/2011/06/flat_functors_and_morphisms_of.html
 -- https://ncatlab.org/nlab/show/flat+functor#SiteValuedFunctors
@@ -37,9 +37,10 @@ module _ {oc ℓc oe ℓe}
   {E : Precategory oe ℓe}
   (F : Functor C E)
   where
-  module C = Precategory C
-  module E = Precategory E
-  module F = Functor F
+  private
+    module C = Precategory C
+    module E = Precategory E
+    module F = Functor F
 
   open is-lex
 
@@ -59,18 +60,18 @@ module _ {oc ℓc oe ℓe}
     pure (w , S , g' ∘ g , ext λ i → extendl (p ηₚ i))
     where open Reasoning E
 
-  is-flat : ∀ {ℓE} (oj ℓj : Level) (J : Coverage E ℓE) → Type _
-  is-flat oj ℓj J =
+  is-flat : ∀ {ℓE} (J : Coverage E ℓE) (oj ℓj : Level) → Type _
+  is-flat J oj ℓj =
     ∀ {I : Precategory oj ℓj} (D : Functor I C) (D-fin : is-finite-precategory I) {U : ⌞ E ⌟}
     → (T : Const U => F F∘ D) → ∃[ S ∈ J ʻ U ] ⟦ S ⟧ ⊆ cone-sieve D T
     where open Coverage J
 
   map-sieve : {u : ⌞ C ⌟} → Sieve C u → Sieve E (F.₀ u)
   map-sieve {u} c .arrows {V} g =
-    elΩ $ Σ[ w ∈ C ] Σ[ f ∈ C.Hom w u ] Σ[ h ∈ E.Hom V (F.₀ w) ] F.₁ f E.∘ h ≡ g
+    elΩ $ Σ[ w ∈ C ] Σ[ f ∈ C.Hom w u ] Σ[ h ∈ E.Hom V (F.₀ w) ] f ∈ c × F.₁ f E.∘ h ≡ g
   map-sieve c .closed hf g = do
-    w , f' , h , p ← hf
-    pure (w , f' , h E.∘ g , pulll p)
+    w , f' , h , hf , p ← hf
+    pure (w , f' , h E.∘ g , hf , pulll p)
     where open Reasoning E
 
   preserves-covers : ∀ {ℓC ℓE} (JC : Coverage C ℓC) (JE : Coverage E ℓE) → Type _
@@ -79,8 +80,8 @@ module _ {oc ℓc oe ℓe}
     open Coverage JC
     open Coverage JE
 
-  is-site-morphism : ∀ {ℓC ℓE} (oj ℓj : Level) (JC : Coverage C ℓC) (JE : Coverage E ℓE) → Type _
-  is-site-morphism oj ℓj JC JE = is-flat oj ℓj JE × preserves-covers JC JE
+  is-site-morphism : ∀ {ℓC ℓE} (JC : Coverage C ℓC) (JE : Coverage E ℓE) (oj ℓj : Level) → Type _
+  is-site-morphism JC JE oj ℓj = is-flat JE oj ℓj × preserves-covers JC JE
 
   -- A theorem about flatness is that when the codomain site E is
   -- subcanonical, flat functors preserve finite limits: this appears
@@ -100,7 +101,7 @@ module _ {oc ℓc oe ℓe}
     -- uniqueness part of the limit will require some additional
     -- lemmas on monicity-preservation (Lemma 4.12 in Shulman).
     subcanonical+flat→lex
-      : ∀ {ℓE} (J : Coverage E ℓE) → is-subcanonical E J → is-flat lzero lzero J → is-lex F
+      : ∀ {ℓE} (J : Coverage E ℓE) → is-subcanonical E J → is-flat J lzero lzero → is-lex F
   -- subcanonical+is-flat→is-lex J J-sub F-flat .pres-⊤ {⊤} ⊤-is-terminal U =
   --   let cone : Const {D = E} U => F F∘ ¡F
   --       cone = ¡nt
@@ -118,3 +119,45 @@ module _ {oc ℓc oe ℓe}
   --     in
   --     contr (univ {!!}) {!!}
   -- subcanonical+is-flat→is-lex J J-sub F-flat .pres-pullback = {!!}
+
+module _ {oc ℓc od ℓd oe ℓe}
+  {C : Precategory oc ℓc}
+  {D : Precategory od ℓd}
+  {E : Precategory oe ℓe}
+  (F : Functor C D)
+  (G : Functor D E)
+  where
+  private
+    module D = Precategory D
+    module E = Precategory E
+    module F = Functor F
+    module G = Functor G
+
+  is-flat-compose
+    : ∀ {ℓD ℓE oj ℓj} {JD : Coverage D ℓD} {JE : Coverage E ℓE}
+    → is-flat F JD oj ℓj → is-flat G JE oj ℓj
+    → is-flat (G F∘ F) JE oj ℓj
+  is-flat-compose F-flat G-flat Diagram fin T = do
+    (c , Hc) ← G-flat (F F∘ Diagram) fin (assoc ∘nt T)
+    pure (c , λ h hh → do
+      (w , S , g , p) ← Hc h hh
+      case F-flat Diagram fin S of λ c' Hc' →
+        pure {!!})
+    where
+    assoc = NT (λ _ → E.id) (λ _ _ _ → E.idl _ ∙ sym (E.idr _))
+
+  preserves-covers-compose
+    : ∀ {ℓC ℓD ℓE} {JC : Coverage C ℓC} {JD : Coverage D ℓD} {JE : Coverage E ℓE}
+    → preserves-covers F JC JD → preserves-covers G JD JE
+    → preserves-covers (G F∘ F) JC JE
+  preserves-covers-compose F-pres G-pres c = do
+    (F-cov , HF⊆) ← F-pres c
+    (G-cov , HG⊆) ← G-pres F-cov
+    pure (G-cov , λ g hg → do
+      (w , f , h  , hf , p) ← HG⊆ g hg
+      (w' , f' , h' , hf' , q) ← HF⊆ f hf
+      let s = G.F₁ (F.₁ f') ∘ G.F₁ h' ∘ h ≡⟨ pulll $ sym (G.F-∘ (F.₁ f') h') ∙ ap G.₁ q ⟩
+              G.F₁ f ∘ h                  ≡⟨ p ⟩
+              g                           ∎
+      pure (w' , f' , G.₁ h' E.∘ h , hf' , s))
+   where open Reasoning E
