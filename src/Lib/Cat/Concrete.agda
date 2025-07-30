@@ -102,7 +102,7 @@ module _ {o ℓ ℓc}
     -- can be restricted to its points.  Hence, x and y must agree.
     is-concrete→is-separated : is-concrete → is-separated J A
     is-concrete→is-separated conc S p =
-      conc $ funext λ g → p g (covers-points S g)
+      conc $ ext λ g → p g (covers-points S g)
 
   module Concretize {ℓs} (A : Functor (C ^op) (Sets ℓs)) where
     -- Interestingly, the concrete sections can be used to define a
@@ -117,15 +117,10 @@ module _ {o ℓ ℓc}
     Concretize .F₀ U = el (image (conc-sections A U)) (hlevel 2)
     Concretize .F₁ f (fr , ∥r∥) =
       fr ⊙ hom∣ f ∣ ,
-      ∥-∥-rec (hlevel 1)
-        (λ (r , Hr) → inc (A ⟪ f ⟫ r , funext λ g → sym (F-∘ A g f) $ₚ r ∙ Hr $ₚ (f ∘ g)))
-        ∥r∥
-    Concretize .F-id =
-      funext λ (fr , ∥r∥) → Σ-pathp.to
-        (ap (fr ⊙_) (funext idl) , is-prop→pathp (λ i → hlevel 1) _ _)
-    Concretize .F-∘ f g =
-      funext λ (fr , ∥r∥) → Σ-pathp.to
-        (ap (fr ⊙_) (funext (sym ⊙ assoc g f)) , is-prop→pathp (λ i → hlevel 1) _ _)
+      case ∥r∥ of λ r Hr →
+        inc (A ⟪ f ⟫ r , ext λ g → sym (F-∘ A g f) $ₚ r ∙ Hr $ₚ (f ∘ g))
+    Concretize .F-id = ext λ fr _ _ g → ap fr (idl g)
+    Concretize .F-∘ f g = ext λ fr _ _ h → ap fr (sym (assoc g f h))
 
     -- If A is already concrete, concretization has no effect.
     is-concrete→Concretize-equiv : is-concrete A → ∀ {U} → A ʻ U ≃ image (conc-sections A U)
@@ -148,10 +143,8 @@ module _ {o ℓ ℓc}
     -- for any f and h, we have x (f ∘ h) ≡ y (f ∘ h).  To conclude that
     -- x ≡ y, we just instantiate h with id.
     Concretize-is-concrete : is-concrete (Concretize A)
-    Concretize-is-concrete {x = x , _} {y , _} p = Σ-pathp.to
-      ( funext (λ g → ap x (sym (idr g)) ∙ ap fst (p $ₚ g) $ₚ id ∙ ap y (idr g))
-      , is-prop→pathp (λ i → hlevel 1) _ _
-      )
+    Concretize-is-concrete {x = x , _} {y , _} p = ext λ g →
+      ap x (sym (idr g)) ∙ ap fst (p $ₚ g) $ₚ id ∙ ap y (idr g)
 
     -- Sheafification also preserves concreteness.  This follows by a
     -- fairly direct argument, noting that equality on sheaves is a
@@ -166,10 +159,10 @@ module _ {o ℓ ℓc}
         (λ x₀ y →
           Sheafify-elim-prop A (λ {U} y → ∀ x₀ → cs U (inc x₀) ≡ cs U y → inc x₀ ≡ y)
             (λ _ → hlevel 1)
-            (λ y₀ x₀ p → ap inc $ conc $ funext λ g →
+            (λ y₀ x₀ p → ap inc $ conc $ ext λ g →
               inc-inj (is-concrete→is-separated A conc) (inc-natural x₀ ∙ p $ₚ g ∙ sym (inc-natural y₀)))
             (λ {U} S x p x₀ q → sep S λ f Hf →
-              sym (inc-natural x₀) ∙ p f Hf (A ⟪ f ⟫ x₀) (funext λ g →
+              sym (inc-natural x₀) ∙ p f Hf (A ⟪ f ⟫ x₀) (ext λ g →
                 ap (map g) (inc-natural x₀) ∙ sym (map-∘ _) ∙ q $ₚ (f ∘ g) ∙ map-∘ _))
             y x₀)
         (λ {U} S x p x₀ q → sep S λ f Hf →
@@ -242,8 +235,7 @@ module Free {ℓ} {C : Precategory ℓ ℓ} {J : Coverage C ℓ} (JC : Conc-cove
 
   unit : A => Concretize A
   unit {A = A} .η U au = image-inc (conc-sections JC A U) au
-  unit {A = A} .is-natural x y f = funext λ au → Σ-pathp.to
-    (funext (λ g → sym (F-∘ A g f) $ₚ au) , is-prop→pathp (λ i → hlevel 1) _ _)
+  unit {A = A} .is-natural x y f = ext λ au g → sym (F-∘ A g f) $ₚ au
 
   univ : (B : Functor (C ^op) (Sets ℓ)) → is-concrete JC B → A => B → Concretize A => B
   univ {A = A} B conc eta .η U (ca , im) =
@@ -251,15 +243,11 @@ module Free {ℓ} {C : Precategory ℓ ℓ} {J : Coverage C ℓ} (JC : Conc-cove
     im' : image (conc-sections JC B U)
     im' = eta .η _ ⊙ ca , flip ∥-∥-map im λ (au , p) →
       eta .η _ au ,
-      (conc-sections JC B U (eta .η _ au) ≡⟨ funext (λ g → sym (eta .is-natural _ _ g $ₚ au)) ⟩
+      (conc-sections JC B U (eta .η _ au) ≡⟨ ext (λ g → sym (eta .is-natural _ _ g $ₚ au)) ⟩
        eta .η _ ⊙ conc-sections JC A U au ≡⟨ ap (eta .η _ ⊙_) p ⟩
        eta .η _ ⊙ ca                      ∎)
-  univ {A = A} B conc eta .is-natural U V f = funext λ (ca , p) →
-    ∥-∥-elim {P = λ p → univ B conc eta .η V (Concretize A ⟪ f ⟫ (ca , p)) ≡
-                        B ⟪ f ⟫ univ B conc eta .η U (ca , p)}
-      (λ _ → hlevel 1)
-      (λ (au , _) → eta .is-natural _ _ f $ₚ au)
-      p
+  univ {A = A} B conc eta .is-natural U V f = ext λ _ au _ →
+    eta .is-natural _ _ f $ₚ au
 
   unique
     : (B : Functor (C ^op) (Sets ℓ)) (conc : is-concrete JC B) (eta : A => B) (eps : Concretize A => B)
@@ -324,7 +312,7 @@ is-concrete-exponential
   → is-concrete JC B
   → is-concrete JC (PSh[_,_] C A B)
 is-concrete-exponential {C = C} JC A B bconc {x = x} {y} p = ext λ V f au →
-  bconc $ funext λ g →
+  bconc $ ext λ g →
     B ⟪ g ⟫ x .η V (f , au)            ≡˘⟨ x .is-natural V _ g $ₚ (f , au) ⟩
     _                                  ≡˘⟨ ap (λ fg → x .η _ (fg , _)) (idr _) ⟩
     x .η _ ((f ∘ g) ∘ id , A ⟪ g ⟫ au) ≡⟨ (p $ₚ (f ∘ g) ηₚ _) $ₚ (id , A ⟪ g ⟫ au) ⟩
