@@ -3,26 +3,33 @@ module Lib.Cat.Sites where
 open import Lib.Cat.Concrete
 
 open import Cat.Prelude
+open import Cat.Diagram.Colimit.Base
 open import Cat.Diagram.Limit.Finite
 open import Cat.Diagram.Sieve
 open import Cat.Finite
 open import Cat.Functor.Base
 open import Cat.Functor.Compose
 open import Cat.Functor.Constant
+open import Cat.Instances.Elements
+open import Cat.Instances.Shape.Initial
 open import Cat.Site.Base
 open import Cat.Site.Instances.Canonical
 import Cat.Reasoning as Reasoning
 
+open import Data.Fin.Finite
+
 open _=>_
+open Functor
 
 -- We define the notion of a site morphism and the bicategory of
--- sites, and define oplax colimits in this bicategory.
+-- sites.
 
 -- First, we must define the notion of flatness which forms a
 -- principal part of the definition.
 --
 -- golem.ph.utexas.edu/category/2011/06/flat_functors_and_morphisms_of.html
 -- https://ncatlab.org/nlab/show/flat+functor#SiteValuedFunctors
+-- https://arxiv.org/pdf/1203.4318
 
 
 module _ {oc ℓc oe ℓe}
@@ -40,16 +47,21 @@ module _ {oc ℓc oe ℓe}
     : ∀ {oj} {ℓj} {I : Precategory oj ℓj} (D : Functor I C) {U : ⌞ E ⌟}
     → (T : Const U => F F∘ D) → Sieve E U
   cone-sieve D T .arrows {V} h =
-    elΩ $ Σ[ w ∈ C ] Σ[ S ∈ Const w => D ] Σ[ g ∈ Const V => F F∘ Const w ]
-          T ∘nt constⁿ h ≡ (F ▸ S) ∘nt g
+    elΩ $ Σ[ w ∈ C ] Σ[ S ∈ Const w => D ] Σ[ g ∈ E.Hom V (F.₀ w) ]
+          T ∘nt constⁿ h ≡ (F ▸ S) ∘nt const' g
+    where
+    open Reasoning E
+    const' : {w : ⌞ C ⌟} {V : ⌞ E ⌟} → E.Hom V (F.₀ w) → Const V => F F∘ Const w
+    const' g .η _ = g
+    const' g .is-natural _ _ _ = E.idr g ∙ introl F.F-id
   cone-sieve D T .closed hh g = do
     w , S , g' , p ← hh
-    pure (w , S , g' ∘nt constⁿ g , ext λ i → extendl (p ηₚ i))
+    pure (w , S , g' ∘ g , ext λ i → extendl (p ηₚ i))
     where open Reasoning E
 
   is-flat : ∀ {ℓE} (oj ℓj : Level) (J : Coverage E ℓE) → Type _
   is-flat oj ℓj J =
-    ∀ {I : Precategory oj ℓj} {I-fin : is-finite-precategory I} (D : Functor I C) {U : ⌞ E ⌟}
+    ∀ {I : Precategory oj ℓj} (D : Functor I C) (D-fin : is-finite-precategory I) {U : ⌞ E ⌟}
     → (T : Const U => F F∘ D) → ∃[ S ∈ J ʻ U ] ⟦ S ⟧ ⊆ cone-sieve D T
     where open Coverage J
 
@@ -79,14 +91,30 @@ module _ {oc ℓc oe ℓe}
   -- equivalent to covering families being *effective-epic* (see
   -- Cat.Site.Instances.Canonical), which implies being strong epic
   -- (definition 2.22 in Shulman).
-  -- https://arxiv.org/pdf/1203.4318
   --
   -- This means that if we restrict our attention to subcanonical
   -- sites, the standard notion of site morphism automatically
   -- preserves concrete structure, namely terminal objects.
   postulate
-    -- TODO: Actually prove this statement (or its weakened version),
-    -- or add additional requirements to our definition of concrete
-    -- site morphisms.
-    subcanonical+is-flat→is-lex
-      : ∀ {ℓE oj ℓj} (J : Coverage E ℓE) → is-subcanonical E J → is-flat oj ℓj J → is-lex F
+    -- TODO: We postulate this result for now, as showing the
+    -- uniqueness part of the limit will require some additional
+    -- lemmas on monicity-preservation (Lemma 4.12 in Shulman).
+    subcanonical+flat→lex
+      : ∀ {ℓE} (J : Coverage E ℓE) → is-subcanonical E J → is-flat lzero lzero J → is-lex F
+  -- subcanonical+is-flat→is-lex J J-sub F-flat .pres-⊤ {⊤} ⊤-is-terminal U =
+  --   let cone : Const {D = E} U => F F∘ ¡F
+  --       cone = ¡nt
+  --       flat-sieve = F-flat ¡F finite-cat cone
+  --   in
+  --   case flat-sieve of λ S H⊆ →
+  --     let module colim = is-colimit (J-sub S E.id)
+  --         open Element
+  --         open Coverage J
+  --         univ = colim.universal {F.₀ ⊤} λ j →
+  --           let f , Hf = j .section
+  --               Hflat = H⊆ f (subst (_∈ ⟦ S ⟧) (E.idl f) Hf)
+  --           in
+  --           {!!}
+  --     in
+  --     contr (univ {!!}) {!!}
+  -- subcanonical+is-flat→is-lex J J-sub F-flat .pres-pullback = {!!}
