@@ -14,9 +14,8 @@ import Cat.Reasoning as Reasoning
 
 open _=>_
 
--- We define the notion of a (concrete) site morphism, the bicategory
--- of concrete sites, and show the existence of oplax colimits in this
--- bicategory.
+-- We define the notion of a site morphism and the bicategory of
+-- sites, and define oplax colimits in this bicategory.
 
 -- First, we must define the notion of flatness which forms a
 -- principal part of the definition.
@@ -25,16 +24,14 @@ open _=>_
 -- https://ncatlab.org/nlab/show/flat+functor#SiteValuedFunctors
 
 
-module _ {oc ℓc oe ℓe ℓcov}
+module _ {oc ℓc oe ℓe}
   {C : Precategory oc ℓc}
   {E : Precategory oe ℓe}
-  {J : Coverage E ℓcov}
   (F : Functor C E)
   where
-  open Coverage J
-  module F = Functor F
   module C = Precategory C
   module E = Precategory E
+  module F = Functor F
 
   cone-sieve
     : ∀ {oj} {ℓj} {I : Precategory oj ℓj} (D : Functor I C) {U : ⌞ E ⌟} (T : Const U => F F∘ D)
@@ -44,10 +41,28 @@ module _ {oc ℓc oe ℓe ℓcov}
           T ∘nt constⁿ h ≡ (F ▸ S) ∘nt g
   cone-sieve D T .closed hh g = do
     w , S , g' , p ← hh
-    inc (w , S , g' ∘nt constⁿ g , ext λ i → extendl (p ηₚ i))
+    pure (w , S , g' ∘nt constⁿ g , ext λ i → extendl (p ηₚ i))
     where open Reasoning E
 
-  is-flat : ∀ {oj ℓj} → Type _
-  is-flat {oj} {ℓj} =
+  is-flat : ∀ {ℓcov} (oj ℓj : Level) (J : Coverage E ℓcov) → Type _
+  is-flat oj ℓj J =
     ∀ {I : Precategory oj ℓj} {I-fin : is-finite-precategory I} (D : Functor I C) {U : ⌞ E ⌟} (T : Const U => F F∘ D)
     → ∃[ S ∈ J ʻ U ] ⟦ S ⟧ ⊆ cone-sieve D T
+    where open Coverage J
+
+  map-sieve : {u : ⌞ C ⌟} → Sieve C u → Sieve E (F.₀ u)
+  map-sieve {u} c .arrows {V} g =
+    elΩ $ Σ[ w ∈ C ] Σ[ f ∈ C.Hom w u ] Σ[ h ∈ E.Hom V (F.₀ w) ] F.₁ f E.∘ h ≡ g
+  map-sieve c .closed hf g = do
+    w , f' , h , p ← hf
+    pure (w , f' , h E.∘ g , pulll p)
+    where open Reasoning E
+
+  preserves-covers : ∀ {ℓC ℓE} (JC : Coverage C ℓC) (JE : Coverage E ℓE) → Type _
+  preserves-covers JC JE =
+    ∀ {u} (c : JC ʻ u) → ∃[ S ∈ JE ʻ F.₀ u ] ⟦ S ⟧ ⊆ map-sieve ⟦ c ⟧ where
+    open Coverage JC
+    open Coverage JE
+
+  is-site-morphism : ∀ {ℓC ℓE} (oj ℓj : Level) (JC : Coverage C ℓC) (JE : Coverage E ℓE) → Type _
+  is-site-morphism oj ℓj JC JE = is-flat oj ℓj JE × preserves-covers JC JE
