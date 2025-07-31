@@ -3,16 +3,17 @@ module Lib.Cat.Sites where
 open import Lib.Cat.Concrete
 
 open import Cat.Prelude
-open import Cat.Diagram.Colimit.Base
+-- open import Cat.Diagram.Colimit.Base
 open import Cat.Diagram.Limit.Finite
 open import Cat.Diagram.Sieve
 open import Cat.Finite
 open import Cat.Functor.Base
 open import Cat.Functor.Compose
 open import Cat.Functor.Constant
-open import Cat.Instances.Elements
-open import Cat.Instances.Shape.Initial
+-- open import Cat.Instances.Elements
+-- open import Cat.Instances.Shape.Initial
 open import Cat.Site.Base
+open import Cat.Site.Closure
 open import Cat.Site.Instances.Canonical
 import Cat.Reasoning as Reasoning
 
@@ -31,7 +32,6 @@ open Functor
 -- https://ncatlab.org/nlab/show/flat+functor#SiteValuedFunctors
 -- https://arxiv.org/pdf/1203.4318
 
-
 module _ {oc ℓc oe ℓe}
   {C : Precategory oc ℓc}
   {E : Precategory oe ℓe}
@@ -39,46 +39,41 @@ module _ {oc ℓc oe ℓe}
   where
   private
     module C = Precategory C
-    module E = Precategory E
     module F = Functor F
+    open Reasoning E
 
-  open is-lex
+  -- open is-lex
 
   cone-sieve
     : ∀ {oj} {ℓj} {I : Precategory oj ℓj} (D : Functor I C) {U : ⌞ E ⌟}
     → (T : Const U => F F∘ D) → Sieve E U
-  cone-sieve D T .arrows {V} h =
-    elΩ $ Σ[ w ∈ C ] Σ[ S ∈ Const w => D ] Σ[ g ∈ E.Hom V (F.₀ w) ]
-          T ∘nt constⁿ h ≡ (F ▸ S) ∘nt const' g
+  cone-sieve D T .arrows {V} h = elΩ $
+    Σ[ w ∈ C ] Σ[ S ∈ Const w => D ] Σ[ g ∈ Hom V (F.₀ w) ]
+      T ∘nt constⁿ h ≡ (F ▸ S) ∘nt const' g
     where
-    open Reasoning E
-    const' : {w : ⌞ C ⌟} {V : ⌞ E ⌟} → E.Hom V (F.₀ w) → Const V => F F∘ Const w
+    const' : {w : ⌞ C ⌟} {V : ⌞ E ⌟} → Hom V (F.₀ w) → Const V => F F∘ Const w
     const' g .η _ = g
-    const' g .is-natural _ _ _ = E.idr g ∙ introl F.F-id
+    const' g .is-natural _ _ _ = idr g ∙ introl F.F-id
   cone-sieve D T .closed hh g = do
     w , S , g' , p ← hh
     pure (w , S , g' ∘ g , ext λ i → extendl (p ηₚ i))
-    where open Reasoning E
 
   is-flat : ∀ {ℓE} (J : Coverage E ℓE) (oj ℓj : Level) → Type _
   is-flat J oj ℓj =
     ∀ {I : Precategory oj ℓj} (D : Functor I C) (D-fin : is-finite-precategory I) {U : ⌞ E ⌟}
-    → (T : Const U => F F∘ D) → ∃[ S ∈ J ʻ U ] ⟦ S ⟧ ⊆ cone-sieve D T
+    → (T : Const U => F F∘ D) → J ∋ cone-sieve D T
     where open Coverage J
 
   map-sieve : {u : ⌞ C ⌟} → Sieve C u → Sieve E (F.₀ u)
-  map-sieve {u} c .arrows {V} g =
-    elΩ $ Σ[ w ∈ C ] Σ[ f ∈ C.Hom w u ] Σ[ h ∈ E.Hom V (F.₀ w) ] f ∈ c × F.₁ f E.∘ h ≡ g
+  map-sieve {u} c .arrows {V} g = elΩ $
+    Σ[ w ∈ C ] Σ[ f ∈ C.Hom w u ] Σ[ h ∈ Hom V (F.₀ w) ] f ∈ c × F.₁ f ∘ h ≡ g
   map-sieve c .closed hf g = do
     w , f' , h , hf , p ← hf
-    pure (w , f' , h E.∘ g , hf , pulll p)
-    where open Reasoning E
+    pure (w , f' , h ∘ g , hf , pulll p)
 
   preserves-covers : ∀ {ℓC ℓE} (JC : Coverage C ℓC) (JE : Coverage E ℓE) → Type _
   preserves-covers JC JE =
-    ∀ {u} (c : JC ʻ u) → ∃[ S ∈ JE ʻ F.₀ u ] ⟦ S ⟧ ⊆ map-sieve ⟦ c ⟧ where
-    open Coverage JC
-    open Coverage JE
+    ∀ {u} (c : Sieve C u) → JC ∋ c → JE ∋ map-sieve c
 
   is-site-morphism : ∀ {ℓC ℓE} (JC : Coverage C ℓC) (JE : Coverage E ℓE) (oj ℓj : Level) → Type _
   is-site-morphism JC JE oj ℓj = is-flat JE oj ℓj × preserves-covers JC JE
@@ -96,6 +91,11 @@ module _ {oc ℓc oe ℓe}
   -- This means that if we restrict our attention to subcanonical
   -- sites, the standard notion of site morphism automatically
   -- preserves concrete structure, namely terminal objects.
+  -- TODO: It's still not guaranteed that this is a sufficiently good
+  -- definition of morphisms of concrete sites, since concretization
+  -- generally does not preserve finite limits so that the usual
+  -- recipe of left Kan extension + sheafification may not work;
+  -- this requires further investigation.
   postulate
     -- TODO: We postulate this result for now, as showing the
     -- uniqueness part of the limit will require some additional
@@ -129,35 +129,45 @@ module _ {oc ℓc od ℓd oe ℓe}
   where
   private
     module D = Precategory D
-    module E = Precategory E
     module F = Functor F
     module G = Functor G
+    open Reasoning E
 
   is-flat-compose
     : ∀ {ℓD ℓE oj ℓj} {JD : Coverage D ℓD} {JE : Coverage E ℓE}
-    → is-flat F JD oj ℓj → is-flat G JE oj ℓj
+    → is-flat F JD oj ℓj → is-site-morphism G JD JE oj ℓj
     → is-flat (G F∘ F) JE oj ℓj
-  is-flat-compose F-flat G-flat Diagram fin T = do
-    (c , Hc) ← G-flat (F F∘ Diagram) fin (assoc ∘nt T)
-    pure (c , λ h hh → do
-      (w , S , g , p) ← Hc h hh
-      case F-flat Diagram fin S of λ c' Hc' →
-        pure {!!})
+  is-flat-compose {JE = JE} F-flat (G-flat , G-pres) Diagram fin T =
+    local (G-flat (F F∘ Diagram) fin (FG-assoc ∘nt T)) λ f hf →
+      case hf of λ w S g p →
+        flip incl (pull g (G-pres _ (F-flat Diagram fin S))) λ j hj →
+          case hj of λ z j' h w' S' g' p' q →
+            pure (w' , S' , G.₁ g' ∘ h , ext λ i →
+              T .η i ∘ f ∘ j                   ≡⟨ extendl $ ap (_∘ _) (sym (idl _)) ∙ p ηₚ i ⟩
+              G.₁ (S .η i) ∘ g ∘ j             ≡⟨ refl⟩∘⟨ sym q ⟩
+              G.₁ (S .η i) ∘ G.₁ j' ∘ h        ≡⟨ pulll $ sym (G.F-∘ _ _) ⟩
+              G.₁ (S .η i D.∘ j') ∘ h          ≡⟨ ap G.₁ (p' ηₚ i) ⟩∘⟨refl ⟩
+              G.₁ (F.₁ (S' .η i) D.∘ g') ∘ h   ≡⟨ ap (_∘ _) (G.F-∘ _ _) ∙ sym (assoc _ _ _) ⟩
+              G.₁ (F.₁ (S' .η i)) ∘ G.₁ g' ∘ h ∎)
     where
-    assoc = NT (λ _ → E.id) (λ _ _ _ → E.idl _ ∙ sym (E.idr _))
+    FG-assoc = NT (λ _ → id) (λ _ _ _ → idl _ ∙ sym (idr _))
 
   preserves-covers-compose
     : ∀ {ℓC ℓD ℓE} {JC : Coverage C ℓC} {JD : Coverage D ℓD} {JE : Coverage E ℓE}
     → preserves-covers F JC JD → preserves-covers G JD JE
     → preserves-covers (G F∘ F) JC JE
-  preserves-covers-compose F-pres G-pres c = do
-    (F-cov , HF⊆) ← F-pres c
-    (G-cov , HG⊆) ← G-pres F-cov
-    pure (G-cov , λ g hg → do
-      (w , f , h  , hf , p) ← HG⊆ g hg
-      (w' , f' , h' , hf' , q) ← HF⊆ f hf
-      let s = G.F₁ (F.₁ f') ∘ G.F₁ h' ∘ h ≡⟨ pulll $ sym (G.F-∘ (F.₁ f') h') ∙ ap G.₁ q ⟩
-              G.F₁ f ∘ h                  ≡⟨ p ⟩
-              g                           ∎
-      pure (w' , f' , G.₁ h' E.∘ h , hf' , s))
-   where open Reasoning E
+  preserves-covers-compose F-pres G-pres c Hc =
+    flip incl (G-pres _ (F-pres c Hc)) λ g hg →
+      case hg of λ w f h w' f' h' hf p q →
+        pure (w' , f' , G.₁ h' ∘ h , hf ,
+          (G.₁ (F.₁ f') ∘ G.₁ h' ∘ h ≡⟨ pulll $ sym (G.F-∘ _ _) ∙ ap G.₁ p ⟩
+           G.₁ f ∘ h                 ≡⟨ q ⟩
+           g                         ∎))
+
+  is-site-morphism-compose
+    : ∀ {ℓC ℓD ℓE oj ℓj} {JC : Coverage C ℓC} {JD : Coverage D ℓD} {JE : Coverage E ℓE}
+    → is-site-morphism F JC JD oj ℓj → is-site-morphism G JD JE oj ℓj
+    → is-site-morphism (G F∘ F) JC JE oj ℓj
+  is-site-morphism-compose F-mor G-mor =
+    is-flat-compose (F-mor .fst) G-mor ,
+    preserves-covers-compose (F-mor .snd) (G-mor .snd)
