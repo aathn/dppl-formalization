@@ -1,82 +1,86 @@
 module Lib.Cat.Bi where
 
 open import Cat.Prelude
+
 open import Cat.Bi.Base
 open import Cat.Functor.Base
-open import Cat.Functor.Compose
 open import Cat.Functor.FullSubcategory
 open import Cat.Functor.Naturality
 open import Cat.Instances.Product
-import Cat.Reasoning as Cr
+import Cat.Morphism as Mor
 
--- We define subcategories of Cat, whose hom-categories are
--- full subcategories of Cat[ A , B ].
+-- We define sub-bicategories whose hom-categories are full
+-- subcategories.
 
-module _
-  {ℓx ℓp} o ℓ (O : Precategory o ℓ → Type ℓx)
-  (H : (A B : Σ _ O) → Functor (A .fst) (B .fst) → Type ℓp)
-  (H-id : {A : Σ _ O} → H A A Id)
-  (H-∘
-    : {A B C : Σ _ O} (F : Functor (A .fst) (B .fst)) (G : Functor (B .fst) (C .fst))
-    → H A B F → H B C G → H A C (G F∘ F))
-  where
+open Functor
+open _=>_
 
-  Birestrict : Prebicategory (lsuc o ⊔ lsuc ℓ ⊔ ℓx) (o ⊔ ℓ ⊔ ℓp) (o ⊔ ℓ)
-  Birestrict = pb where
+module _ {o ℓ ℓ' ℓx ℓp} (BC : Prebicategory o ℓ ℓ') (O : Prebicategory.Ob BC → Type ℓx) where
+  module BC = Prebicategory BC
+
+  Ob' : Type _
+  Ob' = Σ BC.Ob O
+
+  B'[_,_] : Ob' → Ob' → Precategory _ _
+  B'[ A , B ] = BC.Hom (A .fst) (B .fst)
+
+  Birestrict
+    : (H : (A B : Ob') → ⌞ B'[ A , B ] ⌟ → Type ℓp)
+    → (H-id : {A : Ob'} → H A A BC.id)
+    → (H-∘
+        : {A B C : Ob'} (F : ⌞ B'[ A , B ] ⌟) (G : ⌞ B'[ B , C ] ⌟)
+        → H A B F → H B C G → H A C (BC.compose.₀ (G , F)))
+    → Prebicategory (o ⊔ ℓx) (ℓ ⊔ ℓp) ℓ'
+  Birestrict H H-id H-∘ = pb where
     open Prebicategory
-    open Functor
     open make-natural-iso
+    open Mor._≅_
+    open Mor.Inverses
 
-    B[_,_] : (A B : Σ _ O) → Precategory _ _
-    B[_,_] A B = Restrict {C = Cat[ A .fst , B .fst ]} (H A B)
+    B[_,_] : Ob' → Ob' → Precategory _ _
+    B[ A , B ] = Restrict {C = B'[ A , B ]} (H A B)
 
-    B-id : {C : Σ _ O} → ⌞ B[ C , C ] ⌟
-    B-id = Id , H-id
+    B-id : {C : Ob'} → ⌞ B[ C , C ] ⌟
+    B-id = BC.id , H-id
 
-    B-compose : {A B C : Σ _ O} → Functor (B[ B , C ] ×ᶜ B[ A , B ]) B[ A , C ]
+    B-compose : {A B C : Ob'} → Functor (B[ B , C ] ×ᶜ B[ A , B ]) B[ A , C ]
     B-compose = record
-      { F₀   = λ ((F , F-mor) , (G , G-mor)) → F F∘ G , H-∘ G F G-mor F-mor
-      ; F₁   = F∘-functor .F₁
-      ; F-id = F∘-functor .F-id
-      ; F-∘  = F∘-functor .F-∘
+      { F₀   = λ ((F , F-mor) , (G , G-mor)) → BC.compose.₀ (F , G) , H-∘ G F G-mor F-mor
+      ; F₁   = BC.compose.₁
+      ; F-id = BC.compose.F-id
+      ; F-∘  = BC.compose.F-∘
       }
 
     B-assoc : Associator-for B[_,_] B-compose
-    B-assoc {D = D , _} = to-natural-iso ni where
-      module D = Cr D
-      ni : make-natural-iso {D = B[ _ , _ ]} _ _
-      ni .eta x = NT (λ _ → D.id) λ _ _ _ → D.id-comm-sym
-      ni .inv x = NT (λ _ → D.id) λ _ _ _ → D.id-comm-sym
-      ni .eta∘inv x = ext λ _ → D.idl _
-      ni .inv∘eta x = ext λ _ → D.idl _
-      ni .natural x y f = ext λ _ →
-        D.idr _ ∙∙ D.pushl (y .fst .fst .F-∘ _ _) ∙∙ D.introl refl
+    B-assoc = to-natural-iso ni where
+      ni : make-natural-iso _ _
+      ni .eta _ = BC.associator .to .η _
+      ni .inv _ = BC.associator .from .η _
+      ni .eta∘inv ((f , _) , (g , _) , (h , _)) =
+        BC.associator .inverses .invl ηₚ (f , g , h)
+      ni .inv∘eta ((f , _) , (g , _) , (h , _)) =
+        BC.associator .inverses .invr ηₚ (f , g , h)
+      ni .natural _ _ α = sym $ BC.associator .to .is-natural _ _ α
 
     pb : Prebicategory _ _ _
-    pb .Ob = Σ[ C ∈ Precategory o ℓ ] O C
+    pb .Ob = Ob'
     pb .Hom = B[_,_]
     pb .id = B-id
     pb .compose = B-compose
-    pb .unitor-r {A = A , _} {B , _} = to-natural-iso ni where
-      module B = Cr B
-      ni : make-natural-iso {D = B[ _ , _ ]} _ _
-      ni .eta x = NT (λ _ → B.id) λ _ _ _ → B.id-comm-sym
-      ni .inv x = NT (λ _ → B.id) λ _ _ _ → B.id-comm-sym
-      ni .eta∘inv x = ext λ _ → B.idl _
-      ni .inv∘eta x = ext λ _ → B.idl _
-      ni .natural x y f =
-        ext λ _ → B.idr _ ∙ ap (B._∘ _) (y .fst .F-id)
-    pb .unitor-l {A = A , _} {B , _} = to-natural-iso ni where
-      module B = Cr B
-      ni : make-natural-iso {D = B[ _ , _ ]} _ _
-      ni .eta x = NT (λ _ → B.id) λ _ _ _ → B.id-comm-sym
-      ni .inv x = NT (λ _ → B.id) λ _ _ _ → B.id-comm-sym
-      ni .eta∘inv x = ext λ _ → B.idl _
-      ni .inv∘eta x = ext λ _ → B.idl _
-      ni .natural x y f = ext λ _ → B.idr _ ∙ B.id-comm
+    pb .unitor-r = to-natural-iso ni where
+      ni : make-natural-iso _ _
+      ni .eta _ = BC.unitor-r .to .η _
+      ni .inv _ = BC.unitor-r .from .η _
+      ni .eta∘inv (f , _) = BC.unitor-r .inverses .invl ηₚ f
+      ni .inv∘eta (f , _) = BC.unitor-r .inverses .invr ηₚ f
+      ni .natural _ _ α = sym $ BC.unitor-r .to .is-natural _ _ α
+    pb .unitor-l = to-natural-iso ni where
+      ni : make-natural-iso _ _
+      ni .eta _ = BC.unitor-l .to .η _
+      ni .inv _ = BC.unitor-l .from .η _
+      ni .eta∘inv (f , _) = BC.unitor-l .inverses .invl ηₚ f
+      ni .inv∘eta (f , _) = BC.unitor-l .inverses .invr ηₚ f
+      ni .natural _ _ α = sym $ BC.unitor-l .to .is-natural _ _ α
     pb .associator = B-assoc
-    pb .triangle {C = C , _} f g = ext λ _ → Cr.idr C _
-    pb .pentagon {E = E , _} (f , _) (g , _) (h , _) (i , _) = ext λ _ → ap₂ E._∘_
-      (E.eliml (ap (f .F₁) (ap (g .F₁) (h .F-id)) ∙∙ ap (f .F₁) (g .F-id) ∙∙ f .F-id))
-      (E.elimr (E.eliml (f .F-id)))
-      where module E = Cr E
+    pb .triangle (f , _) (g , _) = BC.triangle f g
+    pb .pentagon (f , _) (g , _) (h , _) (i , _) = BC.pentagon f g h i

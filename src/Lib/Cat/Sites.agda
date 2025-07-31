@@ -168,7 +168,7 @@ module _ {oc ℓc od ℓd oe ℓe}
               G.₁ (F.₁ (S' .η i) D.∘ g') ∘ h   ≡⟨ ap (_∘ _) (G.F-∘ _ _) ∙ sym (assoc _ _ _) ⟩
               G.₁ (F.₁ (S' .η i)) ∘ G.₁ g' ∘ h ∎)
     where
-    FG-assoc = NT (λ _ → id) (λ _ _ _ → idl _ ∙ sym (idr _))
+    FG-assoc = NT (λ _ → id) (λ _ _ _ → id-comm-sym)
 
   preserves-covers-compose
     : ∀ {ℓC ℓD ℓE} {JC : Coverage C ℓC} {JD : Coverage D ℓD} {JE : Coverage E ℓE}
@@ -193,7 +193,7 @@ module _ {oc ℓc od ℓd oe ℓe}
 
 Sites : ∀ o ℓ ℓc oj ℓj → Prebicategory (lsuc o ⊔ lsuc ℓ ⊔ lsuc ℓc) (lsuc (oj ⊔ ℓj) ⊔ o ⊔ ℓ ⊔ ℓc) (o ⊔ ℓ)
 Sites o ℓ ℓc oj ℓj =
-  Birestrict o ℓ
+  Birestrict (Cat o ℓ)
     (λ C → Coverage C ℓc)
     (λ (_ , JC) (_ , JD) F → is-site-morphism F JC JD oj ℓj)
     Id-is-site-morphism
