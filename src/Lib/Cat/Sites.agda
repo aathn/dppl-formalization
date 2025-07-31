@@ -19,7 +19,7 @@ open import Cat.Instances.Product
 open import Cat.Site.Base
 open import Cat.Site.Closure
 open import Cat.Site.Instances.Canonical
-import Cat.Reasoning as Reasoning
+import Cat.Reasoning as Cr
 
 open import Data.Fin.Finite
 
@@ -44,7 +44,7 @@ module _ {oc ℓc oe ℓe}
   private
     module C = Precategory C
     module F = Functor F
-    open Reasoning E
+    open Cr E
 
   -- open is-lex
 
@@ -124,7 +124,7 @@ module _ {oc ℓc oe ℓe}
   -- subcanonical+is-flat→is-lex J J-sub F-flat .pres-pullback = {!!}
 
 module _ {oc ℓc ℓC} {C : Precategory oc ℓc} {J : Coverage C ℓC} where
-  open Reasoning C
+  open Cr C
   Id-is-flat : ∀ {oj ℓj} → is-flat Id J oj ℓj
   Id-is-flat D fin {U} T =
     max (inc (U , unit ∘nt T , id , ext λ i → ap (_∘ _) (sym (idl _))))
@@ -148,7 +148,7 @@ module _ {oc ℓc od ℓd oe ℓe}
     module D = Precategory D
     module F = Functor F
     module G = Functor G
-    open Reasoning E
+    open Cr E
 
   is-flat-compose
     : ∀ {ℓD ℓE oj ℓj} {JD : Coverage D ℓD} {JE : Coverage E ℓE}
@@ -189,68 +189,67 @@ module _ {oc ℓc od ℓd oe ℓe}
     is-flat-compose (F-mor .fst) G-mor ,
     preserves-covers-compose (F-mor .snd) (G-mor .snd)
 
-open Precategory
+Site : (o ℓ ℓC : Level) → Type _
+Site o ℓ ℓC = Σ[ C ∈ Precategory o ℓ ] Coverage C ℓC
 
 Sites[_,_]
-  : ∀ {oc ℓc ℓC od ℓd ℓD}
-  → Σ[ C ∈ Precategory oc ℓc ] Coverage C ℓC → Σ[ D ∈ Precategory od ℓd ] Coverage D ℓD
-  → Precategory (lsuc lzero ⊔ oc ⊔ ℓc ⊔ ℓC ⊔ od ⊔ ℓd ⊔ ℓD) (oc ⊔ ℓc ⊔ ℓd)
-Sites[_,_] (C , JC) (D , JD) =
-  Restrict {C = Cat[ C , D ]} (λ F → is-site-morphism F JC JD lzero lzero)
+  : ∀ {oj ℓj oc ℓc ℓC od ℓd ℓD}
+  → Site oc ℓc ℓC → Site od ℓd ℓD
+  → Precategory (lsuc (oj ⊔ ℓj) ⊔ oc ⊔ ℓc ⊔ ℓC ⊔ od ⊔ ℓd ⊔ ℓD) (oc ⊔ ℓc ⊔ ℓd)
+Sites[_,_] {oj} {ℓj} (C , JC) (D , JD) =
+  Restrict {C = Cat[ C , D ]} (λ F → is-site-morphism F JC JD oj ℓj)
 
--- Sites : ∀ o ℓ ℓc → Prebicategory (lsuc o ⊔ lsuc ℓ ⊔ lsuc ℓc) (lsuc lzero ⊔ o ⊔ ℓ ⊔ ℓc) (o ⊔ ℓ)
--- Sites o ℓ ℓc = pb where
---   open Prebicategory
-  -- open Reasoning
-  -- open Reasoning.Inverses
+Sites : ∀ o ℓ ℓC oj ℓj → Prebicategory (lsuc o ⊔ lsuc ℓ ⊔ lsuc ℓC) (lsuc (oj ⊔ ℓj) ⊔ o ⊔ ℓ ⊔ ℓC) (o ⊔ ℓ)
+Sites o ℓ ℓC oj ℓj = pb where
+  open Prebicategory
 
-  -- Sites-id : {A : Precategory o ℓ} {J : Coverage A ℓc} → ⌞ Sites[ J , J ] ⌟
-  -- Sites-id = Id , Id-is-site-morphism
+  Sites-id : {C : Site o ℓ ℓC} → ⌞ Sites[ C , C ] ⌟
+  Sites-id = Id , Id-is-site-morphism
 
-  -- Sites-compose
-  --   : {A B C : Precategory o ℓ} {JA : Coverage A ℓc} {JB : Coverage B ℓc} {JC : Coverage C ℓc}
-  --   → Functor (Sites[ JB , JC ] ×ᶜ Sites[ JA , JB ]) Sites[ JA , JC ]
-  -- Sites-compose = record
-  --   { F₀   = λ ((F , F-mor) , (G , G-mor)) → F F∘ G , is-site-morphism-compose G F G-mor F-mor
-  --   ; F₁   = F∘-functor .F₁
-  --   ; F-id = F∘-functor .F-id
-  --   ; F-∘  = F∘-functor .F-∘
-  --   }
+  Sites-compose : {A B C : Site o ℓ ℓC} → Functor (Sites[ B , C ] ×ᶜ Sites[ A , B ]) Sites[ A , C ]
+  Sites-compose = record
+    { F₀   = λ ((F , F-mor) , (G , G-mor)) → F F∘ G , is-site-morphism-compose G F G-mor F-mor
+    ; F₁   = F∘-functor .F₁
+    ; F-id = F∘-functor .F-id
+    ; F-∘  = F∘-functor .F-∘
+    }
 
-  -- Sites-assoc : Associator-for (λ () () Sites[_,_]) Sites-compose
-  -- Sites-assoc {D = D} = to-natural-iso ni where
-  --   ni = {!!}
-    -- module D = Reasoning D
-    -- ni : make-natural-iso {D = Sites[ _ , _ ]} _ _
-    -- ni .make-natural-iso.eta x = NT (λ _ → D.id) λ _ _ _ → D.id-comm-sym
-    -- ni .make-natural-iso.inv x = NT (λ _ → D.id) λ _ _ _ → D.id-comm-sym
-    -- ni .make-natural-iso.eta∘inv x = ext λ _ → D.idl _
-    -- ni .make-natural-iso.inv∘eta x = ext λ _ → D.idl _
-    -- ni .make-natural-iso.natural x y f = ext λ _ →
-    --   D.idr _ ∙∙ D.pushl (y .fst .fst .F-∘ _ _) ∙∙ D.introl refl
+  Sites-assoc : Associator-for Sites[_,_] Sites-compose
+  Sites-assoc {D = D , _} = to-natural-iso ni where
+    module D = Cr D
+    ni : make-natural-iso {D = Sites[ _ , _ ]} _ _
+    ni .make-natural-iso.eta x = NT (λ _ → D.id) λ _ _ _ → D.id-comm-sym
+    ni .make-natural-iso.inv x = NT (λ _ → D.id) λ _ _ _ → D.id-comm-sym
+    ni .make-natural-iso.eta∘inv x = ext λ _ → D.idl _
+    ni .make-natural-iso.inv∘eta x = ext λ _ → D.idl _
+    ni .make-natural-iso.natural x y f = ext λ _ →
+      D.idr _ ∙∙ D.pushl (y .fst .fst .F-∘ _ _) ∙∙ D.introl refl
 
-  -- pb : Prebicategory _ _ _
-  -- pb .Ob = Σ[ C ∈ Precategory o ℓ ] Coverage C ℓc
-  -- pb .Hom (_ , JC) (_ , JD) = Sites[ JC , JD ]
-  -- pb .id = ? -- Sites-id
-  -- pb .compose = ? -- Sites-compose
-  -- pb .unitor-r {A = A , _} {B , _} = to-natural-iso ni where
-  --   module B = Reasoning B
-  --   ni : make-natural-iso {D = Sites[ _ , _ ]} _ _
-  --   ni .make-natural-iso.eta x = NT (λ _ → B.id) λ _ _ _ → B.id-comm-sym
-  --   ni .make-natural-iso.inv x = NT (λ _ → B.id) λ _ _ _ → B.id-comm-sym
-  --   ni .make-natural-iso.eta∘inv x = ext λ _ → B.idl _
-  --   ni .make-natural-iso.inv∘eta x = ext λ _ → B.idl _
-  --   ni .make-natural-iso.natural x y f =
-  --     ext λ _ → B.idr _ ∙ ap (B._∘ _) (y .fst .F-id)
-  -- pb .unitor-l {A = A , _} {B , _} = to-natural-iso ni where
-  --   module B = Reasoning B
-  --   ni : make-natural-iso {D = Sites[ _ , _ ]} _ _
-  --   ni .make-natural-iso.eta x = NT (λ _ → B.id) λ _ _ _ → B.id-comm-sym
-  --   ni .make-natural-iso.inv x = NT (λ _ → B.id) λ _ _ _ → B.id-comm-sym
-  --   ni .make-natural-iso.eta∘inv x = ext λ _ → B.idl _
-  --   ni .make-natural-iso.inv∘eta x = ext λ _ → B.idl _
-  --   ni .make-natural-iso.natural x y f = ext λ _ → B.idr _ ∙ B.id-comm
-  -- pb .associator = {!!} -- Sites-assoc
-  -- pb .triangle = {!!}
-  -- pb .pentagon = {!!}
+  pb : Prebicategory _ _ _
+  pb .Ob = Site o ℓ ℓC
+  pb .Hom = Sites[_,_] {oj} {ℓj}
+  pb .id = Sites-id
+  pb .compose = Sites-compose
+  pb .unitor-r {A = A , _} {B , _} = to-natural-iso ni where
+    module B = Cr B
+    ni : make-natural-iso {D = Sites[ _ , _ ]} _ _
+    ni .make-natural-iso.eta x = NT (λ _ → B.id) λ _ _ _ → B.id-comm-sym
+    ni .make-natural-iso.inv x = NT (λ _ → B.id) λ _ _ _ → B.id-comm-sym
+    ni .make-natural-iso.eta∘inv x = ext λ _ → B.idl _
+    ni .make-natural-iso.inv∘eta x = ext λ _ → B.idl _
+    ni .make-natural-iso.natural x y f =
+      ext λ _ → B.idr _ ∙ ap (B._∘ _) (y .fst .F-id)
+  pb .unitor-l {A = A , _} {B , _} = to-natural-iso ni where
+    module B = Cr B
+    ni : make-natural-iso {D = Sites[ _ , _ ]} _ _
+    ni .make-natural-iso.eta x = NT (λ _ → B.id) λ _ _ _ → B.id-comm-sym
+    ni .make-natural-iso.inv x = NT (λ _ → B.id) λ _ _ _ → B.id-comm-sym
+    ni .make-natural-iso.eta∘inv x = ext λ _ → B.idl _
+    ni .make-natural-iso.inv∘eta x = ext λ _ → B.idl _
+    ni .make-natural-iso.natural x y f = ext λ _ → B.idr _ ∙ B.id-comm
+  pb .associator = Sites-assoc
+  pb .triangle {C = C , _} f g = ext λ _ → Cr.idr C _
+  pb .pentagon {E = E , _} (f , _) (g , _) (h , _) (i , _) = ext λ _ → ap₂ E._∘_
+    (E.eliml (ap (f .F₁) (ap (g .F₁) (h .F-id)) ∙∙ ap (f .F₁) (g .F-id) ∙∙ f .F-id))
+    (E.elimr (E.eliml (f .F-id)))
+    where module E = Cr E
