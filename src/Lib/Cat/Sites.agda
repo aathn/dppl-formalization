@@ -10,11 +10,16 @@ open import Cat.Diagram.Limit.Finite
 open import Cat.Diagram.Sieve
 open import Cat.Finite
 open import Cat.Functor.Base
+open import Cat.Functor.Coherence
 open import Cat.Functor.Compose
 open import Cat.Functor.Constant
 open import Cat.Functor.FullSubcategory
+open import Cat.Functor.Kan.Base
+open import Cat.Functor.Kan.Pointwise
 open import Cat.Functor.Naturality
+open import Cat.Instances.Functor.Limits
 open import Cat.Instances.Product
+open import Cat.Instances.Sets.Cocomplete
 -- open import Cat.Instances.Elements
 -- open import Cat.Instances.Shape.Initial
 open import Cat.Site.Base
@@ -54,10 +59,7 @@ module _ {oc ℓc oe ℓe}
     → (T : Const U => F F∘ D) → Sieve E U
   cone-sieve D T .arrows {V} h = elΩ $
     Σ[ w ∈ C ] Σ[ S ∈ Const w => D ] Σ[ g ∈ Hom V (F.₀ w) ]
-      T ∘nt constⁿ h ≡ (F ▸ S) ∘nt const g
-    where
-    const : {w : ⌞ C ⌟} {V : ⌞ E ⌟} → Hom V (F.₀ w) → Const V => F F∘ Const w
-    const g = NT (λ _ → g) (λ _ _ _ → idr g ∙ introl F.F-id)
+      T ∘nt constⁿ h ≡ to-coneⁿ (nat-assoc-from (F ▸ S)) ∘nt constⁿ g
   cone-sieve D T .closed hh g = do
     w , S , g' , p ← hh
     pure (w , S , g' ∘ g , ext λ i → extendl (p ηₚ i))
@@ -66,7 +68,6 @@ module _ {oc ℓc oe ℓe}
   is-flat J oj ℓj =
     ∀ {I : Precategory oj ℓj} (D : Functor I C) (D-fin : is-finite-precategory I) {U : ⌞ E ⌟}
     → (T : Const U => F F∘ D) → J ∋ cone-sieve D T
-    where open Coverage J
 
   map-sieve : {u : ⌞ C ⌟} → Sieve C u → Sieve E (F.₀ u)
   map-sieve {u} c .arrows {V} g = elΩ $
@@ -128,8 +129,7 @@ module _ {oc ℓc ℓC} {C : Precategory oc ℓc} {J : Coverage C ℓC} where
   open Cr C
   Id-is-flat : ∀ {oj ℓj} → is-flat Id J oj ℓj
   Id-is-flat D fin {U} T =
-    max (inc (U , unit ∘nt T , id , ext λ i → ap (_∘ _) (sym (idl _))))
-    where unit = NT (λ _ → id) (λ _ _ _ → id-comm-sym)
+    max (inc (U , nat-idl-to T , id , trivial!))
 
   Id-preserves-covers : preserves-covers Id J J
   Id-preserves-covers c Hc =
@@ -156,19 +156,17 @@ module _ {oc ℓc od ℓd oe ℓe}
     → is-flat F JD oj ℓj → is-site-morphism G JD JE oj ℓj
     → is-flat (G F∘ F) JE oj ℓj
   is-flat-compose {JE = JE} F-flat (G-flat , G-pres) Diagram fin T =
-    local (G-flat (F F∘ Diagram) fin (FG-assoc ∘nt T)) λ f hf →
+    local (G-flat (F F∘ Diagram) fin (nat-unassoc-to T)) λ f hf →
       case hf of λ w S g p →
         flip incl (pull g (G-pres _ (F-flat Diagram fin S))) λ j hj →
           case hj of λ z j' h w' S' g' p' q →
             pure (w' , S' , G.₁ g' ∘ h , ext λ i →
-              T .η i ∘ f ∘ j                   ≡⟨ extendl $ ap (_∘ _) (sym (idl _)) ∙ p ηₚ i ⟩
+              T .η i ∘ f ∘ j                   ≡⟨ extendl $ p ηₚ i ⟩
               G.₁ (S .η i) ∘ g ∘ j             ≡⟨ refl⟩∘⟨ sym q ⟩
               G.₁ (S .η i) ∘ G.₁ j' ∘ h        ≡⟨ pulll $ sym (G.F-∘ _ _) ⟩
               G.₁ (S .η i D.∘ j') ∘ h          ≡⟨ ap G.₁ (p' ηₚ i) ⟩∘⟨refl ⟩
               G.₁ (F.₁ (S' .η i) D.∘ g') ∘ h   ≡⟨ ap (_∘ _) (G.F-∘ _ _) ∙ sym (assoc _ _ _) ⟩
               G.₁ (F.₁ (S' .η i)) ∘ G.₁ g' ∘ h ∎)
-    where
-    FG-assoc = NT (λ _ → id) (λ _ _ _ → id-comm-sym)
 
   preserves-covers-compose
     : ∀ {ℓC ℓD ℓE} {JC : Coverage C ℓC} {JD : Coverage D ℓD} {JE : Coverage E ℓE}
@@ -199,3 +197,45 @@ Sites o ℓ ℓc oj ℓj =
     Id-is-site-morphism
     (λ F G → is-site-morphism-compose F G)
 
+
+-- A main result is that morphisms of sites induce geometric morphisms
+-- of corresponding sheaf toposes.  We proceed to define the
+-- components of these geometric morphisms, known as the direct and
+-- inverse image functors.
+
+module _ {κ o}
+  {C : Precategory κ κ}
+  {D : Precategory o κ}
+  (F : Functor C D)
+  where
+  module F = Functor F
+
+  -- We begin with the presheaf-level constructions, which work for
+  -- any functor F.  The direct image is just precomposition with F.
+
+  direct-image : Functor (PSh κ D) (PSh κ C)
+  direct-image .F₀ A = A F∘ F.op
+  direct-image .F₁ α = α ◂ F.op
+  direct-image .F-id    = trivial!
+  direct-image .F-∘ _ _ = trivial!
+
+  -- The inverse image is slightly less obvious, and involves taking
+  -- the left Kan extension along F.
+
+  private
+    module lan (A : Functor (C ^op) (Sets κ)) where
+      abstract
+        extension : Lan F.op A
+        extension = cocomplete→lan F.op A (Sets-is-cocomplete {ι = κ} {κ} {κ})
+      open Lan extension public
+
+  inverse-image : Functor (PSh κ C) (PSh κ D)
+  inverse-image .F₀ X = lan.Ext X
+  inverse-image .F₁ {X} {Y} α = lan.σ X (lan.eta Y ∘nt α)
+  inverse-image .F-id {X} = lan.σ-uniq X trivial!
+  inverse-image .F-∘ {X} {Y} {Z} β α = lan.σ-uniq X $
+    lan.eta Z ∘ β ∘ α                                                               ≡⟨ pulll (sym $ lan.σ-comm Y) ⟩
+    ((lan.σ Y (lan.eta Z ∘ β) ◂ F.op) ∘ lan.eta Y) ∘ α                              ≡⟨ pullr (sym $ lan.σ-comm X) ⟩
+    (lan.σ Y (lan.eta Z ∘ β) ◂ F.op) ∘ (lan.σ X (lan.eta Y ∘ α) ◂ F.op) ∘ lan.eta X ≡⟨ pulll (sym ◂-distribl) ⟩
+    (lan.σ Y (lan.eta Z ∘ β) ∘nt lan.σ X (lan.eta Y ∘ α) ◂ F.op) ∘ lan.eta X        ∎
+    where open Cr (PSh κ C)
