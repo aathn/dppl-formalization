@@ -26,6 +26,7 @@ open import Cat.Site.Base
 open import Cat.Site.Closure
 open import Cat.Site.Instances.Canonical
 import Cat.Reasoning as Cr
+import Cat.Functor.Reasoning.Presheaf as Pr
 
 open import Data.Fin.Finite
 
@@ -78,7 +79,7 @@ module _ {oc ℓc oe ℓe}
 
   preserves-covers : ∀ {ℓC ℓE} (JC : Coverage C ℓC) (JE : Coverage E ℓE) → Type _
   preserves-covers JC JE =
-    ∀ {u} (c : Sieve C u) → JC ∋ c → JE ∋ map-sieve c
+    ∀ {u} {c : Sieve C u} → JC ∋ c → JE ∋ map-sieve c
 
   is-site-morphism : ∀ {ℓC ℓE} (JC : Coverage C ℓC) (JE : Coverage E ℓE) (oj ℓj : Level) → Type _
   is-site-morphism JC JE oj ℓj = is-flat JE oj ℓj × preserves-covers JC JE
@@ -132,7 +133,7 @@ module _ {oc ℓc ℓC} {C : Precategory oc ℓc} {J : Coverage C ℓC} where
     max (inc (U , nat-idl-to T , id , trivial!))
 
   Id-preserves-covers : preserves-covers Id J J
-  Id-preserves-covers c Hc =
+  Id-preserves-covers Hc =
     flip incl Hc λ {V} h hh → inc (V , h , id , hh , idr h)
 
   Id-is-site-morphism : ∀ {oj ℓj} → is-site-morphism Id J J oj ℓj
@@ -158,7 +159,7 @@ module _ {oc ℓc od ℓd oe ℓe}
   is-flat-compose {JE = JE} F-flat (G-flat , G-pres) Diagram fin T =
     local (G-flat (F F∘ Diagram) fin (nat-unassoc-to T)) λ f hf →
       case hf of λ w S g p →
-        flip incl (pull g (G-pres _ (F-flat Diagram fin S))) λ j hj →
+        flip incl (pull g (G-pres (F-flat Diagram fin S))) λ j hj →
           case hj of λ z j' h w' S' g' p' q →
             pure (w' , S' , G.₁ g' ∘ h , ext λ i →
               T .η i ∘ f ∘ j                   ≡⟨ extendl $ p ηₚ i ⟩
@@ -172,8 +173,8 @@ module _ {oc ℓc od ℓd oe ℓe}
     : ∀ {ℓC ℓD ℓE} {JC : Coverage C ℓC} {JD : Coverage D ℓD} {JE : Coverage E ℓE}
     → preserves-covers F JC JD → preserves-covers G JD JE
     → preserves-covers (G F∘ F) JC JE
-  preserves-covers-compose F-pres G-pres c Hc =
-    flip incl (G-pres _ (F-pres c Hc)) λ g hg →
+  preserves-covers-compose F-pres G-pres Hc =
+    flip incl (G-pres (F-pres Hc)) λ g hg →
       case hg of λ w f h w' f' h' hf p q →
         pure (w' , f' , G.₁ h' ∘ h , hf ,
           (G.₁ (F.₁ f') ∘ G.₁ h' ∘ h ≡⟨ pulll $ sym (G.F-∘ _ _) ∙ ap G.₁ p ⟩
@@ -209,15 +210,16 @@ module _ {κ o}
   (F : Functor C D)
   where
   module F = Functor F
+  module D = Precategory D
 
   -- We begin with the presheaf-level constructions, which work for
   -- any functor F.  The direct image is just precomposition with F.
 
-  direct-image : Functor (PSh κ D) (PSh κ C)
-  direct-image .F₀ A = A F∘ F.op
-  direct-image .F₁ α = α ◂ F.op
-  direct-image .F-id    = trivial!
-  direct-image .F-∘ _ _ = trivial!
+  direct-image-presheaf : Functor (PSh κ D) (PSh κ C)
+  direct-image-presheaf .F₀ A = A F∘ F.op
+  direct-image-presheaf .F₁ α = α ◂ F.op
+  direct-image-presheaf .F-id    = trivial!
+  direct-image-presheaf .F-∘ _ _ = trivial!
 
   -- The inverse image is slightly less obvious, and involves taking
   -- the left Kan extension along F.
@@ -229,13 +231,40 @@ module _ {κ o}
         extension = cocomplete→lan F.op A (Sets-is-cocomplete {ι = κ} {κ} {κ})
       open Lan extension public
 
-  inverse-image : Functor (PSh κ C) (PSh κ D)
-  inverse-image .F₀ X = lan.Ext X
-  inverse-image .F₁ {X} {Y} α = lan.σ X (lan.eta Y ∘nt α)
-  inverse-image .F-id {X} = lan.σ-uniq X trivial!
-  inverse-image .F-∘ {X} {Y} {Z} β α = lan.σ-uniq X $
+  inverse-image-presheaf : Functor (PSh κ C) (PSh κ D)
+  inverse-image-presheaf .F₀ X = lan.Ext X
+  inverse-image-presheaf .F₁ {X} {Y} α = lan.σ X (lan.eta Y ∘nt α)
+  inverse-image-presheaf .F-id {X} = lan.σ-uniq X trivial!
+  inverse-image-presheaf .F-∘ {X} {Y} {Z} β α = lan.σ-uniq X $
     lan.eta Z ∘ β ∘ α                                                               ≡⟨ pulll (sym $ lan.σ-comm Y) ⟩
     ((lan.σ Y (lan.eta Z ∘ β) ◂ F.op) ∘ lan.eta Y) ∘ α                              ≡⟨ pullr (sym $ lan.σ-comm X) ⟩
     (lan.σ Y (lan.eta Z ∘ β) ◂ F.op) ∘ (lan.σ X (lan.eta Y ∘ α) ◂ F.op) ∘ lan.eta X ≡⟨ pulll (sym ◂-distribl) ⟩
     (lan.σ Y (lan.eta Z ∘ β) ∘nt lan.σ X (lan.eta Y ∘ α) ◂ F.op) ∘ lan.eta X        ∎
     where open Cr (PSh κ C)
+
+  module _ {ℓc ℓd}
+    (JC : Coverage C ℓc)
+    (JD : Coverage D ℓd)
+    (F-pres : preserves-covers F JC JD)
+    where
+
+    direct-image-sheaf : Functor (Sheaves JD κ) (Sheaves JC κ)
+    direct-image-sheaf .F₀ (A , shf) = direct-image-presheaf .F₀ A , shf' where
+      module shf = sat shf
+      module A = Pr A
+      open Coverage JC
+      shf' : is-sheaf JC (A F∘ F.op)
+      shf' .whole S p = shf.whole (F-pres (inc S)) p' where
+        p' : Patch A (map-sieve F ⟦ S ⟧)
+        p' .part f hf = {!!}
+        p' .patch f hf g hgf = {!!}
+      shf' .glues = {!!}
+      shf' .separate S {x} {y} p = shf.separate (F-pres (inc S)) λ g hg →
+        case hg of λ w f h hf q →
+          A ⟪ g ⟫ x               ≡⟨ A.expand (sym q) ⟩
+          A ⟪ h ⟫ (A ⟪ F.₁ f ⟫ x) ≡⟨ A.ap (p f hf) ⟩
+          A ⟪ h ⟫ (A ⟪ F.₁ f ⟫ y) ≡⟨ A.collapse q ⟩
+          A ⟪ g ⟫ y               ∎
+    direct-image-sheaf .F₁   = direct-image-presheaf .F₁
+    direct-image-sheaf .F-id = direct-image-presheaf .F-id
+    direct-image-sheaf .F-∘  = direct-image-presheaf .F-∘
