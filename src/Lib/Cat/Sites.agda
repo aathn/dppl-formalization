@@ -5,6 +5,7 @@ open import Lib.Cat.Bi
 
 open import Cat.Prelude
 open import Cat.Bi.Base
+open import Cat.Diagram.Exponential
 open import Cat.Diagram.Colimit.Base
 open import Cat.Diagram.Limit.Finite
 open import Cat.Diagram.Sieve
@@ -32,6 +33,8 @@ open import Cat.Site.Sheafification
 import Cat.Reasoning as Cr
 import Cat.Functor.Reasoning.Presheaf as Pr
 import Cat.Functor.Hom as Hom
+import Cat.Instances.Presheaf.Limits as PL
+import Cat.Instances.Presheaf.Exponentials as PE
 
 open import Data.Fin.Finite
 
@@ -225,24 +228,56 @@ module _ {κ}
   -- and inverse image functors.  We do so using tensor and hom
   -- functors as in Mac Lane and Moerdijk, Chapter VII.
 
-  -⊗_ : Functor C (PSh κ D) → Functor (PSh κ C) (PSh κ D)
-  -⊗ F = yo-ext.Ext F
+  -⊗⟨_⟩ : Functor C (PSh κ D) → Functor (PSh κ C) (PSh κ D)
+  -⊗⟨ F ⟩ = yo-ext.Ext F
 
   Hom⟨_,-⟩ : Functor C (PSh κ D) → Functor (PSh κ D) (PSh κ C)
   Hom⟨ F ,-⟩ = precompose (op F) F∘ Hom.よ (PSh κ D)
 
+  Hom⟨_,-⟩-eval : {F : Functor C (PSh κ D)} {A : Functor (D ^op) (Sets κ)} → -⊗⟨ F ⟩ .F₀ (Hom⟨ F ,-⟩ .F₀ A) => A
+  Hom⟨_,-⟩-eval {F} {A} = done where
+    M : Functor (PSh κ C) (PSh κ D)
+    M = precompose A F∘ Hom.よcov (Sets κ) F∘ op (Hom.Hom-into (PSh κ C) (Hom⟨ F ,-⟩ .F₀ A))
+
+    open _=>_
+
+    ev : F => M F∘ Hom.よ C
+    ev .η U = {!!}
+    ev .is-natural = {!!}
+
+    bar : M .F₀ (Hom⟨ F ,-⟩ .F₀ A) => A
+    bar .η x f = f idnt
+    bar .is-natural _ _ _ = trivial!
+
+    done : -⊗⟨ F ⟩ .F₀ (Hom⟨ F ,-⟩ .F₀ A) => A
+    done = bar ∘nt yo-ext.σ F {M = M} ev .η _
+
   open Cr._≅_
 
-  -⊗-よ-iso : (F : Functor C (PSh κ D)) → (-⊗ F) F∘ Hom.よ C ≅ⁿ F
-  -⊗-よ-iso F = {!!}
+  -⊗⟨⟩-よ-iso : (F : Functor C (PSh κ D)) → -⊗⟨ F ⟩ F∘ Hom.よ C ≅ⁿ F
+  -⊗⟨⟩-よ-iso F = {!!}
+  -- .to .η U = let foo = yo-ext.σ F {!!} .η {!!} in {!!}
+  -- -⊗⟨⟩-よ-iso F .to .is-natural = {!!}
+  -- -⊗⟨⟩-よ-iso F .from = yo-ext.eta F
+  -- -⊗⟨⟩-よ-iso F .inverses = {!!}
 
-  -⊗⊣Hom⟨,-⟩ : (F : Functor C (PSh κ D)) → -⊗ F ⊣ Hom⟨ F ,-⟩
-  -⊗⊣Hom⟨,-⟩ F = adj where
+-- to-natural-iso ni where
+--     open make-natural-iso
+--     open _=>_
+--     ni : make-natural-iso (-⊗⟨ F ⟩ F∘ Hom.よ C) F
+--     ni .eta U = {!!}
+--     ni .inv = {!!}
+--     ni .eta∘inv = {!!}
+--     ni .inv∘eta = {!!}
+--     ni .natural = {!!}
+
+  -⊗⟨⟩⊣Hom⟨,-⟩ : (F : Functor C (PSh κ D)) → -⊗⟨ F ⟩ ⊣ Hom⟨ F ,-⟩
+  -⊗⟨⟩⊣Hom⟨,-⟩ F = adj where
     open _⊣_
     open _=>_
-    adj : -⊗ F ⊣ Hom⟨ F ,-⟩
+    adj : -⊗⟨ F ⟩ ⊣ Hom⟨ F ,-⟩
     adj .unit .η A .η U x =
-      yo-ext.Ext.₁ F (yo A x) ∘nt -⊗-よ-iso F .from .η U
+      yo-ext.Ext.₁ F (yo A x) ∘nt -⊗⟨⟩-よ-iso F .from .η U
     adj .unit .η A .is-natural x y f = ext λ a U b → {!!}
     adj .unit .is-natural = {!!}
     adj .counit .η A = {!!}
@@ -257,7 +292,7 @@ module _ {κ}
   direct-image-presheaf F = Hom⟨ Hom.よ D F∘ F ,-⟩
 
   inverse-image-presheaf : Functor C D → Functor (PSh κ C) (PSh κ D)
-  inverse-image-presheaf F = -⊗ (Hom.よ D F∘ F)
+  inverse-image-presheaf F = -⊗⟨ Hom.よ D F∘ F ⟩
 
   module _
     (JC : Coverage C κ)
