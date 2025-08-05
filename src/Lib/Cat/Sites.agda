@@ -16,6 +16,7 @@ open import Cat.Functor.Coherence
 open import Cat.Functor.Compose
 open import Cat.Functor.Constant
 open import Cat.Functor.FullSubcategory
+open import Cat.Functor.Hom
 open import Cat.Functor.Hom.Yoneda
 open import Cat.Functor.Kan.Base
 open import Cat.Functor.Kan.Pointwise
@@ -32,7 +33,7 @@ open import Cat.Site.Instances.Canonical
 open import Cat.Site.Sheafification
 import Cat.Reasoning as Cr
 import Cat.Functor.Reasoning.Presheaf as Pr
-import Cat.Functor.Hom as Hom
+import Cat.Functor.Hom.Cocompletion as Cocompletion
 import Cat.Instances.Presheaf.Limits as PL
 import Cat.Instances.Presheaf.Exponentials as PE
 
@@ -211,15 +212,28 @@ module _ {κ}
   {D : Precategory κ κ}
   where
 
+  open _=>_ hiding (op)
+  open Cr._≅_
+  open make-natural-iso
+
   private
-    module yo-ext (F : Functor C (PSh κ D)) where
-      private
-        module F = Functor F
-        abstract
-          extension : Lan (Hom.よ C) F
-          extension =
-            cocomplete→lan (Hom.よ C) F
-              (Functor-cat-is-cocomplete (Sets-is-cocomplete {ι = κ} {κ} {κ}))
+    yoneda-lemma : (P : ⌞ PSh κ C ⌟) → op (よ₀ (PSh κ C) P) F∘ よ C ≅ⁿ op P
+    yoneda-lemma P = to-natural-iso ni where
+      ni : make-natural-iso (op (よ₀ (PSh κ C) P) F∘ よ C) (op P)
+      ni .eta _ = yo P
+      ni .inv _ = unyo P
+      ni .eta∘inv _ = funext $ equiv→unit (yo-is-equiv {C = C} P)
+      ni .inv∘eta _ = funext $ equiv→counit (yo-is-equiv {C = C} P)
+      ni .natural _ _ _ = funext λ _ → sym yo-naturalr
+
+    module Cocomp =
+      Cocompletion C (PSh κ D)
+        (Functor-cat-is-cocomplete (Sets-is-cocomplete {ι = κ} {κ} {κ}))
+
+    module よ-ext (F : Functor C (PSh κ D)) where
+      private abstract
+        extension : Lan (よ C) F
+        extension = Cocomp.よ-extension F
       open Lan extension public
 
   -- A main result is that morphisms of sites induce geometric
@@ -229,101 +243,127 @@ module _ {κ}
   -- functors as in Mac Lane and Moerdijk, Chapter VII.
 
   -⊗⟨_⟩ : Functor C (PSh κ D) → Functor (PSh κ C) (PSh κ D)
-  -⊗⟨ F ⟩ = yo-ext.Ext F
+  -⊗⟨ F ⟩ = よ-ext.Ext F
 
   Hom⟨_,-⟩ : Functor C (PSh κ D) → Functor (PSh κ D) (PSh κ C)
-  Hom⟨ F ,-⟩ = precompose (op F) F∘ Hom.よ (PSh κ D)
+  Hom⟨ F ,-⟩ = precompose (op F) F∘ よ (PSh κ D)
 
-  Hom⟨_,-⟩-eval : {F : Functor C (PSh κ D)} {A : Functor (D ^op) (Sets κ)} → -⊗⟨ F ⟩ .F₀ (Hom⟨ F ,-⟩ .F₀ A) => A
-  Hom⟨_,-⟩-eval {F} {A} = done where
-    M : Functor (PSh κ C) (PSh κ D)
-    M = precompose A F∘ Hom.よcov (Sets κ) F∘ op (Hom.Hom-into (PSh κ C) (Hom⟨ F ,-⟩ .F₀ A))
+  private module _ {F : Functor C (PSh κ D)} where
+    module F = Functor F
+    module H = Functor Hom⟨ F ,-⟩
+    module T = Functor -⊗⟨ F ⟩
 
-    open _=>_
+    HT-return : (A : ⌞ PSh κ C ⌟) → A => H.₀ (T.₀ A)
+    HT-return A .η U x =
+      よ-ext.Ext.₁ F (yo A x) ∘nt よ-ext.eta F .η U
+    HT-return A .is-natural _ _ f = funext λ x →
+      よ-ext.Ext.₁ F (yo A (A ⟪ f ⟫ x))   ∘nt よ-ext.eta F .η _                    ≡⟨ ap (λ h → よ-ext.Ext.₁ F h ∘nt よ-ext.eta F .η _) (sym yo-naturalr) ⟩
+      よ-ext.Ext.₁ F (yo A x ∘nt よ₁ C f) ∘nt よ-ext.eta F .η _                    ≡⟨ よ-ext.Ext.F-∘ _ _ _ ⟩∘⟨refl ⟩
+      (よ-ext.Ext.₁ F (yo A x) ∘nt よ-ext.Ext.₁ F (よ₁ C f)) ∘nt よ-ext.eta F .η _ ≡˘⟨ extendr (よ-ext.eta F .is-natural _ _ f) ⟩
+      (よ-ext.Ext.₁ F (yo A x) ∘nt よ-ext.eta F .η _) ∘nt F.₁ f                    ∎
+      where open Cr (PSh κ D)
 
-    ev : F => M F∘ Hom.よ C
-    ev .η U = {!!}
-    ev .is-natural = {!!}
+    HT-return-is-natural
+      : (A B : ⌞ PSh κ C ⌟) (α : A => B)
+      → HT-return B ∘nt α ≡ H.₁ (T.₁ α) ∘nt HT-return A
+    HT-return-is-natural A B α = ext λ U x V y → {!!}
 
-    bar : M .F₀ (Hom⟨ F ,-⟩ .F₀ A) => A
-    bar .η x f = f idnt
-    bar .is-natural _ _ _ = trivial!
+    HT-eval : (A : ⌞ PSh κ D ⌟) → T.₀ (H.₀ A) => A
+    HT-eval A = done where
 
-    done : -⊗⟨ F ⟩ .F₀ (Hom⟨ F ,-⟩ .F₀ A) => A
-    done = bar ∘nt yo-ext.σ F {M = M} ev .η _
+      M : Functor (PSh κ C) (PSh κ D)
+      M = (precompose A F∘ よcov (Sets κ)) F∘ op (よ₀ (PSh κ C) (H.₀ A))
+      module M = Functor M
 
-  open Cr._≅_
+      eval : F => (precompose A F∘ よcov (Sets κ)) F∘ op (H.₀ A)
+      eval .η U .η V x α = α .η V x
+      eval .η U .is-natural _ _ f = ext λ x α → α .is-natural _ _ f $ₚ x
+      eval .is-natural _ _ _ = trivial!
 
-  -⊗⟨⟩-よ-iso : (F : Functor C (PSh κ D)) → -⊗⟨ F ⟩ F∘ Hom.よ C ≅ⁿ F
-  -⊗⟨⟩-よ-iso F = {!!}
-  -- .to .η U = let foo = yo-ext.σ F {!!} .η {!!} in {!!}
-  -- -⊗⟨⟩-よ-iso F .to .is-natural = {!!}
-  -- -⊗⟨⟩-よ-iso F .from = yo-ext.eta F
-  -- -⊗⟨⟩-よ-iso F .inverses = {!!}
+      abstract
+        α : F => M F∘ よ C
+        α = nat-assoc-to $ (_ ▸ yoneda-lemma (H.₀ A) .from) ∘nt eval
 
--- to-natural-iso ni where
---     open make-natural-iso
---     open _=>_
---     ni : make-natural-iso (-⊗⟨ F ⟩ F∘ Hom.よ C) F
---     ni .eta U = {!!}
---     ni .inv = {!!}
---     ni .eta∘inv = {!!}
---     ni .inv∘eta = {!!}
---     ni .natural = {!!}
+      extract : M.₀ (H.₀ A) => A
+      extract .η x f = f idnt
+      extract .is-natural _ _ _ = trivial!
 
-  -⊗⟨⟩⊣Hom⟨,-⟩ : (F : Functor C (PSh κ D)) → -⊗⟨ F ⟩ ⊣ Hom⟨ F ,-⟩
-  -⊗⟨⟩⊣Hom⟨,-⟩ F = adj where
+      done : T.₀ (H.₀ A) => A
+      done = extract ∘nt よ-ext.σ F {M = M} α .η _
+
+    HT-eval-is-natural
+      : (A B : ⌞ PSh κ D ⌟) (α : A => B)
+      → HT-eval B ∘nt T.₁ (H.₁ α) ≡ α ∘nt HT-eval A
+    HT-eval-is-natural A B α = ext λ U x → {!!}
+
+    HT-zig : {A : ⌞ PSh κ C ⌟} → HT-eval (T.₀ A) ∘nt T.₁ (HT-return A) ≡ idnt
+    HT-zig = {!!}
+
+    HT-zag : {A : ⌞ PSh κ D ⌟} → H.₁ (HT-eval A) ∘nt HT-return (H.₀ A) ≡ idnt
+    HT-zag = {!!}
+
+  Tensor⊣Hom : (F : Functor C (PSh κ D)) → -⊗⟨ F ⟩ ⊣ Hom⟨ F ,-⟩
+  Tensor⊣Hom F = adj where
     open _⊣_
     open _=>_
     adj : -⊗⟨ F ⟩ ⊣ Hom⟨ F ,-⟩
-    adj .unit .η A .η U x =
-      yo-ext.Ext.₁ F (yo A x) ∘nt -⊗⟨⟩-よ-iso F .from .η U
-    adj .unit .η A .is-natural x y f = ext λ a U b → {!!}
-    adj .unit .is-natural = {!!}
-    adj .counit .η A = {!!}
-    adj .counit .is-natural = {!!}
-    adj .zig = {!!}
-    adj .zag = {!!}
+    adj .unit .η = HT-return
+    adj .unit .is-natural = HT-return-is-natural
+    adj .counit .η = HT-eval
+    adj .counit .is-natural = HT-eval-is-natural
+    adj .zig = HT-zig
+    adj .zag = HT-zag
+
+  -- Tensor⊣Hom : (F : Functor C (PSh κ D)) → -⊗⟨ F ⟩ ⊣ Hom⟨ F ,-⟩
+  -- Tensor⊣Hom F = {!!} where
+  --   H = Hom⟨ F ,-⟩
+  --   T = -⊗⟨ F ⟩
+  --   module F = Functor F
+  --   module H = Functor H
+  --   module T = Functor T
+  --   ni : ∀ A → Hom-into (PSh κ D) A F∘ T.op ≅ⁿ Hom-into (PSh κ C) (H.₀ A)
+  --   ni A = {!!}
+
 
   -- The induced direct and inverse image functors are given by this
   -- adjunction together with composition with Yoneda.
 
   direct-image-presheaf : Functor C D → Functor (PSh κ D) (PSh κ C)
-  direct-image-presheaf F = Hom⟨ Hom.よ D F∘ F ,-⟩
+  direct-image-presheaf F = Hom⟨ よ D F∘ F ,-⟩
 
   inverse-image-presheaf : Functor C D → Functor (PSh κ C) (PSh κ D)
-  inverse-image-presheaf F = -⊗⟨ Hom.よ D F∘ F ⟩
+  inverse-image-presheaf F = -⊗⟨ よ D F∘ F ⟩
 
-  module _
-    (JC : Coverage C κ)
-    (JD : Coverage D κ)
-    where
-    open Coverage JC using (Sem-covers)
+  -- module _
+  --   (JC : Coverage C κ)
+  --   (JD : Coverage D κ)
+  --   where
+  --   open Coverage JC using (Sem-covers)
 
-    is-cont : Functor C (PSh κ D) → Type (lsuc κ)
-    is-cont F = ∀ {U} (S : JC ʻ U) →
-      is-colimit _ (F .F₀ U) (to-coconeⁿ (nat-assoc-to (F ▸ sieve→cocone C ⟦ S ⟧)))
+  --   is-cont : Functor C (PSh κ D) → Type (lsuc κ)
+  --   is-cont F = ∀ {U} (S : JC ʻ U) →
+  --     is-colimit _ (F .F₀ U) (to-coconeⁿ (nat-assoc-to (F ▸ sieve→cocone C ⟦ S ⟧)))
 
-    nat-eq-is-sheaf
-      : (F : Functor (C ^op) (Sets κ))
-      → ∀ {U} (S : Sieve C U) → (to-presheaf S => F) ≃ (Hom.よ₀ C U => F) → is-sheaf₁ F S
-    nat-eq-is-sheaf = {!!}
-  
-    is-cont-sheaf
-      : {F : Functor C (PSh κ D)} {A : Functor (D ^op) (Sets κ)}
-      → is-cont F → is-sheaf JC (Hom⟨ F ,-⟩ .F₀ A)
-    is-cont-sheaf {F} {A} F-cont = from-is-sheaf₁ λ S →
-      nat-eq-is-sheaf (Hom⟨ F ,-⟩ .F₀ A) ⟦ S ⟧ (nat-eq S)
-      where
-      module F-colim {U : ⌞ C ⌟} (S : JC ʻ U) = is-colimit (F-cont S)
-      -- to-presheaf ⟦ S ⟧ => Hom⟨ F ,-⟩ .F₀ A ≈
-      -- -⊗ F .F₀ (to-presheaf ⟦ S ⟧) => A     ≈
-      -- to-presheaf (map-sieve F ⟦ S ⟧) => A  ≈
-      -- Hom.よ C (F U) => A                   ≈
-      -- -⊗ F .F₀ (Hom.よ C U) => A            ≈
-      -- Hom.よ C U => Hom⟨ F ,-⟩ .F₀ A
-      nat-eq : ∀ {U} (S : JC ʻ U) → (to-presheaf ⟦ S ⟧ => F₀ Hom⟨ F ,-⟩ A) ≃ (Hom.よ₀ C U => Hom⟨ F ,-⟩ .F₀ A)
-      nat-eq S = {!!}
+  --   nat-eq-is-sheaf
+  --     : (F : Functor (C ^op) (Sets κ))
+  --     → ∀ {U} (S : Sieve C U) → (to-presheaf S => F) ≃ (よ₀ C U => F) → is-sheaf₁ F S
+  --   nat-eq-is-sheaf = {!!}
+
+  --   is-cont-sheaf
+  --     : {F : Functor C (PSh κ D)} {A : Functor (D ^op) (Sets κ)}
+  --     → is-cont F → is-sheaf JC (Hom⟨ F ,-⟩ .F₀ A)
+  --   is-cont-sheaf {F} {A} F-cont = from-is-sheaf₁ λ S →
+  --     nat-eq-is-sheaf (Hom⟨ F ,-⟩ .F₀ A) ⟦ S ⟧ (nat-eq S)
+  --     where
+  --     module F-colim {U : ⌞ C ⌟} (S : JC ʻ U) = is-colimit (F-cont S)
+  --     -- to-presheaf ⟦ S ⟧ => Hom⟨ F ,-⟩ .F₀ A ≈
+  --     -- -⊗ F .F₀ (to-presheaf ⟦ S ⟧) => A     ≈
+  --     -- to-presheaf (map-sieve F ⟦ S ⟧) => A  ≈
+  --     -- よ C (F U) => A                   ≈
+  --     -- -⊗ F .F₀ (よ C U) => A            ≈
+  --     -- よ C U => Hom⟨ F ,-⟩ .F₀ A
+  --     nat-eq : ∀ {U} (S : JC ʻ U) → (to-presheaf ⟦ S ⟧ => F₀ Hom⟨ F ,-⟩ A) ≃ (よ₀ C U => Hom⟨ F ,-⟩ .F₀ A)
+  --     nat-eq S = {!!}
 
   -- module _
   --   (JC : Coverage C κ)
