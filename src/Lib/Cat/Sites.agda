@@ -207,182 +207,81 @@ Sites o ℓ ℓc oj ℓj =
     (λ F G → is-site-morphism-compose F G)
 
 
-module _ {κ}
-  {C : Precategory κ κ}
-  {D : Precategory κ κ}
-  where
+--   -- A main result is that morphisms of sites induce geometric
+--   -- morphisms of corresponding sheaf toposes.  We proceed to define
+--   -- the components of these geometric morphisms, known as the direct
+--   -- and inverse image functors.  We do so using tensor and hom
+--   -- functors as in Mac Lane and Moerdijk, Chapter VII.
 
-  open _=>_ hiding (op)
-  open Cr._≅_
-  open make-natural-iso
+  -- -- The induced direct and inverse image functors are given by this
+  -- -- adjunction together with composition with Yoneda.
 
-  private
-    yoneda-lemma : (P : ⌞ PSh κ C ⌟) → op (よ₀ (PSh κ C) P) F∘ よ C ≅ⁿ op P
-    yoneda-lemma P = to-natural-iso ni where
-      ni : make-natural-iso (op (よ₀ (PSh κ C) P) F∘ よ C) (op P)
-      ni .eta _ = yo P
-      ni .inv _ = unyo P
-      ni .eta∘inv _ = funext $ equiv→unit (yo-is-equiv {C = C} P)
-      ni .inv∘eta _ = funext $ equiv→counit (yo-is-equiv {C = C} P)
-      ni .natural _ _ _ = funext λ _ → sym yo-naturalr
+  -- direct-image-presheaf : Functor C D → Functor (PSh κ D) (PSh κ C)
+  -- direct-image-presheaf F = Hom⟨ よ D F∘ F ,-⟩
 
-    module Cocomp =
-      Cocompletion C (PSh κ D)
-        (Functor-cat-is-cocomplete (Sets-is-cocomplete {ι = κ} {κ} {κ}))
+  -- inverse-image-presheaf : Functor C D → Functor (PSh κ C) (PSh κ D)
+  -- inverse-image-presheaf F = -⊗⟨ よ D F∘ F ⟩
 
-    module よ-ext (F : Functor C (PSh κ D)) where
-      private abstract
-        extension : Lan (よ C) F
-        extension = Cocomp.よ-extension F
-      open Lan extension public
+  -- inverse-image-map-sieve
+  --   : {F : Functor C D} {U : ⌞ C ⌟} {S : Sieve C U}
+  --   → inverse-image-presheaf F .F₀ (to-presheaf S) ≅ⁿ to-presheaf (map-sieve F S)
+  -- inverse-image-map-sieve {F} {U} {S} = to-natural-iso ni where
+  --   ni : make-natural-iso (inverse-image-presheaf F .F₀ (to-presheaf S)) (to-presheaf (map-sieve F S))
+  --   ni .eta V x = {!!} , {!!}
+  --   ni .inv V (f , hf) = {!!}
+  --   ni .eta∘inv = {!!}
+  --   ni .inv∘eta = {!!}
+  --   ni .natural = {!!}
 
-  -- A main result is that morphisms of sites induce geometric
-  -- morphisms of corresponding sheaf toposes.  We proceed to define
-  -- the components of these geometric morphisms, known as the direct
-  -- and inverse image functors.  We do so using tensor and hom
-  -- functors as in Mac Lane and Moerdijk, Chapter VII.
+  -- -- module _
+  -- --   (JC : Coverage C κ)
+  -- --   (JD : Coverage D κ)
+  -- --   where
+  -- --   open Coverage JC using (Sem-covers)
 
-  -⊗⟨_⟩ : Functor C (PSh κ D) → Functor (PSh κ C) (PSh κ D)
-  -⊗⟨ F ⟩ = よ-ext.Ext F
+  -- --   is-cont : Functor C (PSh κ D) → Type (lsuc κ)
+  -- --   is-cont F = ∀ {U} (S : JC ʻ U) →
+  -- --     is-colimit _ (F .F₀ U) (to-coconeⁿ (nat-assoc-to (F ▸ sieve→cocone C ⟦ S ⟧)))
 
-  Hom⟨_,-⟩ : Functor C (PSh κ D) → Functor (PSh κ D) (PSh κ C)
-  Hom⟨ F ,-⟩ = precompose (op F) F∘ よ (PSh κ D)
+  -- --   nat-eq-is-sheaf
+  -- --     : (F : Functor (C ^op) (Sets κ))
+  -- --     → ∀ {U} (S : Sieve C U) → (to-presheaf S => F) ≃ (よ₀ C U => F) → is-sheaf₁ F S
+  -- --   nat-eq-is-sheaf = {!!}
 
-  private module _ {F : Functor C (PSh κ D)} where
-    module F = Functor F
-    module H = Functor Hom⟨ F ,-⟩
-    module T = Functor -⊗⟨ F ⟩
+  -- --   is-cont-sheaf
+  -- --     : {F : Functor C (PSh κ D)} {A : Functor (D ^op) (Sets κ)}
+  -- --     → is-cont F → is-sheaf JC (Hom⟨ F ,-⟩ .F₀ A)
+  -- --   is-cont-sheaf {F} {A} F-cont = from-is-sheaf₁ λ S →
+  -- --     nat-eq-is-sheaf (Hom⟨ F ,-⟩ .F₀ A) ⟦ S ⟧ (nat-eq S)
+  -- --     where
+  -- --     module F-colim {U : ⌞ C ⌟} (S : JC ʻ U) = is-colimit (F-cont S)
+  -- --     -- to-presheaf ⟦ S ⟧ => Hom⟨ F ,-⟩ .F₀ A        ≈
+  -- --     -- -⊗⟨ よ D F∘ F ⟩ .F₀ (to-presheaf ⟦ S ⟧) => A ≈
+  -- --     -- to-presheaf (map-sieve F ⟦ S ⟧) => A         ≈
+  -- --     -- よ D (F U) => A                              ≈
+  -- --     -- -⊗⟨ よ D F∘ F ⟩ .F₀ (よ C U) => A            ≈
+  -- --     -- よ C U => Hom⟨ F ,-⟩ .F₀ A
+  -- --     nat-eq : ∀ {U} (S : JC ʻ U) → (to-presheaf ⟦ S ⟧ => F₀ Hom⟨ F ,-⟩ A) ≃ (よ₀ C U => Hom⟨ F ,-⟩ .F₀ A)
+  -- --     nat-eq S = {!!}
 
-    HT-return : (A : ⌞ PSh κ C ⌟) → A => H.₀ (T.₀ A)
-    HT-return A .η U x =
-      よ-ext.Ext.₁ F (yo A x) ∘nt よ-ext.eta F .η U
-    HT-return A .is-natural _ _ f = funext λ x →
-      よ-ext.Ext.₁ F (yo A (A ⟪ f ⟫ x))   ∘nt よ-ext.eta F .η _                    ≡⟨ ap (λ h → よ-ext.Ext.₁ F h ∘nt よ-ext.eta F .η _) (sym yo-naturalr) ⟩
-      よ-ext.Ext.₁ F (yo A x ∘nt よ₁ C f) ∘nt よ-ext.eta F .η _                    ≡⟨ よ-ext.Ext.F-∘ _ _ _ ⟩∘⟨refl ⟩
-      (よ-ext.Ext.₁ F (yo A x) ∘nt よ-ext.Ext.₁ F (よ₁ C f)) ∘nt よ-ext.eta F .η _ ≡˘⟨ extendr (よ-ext.eta F .is-natural _ _ f) ⟩
-      (よ-ext.Ext.₁ F (yo A x) ∘nt よ-ext.eta F .η _) ∘nt F.₁ f                    ∎
-      where open Cr (PSh κ D)
+  -- -- module _
+  -- --   (JC : Coverage C κ)
+  -- --   (JD : Coverage D κ)
+  -- --   (F-pres : preserves-covers F JC JD)
+  -- --   where
 
-    HT-return-is-natural
-      : (A B : ⌞ PSh κ C ⌟) (α : A => B)
-      → HT-return B ∘nt α ≡ H.₁ (T.₁ α) ∘nt HT-return A
-    HT-return-is-natural A B α = ext λ U x V y → {!!}
-
-    HT-eval : (A : ⌞ PSh κ D ⌟) → T.₀ (H.₀ A) => A
-    HT-eval A = done where
-
-      M : Functor (PSh κ C) (PSh κ D)
-      M = (precompose A F∘ よcov (Sets κ)) F∘ op (よ₀ (PSh κ C) (H.₀ A))
-      module M = Functor M
-
-      eval : F => (precompose A F∘ よcov (Sets κ)) F∘ op (H.₀ A)
-      eval .η U .η V x α = α .η V x
-      eval .η U .is-natural _ _ f = ext λ x α → α .is-natural _ _ f $ₚ x
-      eval .is-natural _ _ _ = trivial!
-
-      abstract
-        α : F => M F∘ よ C
-        α = nat-assoc-to $ (_ ▸ yoneda-lemma (H.₀ A) .from) ∘nt eval
-
-      extract : M.₀ (H.₀ A) => A
-      extract .η x f = f idnt
-      extract .is-natural _ _ _ = trivial!
-
-      done : T.₀ (H.₀ A) => A
-      done = extract ∘nt よ-ext.σ F {M = M} α .η _
-
-    HT-eval-is-natural
-      : (A B : ⌞ PSh κ D ⌟) (α : A => B)
-      → HT-eval B ∘nt T.₁ (H.₁ α) ≡ α ∘nt HT-eval A
-    HT-eval-is-natural A B α = ext λ U x → {!!}
-
-    HT-zig : {A : ⌞ PSh κ C ⌟} → HT-eval (T.₀ A) ∘nt T.₁ (HT-return A) ≡ idnt
-    HT-zig = {!!}
-
-    HT-zag : {A : ⌞ PSh κ D ⌟} → H.₁ (HT-eval A) ∘nt HT-return (H.₀ A) ≡ idnt
-    HT-zag = {!!}
-
-  Tensor⊣Hom : (F : Functor C (PSh κ D)) → -⊗⟨ F ⟩ ⊣ Hom⟨ F ,-⟩
-  Tensor⊣Hom F = adj where
-    open _⊣_
-    open _=>_
-    adj : -⊗⟨ F ⟩ ⊣ Hom⟨ F ,-⟩
-    adj .unit .η = HT-return
-    adj .unit .is-natural = HT-return-is-natural
-    adj .counit .η = HT-eval
-    adj .counit .is-natural = HT-eval-is-natural
-    adj .zig = HT-zig
-    adj .zag = HT-zag
-
-  -- Tensor⊣Hom : (F : Functor C (PSh κ D)) → -⊗⟨ F ⟩ ⊣ Hom⟨ F ,-⟩
-  -- Tensor⊣Hom F = {!!} where
-  --   H = Hom⟨ F ,-⟩
-  --   T = -⊗⟨ F ⟩
-  --   module F = Functor F
-  --   module H = Functor H
-  --   module T = Functor T
-  --   ni : ∀ A → Hom-into (PSh κ D) A F∘ T.op ≅ⁿ Hom-into (PSh κ C) (H.₀ A)
-  --   ni A = {!!}
-
-
-  -- The induced direct and inverse image functors are given by this
-  -- adjunction together with composition with Yoneda.
-
-  direct-image-presheaf : Functor C D → Functor (PSh κ D) (PSh κ C)
-  direct-image-presheaf F = Hom⟨ よ D F∘ F ,-⟩
-
-  inverse-image-presheaf : Functor C D → Functor (PSh κ C) (PSh κ D)
-  inverse-image-presheaf F = -⊗⟨ よ D F∘ F ⟩
-
-  -- module _
-  --   (JC : Coverage C κ)
-  --   (JD : Coverage D κ)
-  --   where
-  --   open Coverage JC using (Sem-covers)
-
-  --   is-cont : Functor C (PSh κ D) → Type (lsuc κ)
-  --   is-cont F = ∀ {U} (S : JC ʻ U) →
-  --     is-colimit _ (F .F₀ U) (to-coconeⁿ (nat-assoc-to (F ▸ sieve→cocone C ⟦ S ⟧)))
-
-  --   nat-eq-is-sheaf
-  --     : (F : Functor (C ^op) (Sets κ))
-  --     → ∀ {U} (S : Sieve C U) → (to-presheaf S => F) ≃ (よ₀ C U => F) → is-sheaf₁ F S
-  --   nat-eq-is-sheaf = {!!}
-
-  --   is-cont-sheaf
-  --     : {F : Functor C (PSh κ D)} {A : Functor (D ^op) (Sets κ)}
-  --     → is-cont F → is-sheaf JC (Hom⟨ F ,-⟩ .F₀ A)
-  --   is-cont-sheaf {F} {A} F-cont = from-is-sheaf₁ λ S →
-  --     nat-eq-is-sheaf (Hom⟨ F ,-⟩ .F₀ A) ⟦ S ⟧ (nat-eq S)
-  --     where
-  --     module F-colim {U : ⌞ C ⌟} (S : JC ʻ U) = is-colimit (F-cont S)
-  --     -- to-presheaf ⟦ S ⟧ => Hom⟨ F ,-⟩ .F₀ A ≈
-  --     -- -⊗ F .F₀ (to-presheaf ⟦ S ⟧) => A     ≈
-  --     -- to-presheaf (map-sieve F ⟦ S ⟧) => A  ≈
-  --     -- よ C (F U) => A                   ≈
-  --     -- -⊗ F .F₀ (よ C U) => A            ≈
-  --     -- よ C U => Hom⟨ F ,-⟩ .F₀ A
-  --     nat-eq : ∀ {U} (S : JC ʻ U) → (to-presheaf ⟦ S ⟧ => F₀ Hom⟨ F ,-⟩ A) ≃ (よ₀ C U => Hom⟨ F ,-⟩ .F₀ A)
-  --     nat-eq S = {!!}
-
-  -- module _
-  --   (JC : Coverage C κ)
-  --   (JD : Coverage D κ)
-  --   (F-pres : preserves-covers F JC JD)
-  --   where
-
-  --   direct-image-sheaf : Functor (Sheaves JD κ) (Sheaves JC κ)
-  --   direct-image-sheaf .F₀ (A , shf) = direct-image-presheaf .F₀ A , {!!} where
-  --     module shf = sat shf
-  --     module A = Pr A
-  --     open Coverage JC
-  --     sep' : is-separated JC (A F∘ F.op)
-  --     sep' S {x} {y} p = shf.separate (F-pres (inc S)) λ g hg →
-  --       case hg of λ w f h hf q →
-  --         A ⟪ g ⟫ x               ≡⟨ A.expand (sym q) ⟩
-  --         A ⟪ h ⟫ (A ⟪ F.₁ f ⟫ x) ≡⟨ A.ap (p f hf) ⟩
-  --         A ⟪ h ⟫ (A ⟪ F.₁ f ⟫ y) ≡⟨ A.collapse q ⟩
-  --         A ⟪ g ⟫ y               ∎
-  --   direct-image-sheaf .F₁   = direct-image-presheaf .F₁
-  --   direct-image-sheaf .F-id = direct-image-presheaf .F-id
-  --   direct-image-sheaf .F-∘  = direct-image-presheaf .F-∘
+  -- --   direct-image-sheaf : Functor (Sheaves JD κ) (Sheaves JC κ)
+  -- --   direct-image-sheaf .F₀ (A , shf) = direct-image-presheaf .F₀ A , {!!} where
+  -- --     module shf = sat shf
+  -- --     module A = Pr A
+  -- --     open Coverage JC
+  -- --     sep' : is-separated JC (A F∘ F.op)
+  -- --     sep' S {x} {y} p = shf.separate (F-pres (inc S)) λ g hg →
+  -- --       case hg of λ w f h hf q →
+  -- --         A ⟪ g ⟫ x               ≡⟨ A.expand (sym q) ⟩
+  -- --         A ⟪ h ⟫ (A ⟪ F.₁ f ⟫ x) ≡⟨ A.ap (p f hf) ⟩
+  -- --         A ⟪ h ⟫ (A ⟪ F.₁ f ⟫ y) ≡⟨ A.collapse q ⟩
+  -- --         A ⟪ g ⟫ y               ∎
+  -- --   direct-image-sheaf .F₁   = direct-image-presheaf .F₁
+  -- --   direct-image-sheaf .F-id = direct-image-presheaf .F-id
+  -- --   direct-image-sheaf .F-∘  = direct-image-presheaf .F-∘
