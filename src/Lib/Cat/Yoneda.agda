@@ -65,72 +65,72 @@ module _ {κ o}
   Hom⟨_,-⟩ : Functor C D → Functor D (PSh κ C)
   Hom⟨ F ,-⟩ = precompose (op F) F∘ よ D
 
-  extend-is-ran-hom-into
-    : (F : Functor C D) (x : ⌞ D ⌟)
-    → is-ran (op (よ C)) (Hom⟨ F ,-⟩ .F₀ x) (Hom-into D x F∘ op -⊗⟨ F ⟩) _
-  extend-is-ran-hom-into F x = ran where
-    -- The core of this proof is just the fact that the Yoneda
-    -- extension is a pointwise left Kan extension, which means it's
-    -- reversed by the hom functor.  However, we need to fiddle a bit
-    -- to get the "op"s to distribute like they should.
-    co-ran : is-ran (op (よ C)) (op (op (Hom-into D x) F∘ F)) (op (op (Hom-into D x) F∘ -⊗⟨ F ⟩)) _
-    co-ran =
-      is-lan→is-co-ran (よ C) (op (Hom-into D x) F∘ F) $
-        cocomplete→pointwise-lan (よ C) F D-cocomp x
+  module _ (F : Functor C D) where
 
-    p : op (op (Hom-into D x) F∘ F) ≅ⁿ Hom⟨ F ,-⟩ .F₀ x
-    p = to-natural-iso ni where
-      ni : make-natural-iso _ _
-      ni .eta _ x = x
-      ni .inv _ x = x
-      ni .eta∘inv _ = refl
-      ni .inv∘eta _ = refl
-      ni .natural _ _ _ = refl
+    extend-is-ran-hom-into
+      : (x : ⌞ D ⌟) → is-ran (op (よ C)) (Hom⟨ F ,-⟩ .F₀ x) (Hom-into D x F∘ op -⊗⟨ F ⟩) _
+    extend-is-ran-hom-into x = ran where
+      -- The core of this proof is just the fact that the Yoneda
+      -- extension is a pointwise left Kan extension, which means it's
+      -- reversed by the hom functor.  However, we need to fiddle a bit
+      -- to get the "op"s to distribute like they should.
+      co-ran : is-ran (op (よ C)) (op (op (Hom-into D x) F∘ F)) (op (op (Hom-into D x) F∘ -⊗⟨ F ⟩)) _
+      co-ran =
+        is-lan→is-co-ran (よ C) (op (Hom-into D x) F∘ F) $
+          cocomplete→pointwise-lan (よ C) F D-cocomp x
 
-    q : op (op (Hom-into D x) F∘ -⊗⟨ F ⟩) ≅ⁿ Hom-into D x F∘ op -⊗⟨ F ⟩
-    q = to-natural-iso ni where
-      ni : make-natural-iso _ _
-      ni .eta _ x = x
-      ni .inv _ x = x
-      ni .eta∘inv _ = refl
-      ni .inv∘eta _ = refl
-      ni .natural _ _ _ = refl
+      p : op (op (Hom-into D x) F∘ F) ≅ⁿ Hom⟨ F ,-⟩ .F₀ x
+      p = to-natural-iso ni where
+        ni : make-natural-iso _ _
+        ni .eta _ x = x
+        ni .inv _ x = x
+        ni .eta∘inv _ = refl
+        ni .inv∘eta _ = refl
+        ni .natural _ _ _ = refl
 
-    ran : is-ran (op (よ C)) (Hom⟨ F ,-⟩ .F₀ x) (Hom-into D x F∘ op -⊗⟨ F ⟩) _
-    ran = natural-iso-ext→is-ran (natural-iso-of→is-ran co-ran p) q
+      q : op (op (Hom-into D x) F∘ -⊗⟨ F ⟩) ≅ⁿ Hom-into D x F∘ op -⊗⟨ F ⟩
+      q = to-natural-iso ni where
+        ni : make-natural-iso _ _
+        ni .eta _ x = x
+        ni .inv _ x = x
+        ni .eta∘inv _ = refl
+        ni .inv∘eta _ = refl
+        ni .natural _ _ _ = refl
 
-  extend-hom-iso-into
-    : (F : Functor C D) (x : ⌞ D ⌟)
-    → Hom-into D x F∘ op -⊗⟨ F ⟩ ≅ⁿ Hom-into (PSh κ C) (Hom⟨ F ,-⟩ .F₀ x)
-  extend-hom-iso-into F x =
-    Ran-unique.unique (extend-is-ran-hom-into F x) (is-ran-hom-into (Hom⟨ F ,-⟩ .F₀ x))
-    where open YonedaLemma C D
-  
-  extend-hom-iso-natural
-    : (F : Functor C D)
-    → hom-iso-natural {L = -⊗⟨ F ⟩} {Hom⟨ F ,-⟩}
-      (λ {x y} → extend-hom-iso-into F y .to .η x)
-  extend-hom-iso-natural F {a = u} {v} {w} {z} g h a = ext λ U b →
-    ext-iso _ .to .η _ (g ∘ a ∘ -⊗⟨ F ⟩ .F₁ h) .η U b   ≡⟨ ap (λ f → ext-iso _ .to .η _ f .η U b) (assoc _ _ _) ⟩
-    ext-iso _ .to .η _ ((g ∘ a) ∘ -⊗⟨ F ⟩ .F₁ h) .η U b ≡⟨ ext-iso v .to .is-natural z w h $ₚ (g ∘ a) ηₚ _ $ₚ _ ⟩
-    ext-iso _ .to .η _ (g ∘ a) .η U (h .η U b)          ≡⟨ pullr3 (assoc _ _ _) ⟩
-    g ∘ ext-iso _ .to .η _ a .η U (h .η U b)            ∎
-    where
-    open Cr D
-    ext-iso = extend-hom-iso-into F
+      ran : is-ran (op (よ C)) (Hom⟨ F ,-⟩ .F₀ x) (Hom-into D x F∘ op -⊗⟨ F ⟩) _
+      ran = natural-iso-ext→is-ran (natural-iso-of→is-ran co-ran p) q
 
-  Tensor⊣Hom : (F : Functor C D) → -⊗⟨ F ⟩ ⊣ Hom⟨ F ,-⟩
-  Tensor⊣Hom F =
-    hom-iso→adjoints 
-      (λ {x y} → ext-iso y .to .η x)
-      (is-iso→is-equiv ext-is-iso)
-      (extend-hom-iso-natural F)
-   where
-   open Cr.Inverses
-   open is-iso
-   ext-iso = extend-hom-iso-into F
-   ext-is-iso : ∀ {x y} → is-iso (ext-iso y .to .η x)
-   ext-is-iso {x} {y} =
-     iso (ext-iso y .from .η x) {!!} {!!}
-       -- (happly (ext-iso y .inverses .invl ηₚ x))
-       -- (happly (ext-iso y .inverses .invr ηₚ x))
+    opaque
+      extend-hom-iso-into
+        : (x : ⌞ D ⌟) → Hom-into D x F∘ op -⊗⟨ F ⟩ ≅ⁿ Hom-into (PSh κ C) (Hom⟨ F ,-⟩ .F₀ x)
+      extend-hom-iso-into x =
+        Ran-unique.unique (extend-is-ran-hom-into x) (is-ran-hom-into (Hom⟨ F ,-⟩ .F₀ x))
+        where open YonedaLemma C D
+
+    private
+      module PSh[C] = Cr (PSh κ C)
+      module D = Cr D
+
+      L-adj : ∀ {x y} → D.Hom (op -⊗⟨ F ⟩ .F₀ x) y → PSh[C].Hom x (Hom⟨ F ,-⟩ .F₀ y)
+      L-adj {x} {y} = extend-hom-iso-into y .to .η x
+
+    opaque
+      unfolding extend-hom-iso-into
+
+      extend-hom-iso-natural : hom-iso-natural {L = -⊗⟨ F ⟩} {Hom⟨ F ,-⟩} L-adj
+      extend-hom-iso-natural g h a = ext λ U b →
+        L-adj (g ∘ a ∘ -⊗⟨ F ⟩ .F₁ h) .η U b   ≡⟨ ap (λ f → L-adj f .η U b) (assoc _ _ _) ⟩
+        L-adj ((g ∘ a) ∘ -⊗⟨ F ⟩ .F₁ h) .η U b ≡⟨ extend-hom-iso-into _ .to .is-natural _ _ h $ₚ (g ∘ a) ηₚ _ $ₚ _ ⟩
+        L-adj (g ∘ a) .η U (h .η U b)          ≡⟨ pullr3 (assoc _ _ _) ⟩
+        g ∘ L-adj a .η U (h .η U b)            ∎
+        where open D
+
+    Tensor⊣Hom : -⊗⟨ F ⟩ ⊣ Hom⟨ F ,-⟩
+    Tensor⊣Hom =
+      hom-iso→adjoints L-adj
+        (λ {x} {y} → is-iso→is-equiv $ iso
+          (extend-hom-iso-into y .from .η x)
+          (extend-hom-iso-into y .inverses .invl ηₚ x $ₚ_)
+          (extend-hom-iso-into y .inverses .invr ηₚ x $ₚ_))
+        extend-hom-iso-natural
+      where open Cr.Inverses
