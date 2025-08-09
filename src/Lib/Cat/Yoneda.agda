@@ -51,7 +51,7 @@ module YonedaLemma {κ o ℓ} (C : Precategory κ κ) (D : Precategory o ℓ) wh
       ap (σ' .η X x .η U) (X .F-id $ₚ y)
 
 
-module _ {κ o}
+module Tensor {κ o}
   {C : Precategory κ κ}
   {D : Precategory o κ}
   (D-cocomp : is-cocomplete κ κ D)

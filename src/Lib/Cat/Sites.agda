@@ -1,43 +1,30 @@
 module Lib.Cat.Sites where
 
-open import Lib.Cat.Concrete
 open import Lib.Cat.Bi
+open import Lib.Cat.Concrete
+open import Lib.Cat.Yoneda
 
 open import Cat.Prelude
 open import Cat.Bi.Base
-open import Cat.Diagram.Exponential
 open import Cat.Diagram.Colimit.Base
 open import Cat.Diagram.Limit.Finite
+open import Cat.Diagram.Pullback
 open import Cat.Diagram.Sieve
 open import Cat.Finite
-open import Cat.Functor.Adjoint
 open import Cat.Functor.Base
 open import Cat.Functor.Coherence
-open import Cat.Functor.Compose
 open import Cat.Functor.Constant
-open import Cat.Functor.FullSubcategory
 open import Cat.Functor.Hom
 open import Cat.Functor.Hom.Yoneda
-open import Cat.Functor.Kan.Base
-open import Cat.Functor.Kan.Pointwise
 open import Cat.Functor.Naturality
+open import Cat.Instances.Comma
 open import Cat.Instances.Functor.Limits
-open import Cat.Instances.Product
 open import Cat.Instances.Sets.Cocomplete
 open import Cat.Instances.Sheaves
-open import Cat.Instances.Elements
--- open import Cat.Instances.Shape.Initial
 open import Cat.Site.Base
 open import Cat.Site.Closure
 open import Cat.Site.Instances.Canonical
-open import Cat.Site.Sheafification
 import Cat.Reasoning as Cr
-import Cat.Functor.Reasoning.Presheaf as Pr
-import Cat.Functor.Hom.Cocompletion as Cocompletion
-import Cat.Instances.Presheaf.Limits as PL
-import Cat.Instances.Presheaf.Exponentials as PE
-
-open import Data.Fin.Finite
 
 open Functor
 
@@ -60,8 +47,6 @@ module _ {oc ℓc oe ℓe}
     module C = Precategory C
     module F = Functor F
     open Cr E
-
-  -- open is-lex
 
   cone-sieve
     : ∀ {oj} {ℓj} {I : Precategory oj ℓj} (D : Functor I C) {U : ⌞ E ⌟}
@@ -206,82 +191,133 @@ Sites o ℓ ℓc oj ℓj =
     Id-is-site-morphism
     (λ F G → is-site-morphism-compose F G)
 
+module _ {κ}
+  {C : Precategory κ κ}
+  {D : Precategory κ κ}
+  (F : Functor C D)
+  where
 
---   -- A main result is that morphisms of sites induce geometric
---   -- morphisms of corresponding sheaf toposes.  We proceed to define
---   -- the components of these geometric morphisms, known as the direct
---   -- and inverse image functors.  We do so using tensor and hom
---   -- functors as in Mac Lane and Moerdijk, Chapter VII.
+  open Tensor {C = C} {PSh κ D} (Functor-cat-is-cocomplete (Sets-is-cocomplete {ι = κ} {κ} {κ}))
 
-  -- -- The induced direct and inverse image functors are given by this
-  -- -- adjunction together with composition with Yoneda.
+  private
+    module F = Functor F
+    module C = Cr C
+    module D = Cr D
 
-  -- direct-image-presheaf : Functor C D → Functor (PSh κ D) (PSh κ C)
-  -- direct-image-presheaf F = Hom⟨ よ D F∘ F ,-⟩
+  -- A main result is that morphisms of sites induce geometric
+  -- morphisms of corresponding sheaf toposes.  We proceed to define
+  -- the components of these geometric morphisms, known as the direct
+  -- and inverse image functors.  We do so using tensor and hom
+  -- functors as in Mac Lane and Moerdijk (Chapter VII).
 
-  -- inverse-image-presheaf : Functor C D → Functor (PSh κ C) (PSh κ D)
-  -- inverse-image-presheaf F = -⊗⟨ よ D F∘ F ⟩
+  direct-image-presheaf : Functor (PSh κ D) (PSh κ C)
+  direct-image-presheaf = Hom⟨ よ D F∘ F ,-⟩
 
-  -- inverse-image-map-sieve
-  --   : {F : Functor C D} {U : ⌞ C ⌟} {S : Sieve C U}
-  --   → inverse-image-presheaf F .F₀ (to-presheaf S) ≅ⁿ to-presheaf (map-sieve F S)
-  -- inverse-image-map-sieve {F} {U} {S} = to-natural-iso ni where
-  --   ni : make-natural-iso (inverse-image-presheaf F .F₀ (to-presheaf S)) (to-presheaf (map-sieve F S))
-  --   ni .eta V x = {!!} , {!!}
-  --   ni .inv V (f , hf) = {!!}
-  --   ni .eta∘inv = {!!}
-  --   ni .inv∘eta = {!!}
-  --   ni .natural = {!!}
+  inverse-image-presheaf : Functor (PSh κ C) (PSh κ D)
+  inverse-image-presheaf = -⊗⟨ よ D F∘ F ⟩
 
-  -- -- module _
-  -- --   (JC : Coverage C κ)
-  -- --   (JD : Coverage D κ)
-  -- --   where
-  -- --   open Coverage JC using (Sem-covers)
+  module _ (JC : Coverage C κ) (JD : Coverage D κ) where
+    open Coverage JC using (Sem-covers)
 
-  -- --   is-cont : Functor C (PSh κ D) → Type (lsuc κ)
-  -- --   is-cont F = ∀ {U} (S : JC ʻ U) →
-  -- --     is-colimit _ (F .F₀ U) (to-coconeⁿ (nat-assoc-to (F ▸ sieve→cocone C ⟦ S ⟧)))
+    -- These constructions lift to the level of sheaves.  The inverse
+    -- image is easy; simply compose the presheaf operation with
+    -- sheafification.
 
-  -- --   nat-eq-is-sheaf
-  -- --     : (F : Functor (C ^op) (Sets κ))
-  -- --     → ∀ {U} (S : Sieve C U) → (to-presheaf S => F) ≃ (よ₀ C U => F) → is-sheaf₁ F S
-  -- --   nat-eq-is-sheaf = {!!}
+    inverse-image-sheaf : Functor (Sheaves JC κ) (Sheaves JD κ)
+    inverse-image-sheaf = Sheafification F∘ inverse-image-presheaf F∘ forget-sheaf JC κ
 
-  -- --   is-cont-sheaf
-  -- --     : {F : Functor C (PSh κ D)} {A : Functor (D ^op) (Sets κ)}
-  -- --     → is-cont F → is-sheaf JC (Hom⟨ F ,-⟩ .F₀ A)
-  -- --   is-cont-sheaf {F} {A} F-cont = from-is-sheaf₁ λ S →
-  -- --     nat-eq-is-sheaf (Hom⟨ F ,-⟩ .F₀ A) ⟦ S ⟧ (nat-eq S)
-  -- --     where
-  -- --     module F-colim {U : ⌞ C ⌟} (S : JC ʻ U) = is-colimit (F-cont S)
-  -- --     -- to-presheaf ⟦ S ⟧ => Hom⟨ F ,-⟩ .F₀ A        ≈
-  -- --     -- -⊗⟨ よ D F∘ F ⟩ .F₀ (to-presheaf ⟦ S ⟧) => A ≈
-  -- --     -- to-presheaf (map-sieve F ⟦ S ⟧) => A         ≈
-  -- --     -- よ D (F U) => A                              ≈
-  -- --     -- -⊗⟨ よ D F∘ F ⟩ .F₀ (よ C U) => A            ≈
-  -- --     -- よ C U => Hom⟨ F ,-⟩ .F₀ A
-  -- --     nat-eq : ∀ {U} (S : JC ʻ U) → (to-presheaf ⟦ S ⟧ => F₀ Hom⟨ F ,-⟩ A) ≃ (よ₀ C U => Hom⟨ F ,-⟩ .F₀ A)
-  -- --     nat-eq S = {!!}
+    -- We should also show that the inverse image is left exact, so
+    -- that the two functors together form a geometric morphism of
+    -- toposes.
 
-  -- -- module _
-  -- --   (JC : Coverage C κ)
-  -- --   (JD : Coverage D κ)
-  -- --   (F-pres : preserves-covers F JC JD)
-  -- --   where
+    -- TODO: Prove this statement.
+    postulate
+      inverse-image-sheaf-is-lex : ∀ {oj ℓj} → is-flat F JD oj ℓj → is-lex inverse-image-sheaf
+    -- inverse-image-sheaf-is-lex = {!!}
 
-  -- --   direct-image-sheaf : Functor (Sheaves JD κ) (Sheaves JC κ)
-  -- --   direct-image-sheaf .F₀ (A , shf) = direct-image-presheaf .F₀ A , {!!} where
-  -- --     module shf = sat shf
-  -- --     module A = Pr A
-  -- --     open Coverage JC
-  -- --     sep' : is-separated JC (A F∘ F.op)
-  -- --     sep' S {x} {y} p = shf.separate (F-pres (inc S)) λ g hg →
-  -- --       case hg of λ w f h hf q →
-  -- --         A ⟪ g ⟫ x               ≡⟨ A.expand (sym q) ⟩
-  -- --         A ⟪ h ⟫ (A ⟪ F.₁ f ⟫ x) ≡⟨ A.ap (p f hf) ⟩
-  -- --         A ⟪ h ⟫ (A ⟪ F.₁ f ⟫ y) ≡⟨ A.collapse q ⟩
-  -- --         A ⟪ g ⟫ y               ∎
-  -- --   direct-image-sheaf .F₁   = direct-image-presheaf .F₁
-  -- --   direct-image-sheaf .F-id = direct-image-presheaf .F-id
-  -- --   direct-image-sheaf .F-∘  = direct-image-presheaf .F-∘
+    -- The direct image can be shown to restrict to a functor on
+    -- sheaves even without sheafification.  However, doing so is
+    -- slightly intricate, and seems to require one of two
+    -- assumptions:
+    --
+    -- 1. The axiom of choice.
+    --
+    -- 2. C and D having pullbacks along morphisms of covering
+    --    families, and F preserving them.
+    --
+    -- Assumption 2 is quite mild and holds in our use case, so that
+    -- is the one we adopt.
+
+    -- A possible proof sketch is as follows:
+    --
+    -- Nat(S, Hom⟨ よ ∘ F , A ⟩)     ~ (by tensor-hom adjunction)
+    -- Nat(S ⊗ (よ ∘ F), A)          ~ (by tensor-sieve equivalence; here the pullbacks are needed)
+    -- Nat(F(S),A)                   ~ (by sheaf property of A and cover-preservation of F)
+    -- Nat(よ(F(U)), A)              ~ (by property of the Yoneda extension)
+    -- Nat(よ(U) ⊗ (よ ∘ F), A)      ~ (by tensor-hom adjunction)
+    -- Nat(よ(U), Hom⟨ よ ∘ F , A ⟩)
+
+    private
+      has-covering-pullbacks =
+        ∀ {U V W} (S : JC ʻ U) (f : C.Hom V U) (g : C.Hom W U)
+        → f ∈ ⟦ S ⟧ → ∃[ V' ∈ C ] Σ[ f' ∈ C.Hom V' U ] Σ[ h ∈ C.Hom V V' ]
+        f ≡ f' C.∘ h × Pullback C f' g
+
+    -- TODO: Prove this statement.
+    postulate
+      direct-image-is-sheaf
+        : ∀ {oj ℓj} (F-mor : is-site-morphism F JC JD oj ℓj)
+        → is-subcanonical D JD -- This premise ensures F is lex, see above
+        → has-covering-pullbacks
+        → (A : Sheaf JD κ) → is-sheaf JC (direct-image-presheaf .F₀ (fst A))
+    -- direct-image-sheaf = {!!}
+
+    -- TODO: Prove that the Tensor⊣Hom adjunction lifts to the level
+    -- of sheaves.
+
+    module _ {JCC : Conc-coverage JC} {JDC : Conc-coverage JD} where
+
+      -- For concrete sheaves, the inverse image is similarly easy to
+      -- construct.
+
+      inverse-image-concsh : Functor (ConcSh JCC κ) (ConcSh JDC κ)
+      inverse-image-concsh = ConcShfication {JC = JDC} F∘ inverse-image-presheaf F∘ Forget-conc-sheaf JCC κ
+
+      -- As mentioned, it's not clear whether this construction gives
+      -- a lex functor using the standard notion of site morphism.
+      -- Furthermore, it also remains to be shown that the direct
+      -- image functor restricts smoothly to concrete (pre-)sheaves.
+
+      -- TODO: Investigate these matters.
+
+
+  -- Below are some notes.
+
+  -- The sheaf property can be equivalently stated in terms of
+  -- natural transformations.
+
+  -- nat-eq-is-sheaf
+  --   : (F : Functor (C ^op) (Sets κ))
+  --   → ∀ {U} (S : Sieve C U) → (to-presheaf S => F) ≃ (よ₀ C U => F) → is-sheaf₁ F S
+  -- nat-eq-is-sheaf = {!!}
+
+  -- The following notion of continuity appears in Mac Lane and
+  -- Moerdijk (Chapter VII).  The book states that a continuous flat
+  -- functor C → PSh κ D gives rise to a map of toposes PSh κ D →
+  -- Sheaves JC κ (and that this holds for any cocomplete topos in
+  -- place of PSh κ D), but proving this seems to require more
+  -- preparatory work.
+
+  -- is-cont : Functor C (PSh κ D) → Type (lsuc κ)
+  -- is-cont F = ∀ {U} (S : JC ʻ U) →
+  --   is-colimit _ (F .F₀ U) (to-coconeⁿ (nat-assoc-to (F ▸ sieve→cocone C ⟦ S ⟧)))
+
+  -- is-cont-is-sheaf
+  --   : {F : Functor C (PSh κ D)} {A : Functor (D ^op) (Sets κ)}
+  --   → is-cont F → is-sheaf JC (Hom⟨ F ,-⟩ .F₀ A)
+  -- is-cont-is-sheaf {F} {A} F-cont = from-is-sheaf₁ λ S →
+  --   nat-eq-is-sheaf (Hom⟨ F ,-⟩ .F₀ A) ⟦ S ⟧ (nat-eq S)
+  --   where
+  --   module F-colim {U : ⌞ C ⌟} (S : JC ʻ U) = is-colimit (F-cont S)
+  --   nat-eq : ∀ {U} (S : JC ʻ U) → (to-presheaf ⟦ S ⟧ => F₀ Hom⟨ F ,-⟩ A) ≃ (よ₀ C U => Hom⟨ F ,-⟩ .F₀ A)
+  --   nat-eq S = {!!}
