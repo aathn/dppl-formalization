@@ -6,17 +6,19 @@ open import Cat.Bi.Base
 open import Cat.Functor.Base
 open import Cat.Functor.FullSubcategory
 open import Cat.Functor.Naturality
+open import Cat.Instances.Discrete
 open import Cat.Instances.Product
 import Cat.Morphism as Mor
 
--- We define sub-bicategories whose hom-categories are full
--- subcategories.
-
 open Functor
 open _=>_
+open Prebicategory
 
-module _ {o ℓ ℓ' ℓx ℓp} (BC : Prebicategory o ℓ ℓ') (O : Prebicategory.Ob BC → Type ℓx) where
+module _ {o ℓ ℓ' ℓx ℓp} (BC : Prebicategory o ℓ ℓ') (O : Ob BC → Type ℓx) where
   module BC = Prebicategory BC
+
+  -- We define sub-bicategories whose hom-categories are full
+  -- subcategories.
 
   Ob' : Type _
   Ob' = Σ BC.Ob O
@@ -32,7 +34,6 @@ module _ {o ℓ ℓ' ℓx ℓp} (BC : Prebicategory o ℓ ℓ') (O : Prebicatego
         → H A B F → H B C G → H A C (BC.compose.₀ (G , F)))
     → Prebicategory (o ⊔ ℓx) (ℓ ⊔ ℓp) ℓ'
   Birestrict H H-id H-∘ = pb where
-    open Prebicategory
     open make-natural-iso
     open Mor._≅_
     open Mor.Inverses
@@ -84,3 +85,47 @@ module _ {o ℓ ℓ' ℓx ℓp} (BC : Prebicategory o ℓ ℓ') (O : Prebicatego
     pb .associator = B-assoc
     pb .triangle (f , _) (g , _) = BC.triangle f g
     pb .pentagon (f , _) (g , _) (h , _) (i , _) = BC.pentagon f g h i
+
+cat→bicat : ∀ {o ℓ} → Precategory o ℓ → Prebicategory o ℓ ℓ
+cat→bicat C = pb where
+  module C = Precategory C
+
+  HomCat[_,_] : C.Ob → C.Ob → Precategory _ _
+  HomCat[ a , b ] = Disc' (el! (C.Hom a b))
+
+  Hom-compose : {a b c : C.Ob} → Functor (HomCat[ b , c ] ×ᶜ HomCat[ a , b ]) HomCat[ a , c ]
+  Hom-compose = record
+    { F₀   = λ (f , g) → f C.∘ g
+    ; F₁   = λ (p , q) → ap₂ C._∘_ p q
+    ; F-id = refl
+    ; F-∘  = λ _ _ → C.Hom-set _ _ _ _ _ _
+    }
+
+  pb : Prebicategory _ _ _
+  pb .Ob = C.Ob
+  pb .Hom = HomCat[_,_]
+  pb .id = C.id
+  pb .compose = Hom-compose
+  pb .unitor-l = to-natural-iso record
+    { eta = sym ⊙ C.idl
+    ; inv = C.idl
+    ; eta∘inv = λ _ → C.Hom-set _ _ _ _ _ _
+    ; inv∘eta = λ _ → C.Hom-set _ _ _ _ _ _
+    ; natural = λ _ _ _ → C.Hom-set _ _ _ _ _ _
+    }
+  pb .unitor-r = to-natural-iso record
+    { eta = sym ⊙ C.idr
+    ; inv = C.idr
+    ; eta∘inv = λ _ → C.Hom-set _ _ _ _ _ _
+    ; inv∘eta = λ _ → C.Hom-set _ _ _ _ _ _
+    ; natural = λ _ _ _ → C.Hom-set _ _ _ _ _ _
+    }
+  pb .associator = to-natural-iso record
+    { eta = λ _ → sym $ C.assoc _ _ _
+    ; inv = λ _ → C.assoc _ _ _
+    ; eta∘inv = λ _ → C.Hom-set _ _ _ _ _ _
+    ; inv∘eta = λ _ → C.Hom-set _ _ _ _ _ _
+    ; natural = λ _ _ _ → C.Hom-set _ _ _ _ _ _
+    }
+  pb .triangle _ _ = C.Hom-set _ _ _ _ _ _
+  pb .pentagon _ _ _ _ = C.Hom-set _ _ _ _ _ _
