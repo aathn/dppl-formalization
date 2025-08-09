@@ -34,7 +34,6 @@ module _ {o ℓ ℓ' ℓx ℓp} (BC : Prebicategory o ℓ ℓ') (O : Ob BC → T
         → H A B F → H B C G → H A C (BC.compose.₀ (G , F)))
     → Prebicategory (o ⊔ ℓx) (ℓ ⊔ ℓp) ℓ'
   Birestrict H H-id H-∘ = pb where
-    open make-natural-iso
     open Mor._≅_
     open Mor.Inverses
 
@@ -53,35 +52,35 @@ module _ {o ℓ ℓ' ℓx ℓp} (BC : Prebicategory o ℓ ℓ') (O : Ob BC → T
       }
 
     B-assoc : Associator-for B[_,_] B-compose
-    B-assoc = to-natural-iso ni where
-      ni : make-natural-iso _ _
-      ni .eta _ = BC.associator .to .η _
-      ni .inv _ = BC.associator .from .η _
-      ni .eta∘inv ((f , _) , (g , _) , (h , _)) =
-        BC.associator .inverses .invl ηₚ (f , g , h)
-      ni .inv∘eta ((f , _) , (g , _) , (h , _)) =
-        BC.associator .inverses .invr ηₚ (f , g , h)
-      ni .natural _ _ α = sym $ BC.associator .to .is-natural _ _ α
+    B-assoc = to-natural-iso record
+      { eta = λ _ → BC.associator .to .η _
+      ; inv = λ _ → BC.associator .from .η _
+      ; eta∘inv = λ ((f , _) , (g , _) , (h , _)) →
+          BC.associator .inverses .invl ηₚ (f , g , h)
+      ; inv∘eta = λ ((f , _) , (g , _) , (h , _)) →
+          BC.associator .inverses .invr ηₚ (f , g , h)
+      ; natural = λ _ _ α → sym $ BC.associator .to .is-natural _ _ α
+      }
 
     pb : Prebicategory _ _ _
     pb .Ob = Ob'
     pb .Hom = B[_,_]
     pb .id = B-id
     pb .compose = B-compose
-    pb .unitor-r = to-natural-iso ni where
-      ni : make-natural-iso _ _
-      ni .eta _ = BC.unitor-r .to .η _
-      ni .inv _ = BC.unitor-r .from .η _
-      ni .eta∘inv (f , _) = BC.unitor-r .inverses .invl ηₚ f
-      ni .inv∘eta (f , _) = BC.unitor-r .inverses .invr ηₚ f
-      ni .natural _ _ α = sym $ BC.unitor-r .to .is-natural _ _ α
-    pb .unitor-l = to-natural-iso ni where
-      ni : make-natural-iso _ _
-      ni .eta _ = BC.unitor-l .to .η _
-      ni .inv _ = BC.unitor-l .from .η _
-      ni .eta∘inv (f , _) = BC.unitor-l .inverses .invl ηₚ f
-      ni .inv∘eta (f , _) = BC.unitor-l .inverses .invr ηₚ f
-      ni .natural _ _ α = sym $ BC.unitor-l .to .is-natural _ _ α
+    pb .unitor-r = to-natural-iso record
+      { eta = λ _ → BC.unitor-r .to .η _
+      ; inv = λ _ → BC.unitor-r .from .η _
+      ; eta∘inv = λ (f , _) → BC.unitor-r .inverses .invl ηₚ f
+      ; inv∘eta = λ (f , _) → BC.unitor-r .inverses .invr ηₚ f
+      ; natural = λ _ _ α → sym $ BC.unitor-r .to .is-natural _ _ α
+      }
+    pb .unitor-l = to-natural-iso record
+      { eta = λ _ → BC.unitor-l .to .η _
+      ; inv = λ _ → BC.unitor-l .from .η _
+      ; eta∘inv = λ (f , _) → BC.unitor-l .inverses .invl ηₚ f
+      ; inv∘eta = λ (f , _) → BC.unitor-l .inverses .invr ηₚ f
+      ; natural = λ _ _ α → sym $ BC.unitor-l .to .is-natural _ _ α
+      }
     pb .associator = B-assoc
     pb .triangle (f , _) (g , _) = BC.triangle f g
     pb .pentagon (f , _) (g , _) (h , _) (i , _) = BC.pentagon f g h i

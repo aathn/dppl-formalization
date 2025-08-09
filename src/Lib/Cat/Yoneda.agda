@@ -17,22 +17,21 @@ import Cat.Reasoning as Cr
 import Cat.Functor.Hom.Cocompletion as Cocompletion
 
 open Functor
-open make-natural-iso
 open _=>_ renaming (op to opⁿ)
 open Cr._≅_
 
 module YonedaLemma {κ o ℓ} (C : Precategory κ κ) (D : Precategory o ℓ) where
 
   yoneda-lemma : (F : ⌞ PSh κ C ⌟) → Hom-into (PSh κ C) F F∘ op (よ C) ≅ⁿ F
-  yoneda-lemma P = to-natural-iso ni where
-    ni : make-natural-iso (よ₀ (PSh κ C) P F∘ op (よ C)) P
-    ni .eta _ = unyo P
-    ni .inv _ = yo P
-    ni .eta∘inv _ = funext $ equiv→unit (yo-is-equiv {C = C} P)
-    ni .inv∘eta _ = funext $ equiv→counit (yo-is-equiv {C = C} P)
-    ni .natural _ _ f = funext λ α →
+  yoneda-lemma P = to-natural-iso record
+    { eta = λ _ → unyo P
+    ; inv = λ _ → yo P
+    ; eta∘inv = λ _ → funext $ equiv→unit (yo-is-equiv {C = C} P)
+    ; inv∘eta = λ _ → funext $ equiv→counit (yo-is-equiv {C = C} P)
+    ; natural = λ _ _ f → funext λ α →
       sym (α .is-natural _ _ f $ₚ id) ∙ ap (α .η _) id-comm-sym
-      where open Cr C
+    }
+    where open Cr C
 
   is-ran-hom-into : (F : ⌞ PSh κ C ⌟) → is-ran (op (よ C)) F (Hom-into (PSh κ C) F) (yoneda-lemma F .to)
   is-ran-hom-into F = ran where
@@ -80,22 +79,22 @@ module Tensor {κ o}
           cocomplete→pointwise-lan (よ C) F D-cocomp x
 
       p : op (op (Hom-into D x) F∘ F) ≅ⁿ Hom⟨ F ,-⟩ .F₀ x
-      p = to-natural-iso ni where
-        ni : make-natural-iso _ _
-        ni .eta _ x = x
-        ni .inv _ x = x
-        ni .eta∘inv _ = refl
-        ni .inv∘eta _ = refl
-        ni .natural _ _ _ = refl
+      p = to-natural-iso record
+        { eta = λ _ x → x
+        ; inv = λ _ x → x
+        ; eta∘inv = λ _ → refl
+        ; inv∘eta = λ _ → refl
+        ; natural = λ _ _ _ → refl
+        }
 
       q : op (op (Hom-into D x) F∘ -⊗⟨ F ⟩) ≅ⁿ Hom-into D x F∘ op -⊗⟨ F ⟩
-      q = to-natural-iso ni where
-        ni : make-natural-iso _ _
-        ni .eta _ x = x
-        ni .inv _ x = x
-        ni .eta∘inv _ = refl
-        ni .inv∘eta _ = refl
-        ni .natural _ _ _ = refl
+      q = to-natural-iso record
+        { eta = λ _ x → x
+        ; inv = λ _ x → x
+        ; eta∘inv = λ _ → refl
+        ; inv∘eta = λ _ → refl
+        ; natural = λ _ _ _ → refl
+        }
 
       ran : is-ran (op (よ C)) (Hom⟨ F ,-⟩ .F₀ x) (Hom-into D x F∘ op -⊗⟨ F ⟩) _
       ran = natural-iso-ext→is-ran (natural-iso-of→is-ran co-ran p) q
