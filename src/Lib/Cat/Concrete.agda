@@ -264,7 +264,7 @@ module Free {ℓ} {C : Precategory ℓ ℓ} {J : Coverage C ℓ} (JC : Conc-cove
   make-free-conc-psh A .fo.free = Concretize A , Concretize-is-concrete JC A
   make-free-conc-psh A .fo.unit = unit
   make-free-conc-psh A .fo.fold {B , conc} = univ B conc
-  make-free-conc-psh A .fo.commute = trivial!
+  make-free-conc-psh A .fo.commute = ext λ _ _ → refl
   make-free-conc-psh A .fo.unique {B , conc} {f} g p = sym $
     unique B conc _ _ λ U x → p ηₚ _ $ₚ _
 
@@ -273,7 +273,7 @@ module Free {ℓ} {C : Precategory ℓ ℓ} {J : Coverage C ℓ} (JC : Conc-cove
     (Sheafify A , Sheafify-is-concrete JC A conc) , Sheafify-is-sheaf _
   make-free-conc-sh A .fo.unit = FreeSheaf.unit
   make-free-conc-sh A .fo.fold {(B , _) , shf} = FreeSheaf.univ B shf
-  make-free-conc-sh A .fo.commute = trivial!
+  make-free-conc-sh A .fo.commute = ext λ _ _ → refl
   make-free-conc-sh (A , _) .fo.unique {(B , _) , shf} =
     FreeSheaf.make-free-sheaf A .fo.unique {B , shf}
 

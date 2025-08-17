@@ -123,7 +123,7 @@ module _ {oc ℓc ℓC} {C : Precategory oc ℓc} {J : Coverage C ℓC} where
   open Cr C
   Id-is-flat : ∀ {oj ℓj} → is-flat Id J oj ℓj
   Id-is-flat D fin {U} T =
-    max (inc (U , nat-idl-to T , id , trivial!))
+    max (inc (U , nat-idl-to T , id , ext λ _ → refl))
 
   Id-preserves-covers : preserves-covers Id J J
   Id-preserves-covers Hc =
