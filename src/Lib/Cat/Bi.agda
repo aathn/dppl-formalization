@@ -18,13 +18,15 @@ open Functor
 open _=>_
 
 module Reasoning {o ℓ ℓ'} (C : Prebicategory o ℓ ℓ') where
-  open Prebicategory C public
-  open Hom hiding (Ob ; id ; _∘_ ; to ; from)
-  open Cr._≅_
+  open Prebicategory C public hiding (module Hom)
 
-  module ⊗ = compose
+  module Hom {a b} = Cr (Hom a b)
+  module ⊗ {a b c} = Fr (compose {a} {b} {c})
   module ▶ {a b c} {f} = Fr (postaction C {a} {b} {c} f)
   module ◀ {a b c} {f} = Fr (preaction C {a} {b} {c} f)
+
+  open Hom hiding (Ob ; id ; _∘_ ; to ; from)
+  open Cr._≅_
 
   private variable
     X Y Z : Ob

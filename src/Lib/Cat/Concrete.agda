@@ -5,6 +5,7 @@ module Lib.Cat.Concrete where
 open import Lib.Cat.Sheafification
 
 open import Cat.Prelude
+open import Cat.Cartesian
 open import Cat.Diagram.Colimit.Base
 open import Cat.Diagram.Exponential
 open import Cat.Diagram.Limit.Base
@@ -336,6 +337,7 @@ module _ {ℓ} {C : Precategory ℓ ℓ} {J : Coverage C ℓ} {JC : Conc-coverag
 
   open Concretize JC
   open Cartesian-closed
+  open Cartesian-category
   open Exponential
   open is-exponential
   open is-product
@@ -409,11 +411,15 @@ module _ {ℓ} {C : Precategory ℓ ℓ} {J : Coverage C ℓ} {JC : Conc-coverag
   CSh[]-terminal .top .snd .separate _ _  = refl
   CSh[]-terminal .has⊤ ((A , _) , _) = PSh-terminal _ C .has⊤ A
 
-  CSh[]-cc : Cartesian-closed CSh[ C , JC ] CSh[]-products CSh[]-terminal
+  CSh[]-cartesian : Cartesian-category CSh[ C , JC ]
+  CSh[]-cartesian .products = CSh[]-products
+  CSh[]-cartesian .terminal = CSh[]-terminal
+
+  CSh[]-cc : Cartesian-closed CSh[ C , JC ] CSh[]-cartesian
   CSh[]-cc .has-exp ((A , _) , _) ((B , bconc) , bshf) = exp where
     exp' = PSh-closed C .has-exp A B
 
-    exp : Exponential CSh[ C , JC ] _ _ _ _
+    exp : Exponential CSh[ C , JC ] _ _ _
     exp .B^A .fst .fst = exp' .B^A
     exp .B^A .fst .snd = is-concrete-exponential JC A B bconc
     exp .B^A      .snd = is-sheaf-exponential J A B bshf
