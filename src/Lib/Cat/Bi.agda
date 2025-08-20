@@ -67,6 +67,15 @@ module Reasoning {o ℓ ℓ'} (C : Prebicategory o ℓ ℓ') where
     ; natural = λ _ _ _ → sym (α←nat _ _ _) ∙ ap ((α← _ _ _ ∘_) ⊙ (_ ◆_)) ⊗.F-id
     }
 
+  ◀-▶-comm : preaction C f F∘ postaction C g ≅ⁿ postaction C g F∘ preaction C f
+  ◀-▶-comm {f = f} {g = g} = to-natural-iso record
+    { eta = λ x → α→ g x f
+    ; inv = λ x → α← g x f
+    ; eta∘inv = λ _ → α≅ .invl
+    ; inv∘eta = λ _ → α≅ .invr
+    ; natural = λ _ _ _ → sym (α→nat _ _ _)
+    }
+
   -- Several proofs below taken from Cat.Monoidal.Base.
 
   triangle-α→ : (f ▶ λ← g) ∘ α→ _ _ _ ≡ ρ← f ◀ g

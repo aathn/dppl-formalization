@@ -116,37 +116,36 @@ module _ {o₁ h₁ ℓ₁ o₂ h₂ ℓ₂} {B : Prebicategory o₁ h₁ ℓ₁
   open Cr._≅_
   open Cr.Inverses
 
-  idlx : {F : Lax-functor B C} → F =>ₗ F
-  idlx {F} = lx where
-    module F = Lax-functor F
-    ν : ∀ {a b} → preaction C (id {F.₀ b}) F∘ F.P₁ => postaction C (id {F.₀ a}) F∘ F.P₁
-    ν = (unitor-l .to ∘nt unitor-r .from) ◂ F.P₁
+  -- idlx : {F : Lax-functor B C} → F =>ₗ F
+  -- idlx {F} = lx where
+  --   module F = Lax-functor F
+  --   ν : ∀ {a b} → preaction C (id {F.₀ b}) F∘ F.P₁ => postaction C (id {F.₀ a}) F∘ F.P₁
+  --   ν = (unitor-l .to ∘nt unitor-r .from) ◂ F.P₁
 
-    lx : F =>ₗ F
-    lx = {!!}
-    -- lx .σ a = id {F.₀ a}
-    -- lx .naturator = ν
-    -- lx .ν-compositor {a = a} {c = c} f g =
-    --   (λ→ _ ∘ ρ← _) ∘ F.γ→ _ _ ◀ id                      ≡⟨ pullr (ρ←nat _) ⟩
-    --   λ→ _ ∘ (F.γ→ _ _ ∘ ρ← _)                           ≡⟨ extendl (λ→nat _) ⟩
-    --   id ▶ F.γ→ f g ∘ λ→ _ ∘ ρ← _                        ≡⟨ refl⟩∘⟨ p ⟩
-    --   id ▶ F.γ→ f g ∘ α→ _ _ _ ∘ (λ→ _ ∘ ρ← _) ◀ F.₁ g ∘
-    --   α← _ _ _ ∘ F.₁ f ▶ (λ→ _ ∘ ρ← _) ∘ α→ _ _ _        ∎
-    --   where
-    --   p = λ→ _ ∘ ρ← _                                    ≡⟨ triangle-λ→ ⟩∘⟨ intror (α≅ .invr) ∙ pulll triangle-ρ← ⟩
-    --       (α→ _ _ _ ∘ λ→ _ ◀ _) ∘ (_ ▶ ρ← _) ∘ α→ _ _ _  ≡⟨ intro-inner (pulll (triangle _ _) ∙ ▶.annihilate (λ≅ .invr)) ⟩
-    --       _                                              ≡⟨ cat! (Hom C (F.₀ a) (F.₀ c)) ⟩
-    --       α→ _ _ _ ∘ (λ→ _ ◀ _ ∘ ρ← _ ◀ _) ∘
-    --       α← _ _ _ ∘ (_ ▶ λ→ _ ∘ _ ▶ ρ← _) ∘ α→ _ _ _    ≡⟨⟩
-    --       _ ∘ ⌜ λ→ _ ◀ _ ∘ ρ← _ ◀ _ ⌝ ∘ _                ≡⟨ ap! (sym ◀-distribl) ⟩
-    --       _ ∘ _ ∘ _ ∘ ⌜ _ ▶ λ→ _ ∘ _ ▶ ρ← _ ⌝ ∘ _        ≡⟨ ap! (sym ▶-distribr) ⟩
-    --       _                                              ∎
-    -- lx .ν-unitor =
-    --   (λ→ _ ∘ ρ← _) ∘ F.unitor ◀ id   ≡⟨ pullr (ρ←nat _) ⟩
-    --   λ→ _ ∘ (F.unitor ∘ ρ← _)        ≡⟨ extendl (λ→nat _) ⟩
-    --   id ▶ F.unitor ∘ ⌜ λ→ _ ⌝ ∘ ρ← _ ≡⟨ ap! λ→≡ρ→ ⟩
-    --   id ▶ F.unitor ∘ ρ→ _ ∘ ⌜ ρ← _ ⌝ ≡⟨ ap! (sym λ←≡ρ←) ⟩
-    --   id ▶ F.unitor ∘ ρ→ _ ∘ λ← _     ∎
+  --   lx : F =>ₗ F
+  --   lx .σ a = id {F.₀ a}
+  --   lx .naturator = ν
+  --   lx .ν-compositor {a = a} {c = c} f g =
+  --     (λ→ _ ∘ ρ← _) ∘ F.γ→ _ _ ◀ id                      ≡⟨ pullr (ρ←nat _) ⟩
+  --     λ→ _ ∘ (F.γ→ _ _ ∘ ρ← _)                           ≡⟨ extendl (λ→nat _) ⟩
+  --     id ▶ F.γ→ f g ∘ λ→ _ ∘ ρ← _                        ≡⟨ refl⟩∘⟨ p ⟩
+  --     id ▶ F.γ→ f g ∘ α→ _ _ _ ∘ (λ→ _ ∘ ρ← _) ◀ F.₁ g ∘
+  --     α← _ _ _ ∘ F.₁ f ▶ (λ→ _ ∘ ρ← _) ∘ α→ _ _ _        ∎
+  --     where
+  --     p = λ→ _ ∘ ρ← _                                    ≡⟨ triangle-λ→ ⟩∘⟨ intror (α≅ .invr) ∙ pulll triangle-ρ← ⟩
+  --         (α→ _ _ _ ∘ λ→ _ ◀ _) ∘ (_ ▶ ρ← _) ∘ α→ _ _ _  ≡⟨ intro-inner (pulll (triangle _ _) ∙ ▶.annihilate (λ≅ .invr)) ⟩
+  --         _                                              ≡⟨ cat! (Hom C (F.₀ a) (F.₀ c)) ⟩
+  --         α→ _ _ _ ∘ (λ→ _ ◀ _ ∘ ρ← _ ◀ _) ∘
+  --         α← _ _ _ ∘ (_ ▶ λ→ _ ∘ _ ▶ ρ← _) ∘ α→ _ _ _    ≡⟨⟩
+  --         _ ∘ ⌜ λ→ _ ◀ _ ∘ ρ← _ ◀ _ ⌝ ∘ _                ≡⟨ ap! (sym ◀-distribl) ⟩
+  --         _ ∘ _ ∘ _ ∘ ⌜ _ ▶ λ→ _ ∘ _ ▶ ρ← _ ⌝ ∘ _        ≡⟨ ap! (sym ▶-distribr) ⟩
+  --         _                                              ∎
+  --   lx .ν-unitor =
+  --     (λ→ _ ∘ ρ← _) ∘ F.unitor ◀ id   ≡⟨ pullr (ρ←nat _) ⟩
+  --     λ→ _ ∘ (F.unitor ∘ ρ← _)        ≡⟨ extendl (λ→nat _) ⟩
+  --     id ▶ F.unitor ∘ ⌜ λ→ _ ⌝ ∘ ρ← _ ≡⟨ ap! λ→≡ρ→ ⟩
+  --     id ▶ F.unitor ∘ ρ→ _ ∘ ⌜ ρ← _ ⌝ ≡⟨ ap! (sym λ←≡ρ←) ⟩
+  --     id ▶ F.unitor ∘ ρ→ _ ∘ λ← _     ∎
 
   _∘lx_ : {F G H : Lax-functor B C} → G =>ₗ H → F =>ₗ G → F =>ₗ H
   _∘lx_ {F} {G} {H} α β = lx where
@@ -156,23 +155,38 @@ module _ {o₁ h₁ ℓ₁ o₂ h₂ ℓ₂} {B : Prebicategory o₁ h₁ ℓ₁
     module α = Lax-transfor α
     module β = Lax-transfor β
     ν : ∀ {a b} → preaction C (α.σ b ⊗ β.σ b) F∘ H.P₁ => postaction C (α.σ a ⊗ β.σ a) F∘ F.P₁
-    ν {a} {b} = ?
-      -- α← _ _ _ ∘ α.σ a ▶ β.ν→ x ∘ α→ _ _ _ ∘ α.ν→ x ◀ β.σ b ∘ α← _ _ _
-    -- ν {a} {b} .is-natural x y f = {!!}
-    --   -- (α← _ _ _ ∘ α.σ a ▶ β.ν→ y ∘ α→ _ _ _ ∘ α.ν→ y ◀ β.σ b ∘ α← _ _ _) ∘ H.₂ f ◀ (α.σ b ⊗ β.σ b)   ≡⟨ cat! CH ⟩
-    --   -- α← _ _ _ ∘ α.σ a ▶ β.ν→ y ∘ α→ _ _ _ ∘ α.ν→ y ◀ β.σ b ∘ ⌜ α← _ _ _ ∘ H.₂ f ◀ (α.σ b ⊗ β.σ b) ⌝ ≡⟨ ap! α←nat-◀ ∙ cat! CH ⟩
-    --   -- α← _ _ _ ∘ α.σ a ▶ β.ν→ y ∘ α→ _ _ _ ∘ ⌜ α.ν→ y ◀ β.σ b ∘ (H.₂ f ◀ α.σ b) ◀ β.σ b ⌝ ∘ α← _ _ _ ≡⟨ ap! (sym ◀-distribl ∙ ◀.⟨ α.naturator .is-natural _ _ f ⟩) ∙ {!!} ⟩
-    --   -- α← _ _ _ ∘ α.σ a ▶ β.ν→ y ∘ ⌜ α→ _ _ _ ∘ (α.σ a ▶ G.₂ f) ◀ β.σ b ⌝ ∘ α.ν→ x ◀ β.σ b ∘ α← _ _ _ ≡⟨ {!!} ⟩
-    --   -- α← _ _ _ ∘ α.σ a ▶ ⌜ β.ν→ y ∘ G.₂ f ◀ β.σ b ⌝ ∘ α→ _ _ _ ∘ α.ν→ x ◀ β.σ b ∘ α← _ _ _           ≡⟨ {!!} ⟩
-    --   -- α← _ _ _ ∘ α.σ a ▶ (β.σ a ▶ F.₂ f) ∘ α.σ a ▶ β.ν→ x ∘ α→ _ _ _ ∘ α.ν→ x ◀ β.σ b ∘ α← _ _ _     ≡⟨ {!!} ⟩
-    --   -- (α.σ a ⊗ β.σ a) ▶ F.₂ f ∘ α← _ _ _ ∘ α.σ a ▶ β.ν→ x ∘ α→ _ _ _ ∘ α.ν→ x ◀ β.σ b ∘ α← _ _ _     ∎
-    --   where CH = Hom C (F.₀ b) (H.₀ a)
-      
+    ν {a} {b} =
+      (▶-assoc .from ◂ F.P₁) ∘nt
+      nat-assoc-to (postaction C (α.σ a) ▸ β.naturator) ∘nt
+      (nat-unassoc-to ⊙ nat-unassoc-from) (◀-▶-comm .to ◂ G.P₁) ∘nt
+      nat-assoc-from (preaction C (β.σ b) ▸ α.naturator) ∘nt
+      (◀-assoc .to ◂ H.P₁)
+
     lx : _ =>ₗ _
     lx .σ x = α.σ x ⊗ β.σ x
     lx .naturator = ν
-    lx .ν-compositor = {!!}
-    lx .ν-unitor = {!!}
+    lx .ν-compositor f g = {!!}
+    lx .ν-unitor {a} =
+      ν .η B.id ∘ H.unitor ◀ σ lx a ≡⟨ cat! CH ⟩
+      α← _ _ _ ∘ α.σ a ▶ β.ν→ B.id ∘ α→ _ _ _ ∘
+      α.ν→ B.id ◀ β.σ a ∘ ⌜ α← _ _ _ ∘ H.unitor ◀ (α.σ a ⊗ β.σ a) ⌝ ≡⟨ ap! (◀-assoc .to .is-natural _ _ _) ∙ cat! CH ⟩
+      α← _ _ _ ∘ α.σ a ▶ β.ν→ B.id ∘ α→ _ _ _ ∘
+      ⌜ α.ν→ B.id ◀ β.σ a ∘ (H.unitor ◀ α.σ a) ◀ β.σ a ⌝ ∘ α← _ _ _ ≡⟨ ap! (sym ◀-distribl ∙ ap (_◀ β.σ a) α.ν-unitor) ⟩
+      _                                                             ≡⟨ {!!} ⟩
+      α← _ _ _ ∘ α.σ a ▶ β.ν→ B.id ∘ ⌜ α→ _ _ _ ∘ (α.σ a ▶ G.unitor) ◀ β.σ a ⌝ ∘
+      ρ→ _ ◀ β.σ a ∘ λ← _ ◀ β.σ a ∘ α← _ _ _                        ≡⟨ ap! (α→nat _ _ _) ⟩
+      α← _ _ _ ∘ α.σ a ▶ β.ν→ B.id ∘ (α.σ a ▶ (G.unitor ◀ β.σ a) ∘ α→ _ _ _ ) ∘
+      ρ→ _ ◀ β.σ a ∘ λ← _ ◀ β.σ a ∘ α← _ _ _                        ≡⟨ {!!} ⟩
+      α← _ _ _ ∘ α.σ a ▶ ⌜ β.ν→ B.id ∘ G.unitor ◀ β.σ a ⌝ ∘ α→ _ _ _ ∘
+      ρ→ _ ◀ β.σ a ∘ λ← _ ◀ β.σ a ∘ α← _ _ _                                      ≡⟨ ap! β.ν-unitor ⟩
+      α← _ _ _ ∘ α.σ a ▶ (β.σ a ▶ F.unitor ∘ ρ→ _ ∘ λ← _) ∘ α→ _ _ _ ∘
+      ρ→ _ ◀ β.σ a ∘ λ← _ ◀ β.σ a ∘ α← _ _ _                                      ≡⟨ {!!} ⟩
+      ⌜ α← _ _ _ ∘ α.σ a ▶ (β.σ a ▶ F.unitor) ⌝ ∘ α.σ a ▶ ρ→ _ ∘ α.σ a ▶ λ← _ ∘ α→ _ _ _ ∘
+      ρ→ _ ◀ β.σ a ∘ λ← _ ◀ β.σ a ∘ α← _ _ _                                      ≡⟨ ap! (▶-assoc .from .is-natural _ _ _) ⟩
+      ((α.σ a ⊗ β.σ a) ▶ F.unitor ∘ α← _ _ _) ∘ α.σ a ▶ ρ→ _ ∘ α.σ a ▶ λ← _ ∘ α→ _ _ _ ∘
+      ρ→ _ ◀ β.σ a ∘ λ← _ ◀ β.σ a ∘ α← _ _ _                                      ≡⟨ {!!} ⟩
+      (α.σ a ⊗ β.σ a) ▶ F.unitor ∘ ρ→ (α.σ a ⊗ β.σ a) ∘ λ← (α.σ a ⊗ β.σ a) ∎
+      where CH = Hom C (F.₀ a) (H.₀ a)
 
   module _ {F G : Lax-functor B C} where
     private
