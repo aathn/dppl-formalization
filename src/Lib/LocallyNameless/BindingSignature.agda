@@ -11,10 +11,10 @@
 module Lib.LocallyNameless.BindingSignature where
 
 open import Lib.Prelude hiding (⟦_⟧) renaming (_∙_ to _∙ᵖ_)
-open import Lib.Dec
-open import Lib.Finset
-open import Lib.Nat
-open import Lib.Vector
+open import Lib.Data.Dec
+open import Lib.Data.Finset
+open import Lib.Data.Nat
+open import Lib.Data.Vector
 
 open import Lib.LocallyNameless.Unfinite
 open import Lib.LocallyNameless.oc-Sets

@@ -1,9 +1,9 @@
-module Lib.Finset where
+module Lib.Data.Finset where
 
 open import 1Lab.Prelude hiding (_≠_ ; _∉_)
 
-open import Lib.Dec
-open import Lib.Vector
+open import Lib.Data.Dec
+open import Lib.Data.Vector
 open import Data.Finset.Base
 
 open import Order.Base using (Poset)

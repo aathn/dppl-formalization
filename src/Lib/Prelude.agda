@@ -3,10 +3,10 @@ module Lib.Prelude where
 open import 1Lab.Prelude public
   hiding (_≠_; _∉_)
 
-open import Lib.Dec public using (is-no ; _≠_ ; _∉_)
-open import Lib.Finset public using (module FinsetSyntax)
-open import Lib.Nat public using (module NatOrd)
-open import Lib.Vector public using (Vector ; Array ; module VectorSyntax)
+open import Lib.Data.Dec public using (is-no ; _≠_ ; _∉_)
+open import Lib.Data.Finset public using (module FinsetSyntax)
+open import Lib.Data.Nat public using (module NatOrd)
+open import Lib.Data.Vector public using (Vector ; Array ; module VectorSyntax)
 
 open import Data.Dec.Base public using (Dec ; yes ; no ; _≡?_ ; Discrete ; is-yes ; ifᵈ_then_else_)
 open import Data.Fin.Base public using (Fin ; fin ; fzero ; fsuc ; fin-view ; zero ; suc)

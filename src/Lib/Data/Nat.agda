@@ -1,7 +1,7 @@
-module Lib.Nat where
+module Lib.Data.Nat where
 
 open import 1Lab.Prelude
-open import Lib.Vector
+open import Lib.Data.Vector
 
 open import Data.Fin using (Fin ; fin-view ; zero ; suc)
 open import Data.Nat.Properties using (+-inj ; +-commutative ; monus-swapr)

@@ -1,4 +1,4 @@
-module Lib.Dec where
+module Lib.Data.Dec where
 
 open import 1Lab.Prelude hiding (_≠_ ; _∉_)
 

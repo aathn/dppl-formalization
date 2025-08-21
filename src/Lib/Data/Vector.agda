@@ -1,4 +1,4 @@
-module Lib.Vector where
+module Lib.Data.Vector where
 
 open import 1Lab.Prelude
 
