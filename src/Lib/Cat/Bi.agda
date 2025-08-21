@@ -15,7 +15,7 @@ import Cat.Functor.Reasoning as Fr
 import Cat.Reasoning as Cr
 
 open Functor
-open _=>_
+open _=>_ hiding (op)
 
 module Reasoning {o ℓ ℓ'} (C : Prebicategory o ℓ ℓ') where
   open Prebicategory C public hiding (module Hom)
@@ -116,7 +116,7 @@ module Reasoning {o ℓ ℓ'} (C : Prebicategory o ℓ ℓ') where
       base = ≅-path (▶.collapse triangle-α→)
 
       sq1 : ▶.F-map-iso α≅ ∙Iso α≅ Iso⁻¹ ∙Iso α≅ Iso⁻¹ ≡ α≅ Iso⁻¹ ∙Iso ◀.F-map-iso (α≅ Iso⁻¹)
-      sq1 = ≅-path (rswizzle (sym (pentagon _ _ _ _) ∙ assoc _ _ _) 
+      sq1 = ≅-path (rswizzle (sym (pentagon _ _ _ _) ∙ assoc _ _ _)
         (▶.annihilate (α≅ .invr)))
 
       sq2 : ▶.F-map-iso (▶.F-map-iso (λ≅ Iso⁻¹)) ∙Iso α≅ Iso⁻¹
@@ -156,7 +156,7 @@ module Reasoning {o ℓ ℓ'} (C : Prebicategory o ℓ ℓ') where
 
   triangle-λ→ : λ→ (f ⊗ g) ≡ α→ id f g ∘ λ→ f ◀ g
   triangle-λ→ {f = f} {g = g} =
-    λ→ (f ⊗ g)                                     ≡⟨ intror (sym ◀-distribl ∙ ◀.elim (λ≅ .invr)) ⟩
+    λ→ (f ⊗ g)                                     ≡⟨ intror (◀.annihilate (λ≅ .invr)) ⟩
     λ→ (f ⊗ g) ∘ λ← f ◀ g ∘ λ→ f ◀ g               ≡⟨ refl⟩∘⟨ pushl (sym triangle-λ←) ⟩
     λ→ (f ⊗ g) ∘ λ← (f ⊗ g) ∘ α→ id f g ∘ λ→ f ◀ g ≡⟨ cancell (λ≅ .invl) ⟩
     α→ id f g ∘ λ→ f ◀ g                           ∎
@@ -174,78 +174,6 @@ module Reasoning {o ℓ ℓ'} (C : Prebicategory o ℓ ℓ') where
     λ→ id ∘ ρ← id ∘ ρ→ id ≡˘⟨ refl⟩∘⟨ λ←≡ρ← ⟩∘⟨refl ⟩
     λ→ id ∘ λ← id ∘ ρ→ id ≡⟨ cancell (λ≅ .invl) ⟩
     ρ→ id                 ∎
-
-
-module _ {o h ℓ ℓx ℓp} (BC : Prebicategory o h ℓ) (O : Prebicategory.Ob BC → Type ℓx) where
-  open Prebicategory
-  private
-    module BC = Reasoning BC
-
-  -- We define sub-bicategories whose hom-categories are full
-  -- subcategories.
-
-  Ob' : Type _
-  Ob' = Σ BC.Ob O
-
-  B'[_,_] : Ob' → Ob' → Precategory _ _
-  B'[ A , B ] = BC.Hom (A .fst) (B .fst)
-
-  Birestrict
-    : (H : (A B : Ob') → ⌞ B'[ A , B ] ⌟ → Type ℓp)
-    → (H-id : {A : Ob'} → H A A BC.id)
-    → (H-∘
-        : {A B C : Ob'} (F : ⌞ B'[ A , B ] ⌟) (G : ⌞ B'[ B , C ] ⌟)
-        → H A B F → H B C G → H A C (G BC.⊗ F))
-    → Prebicategory (o ⊔ ℓx) (h ⊔ ℓp) ℓ
-  Birestrict H H-id H-∘ = pb where
-    open Cr._≅_
-    open Cr.Inverses
-
-    B[_,_] : Ob' → Ob' → Precategory _ _
-    B[ A , B ] = Restrict {C = B'[ A , B ]} (H A B)
-
-    B-id : {C : Ob'} → ⌞ B[ C , C ] ⌟
-    B-id = BC.id , H-id
-
-    B-compose : {A B C : Ob'} → Functor (B[ B , C ] ×ᶜ B[ A , B ]) B[ A , C ]
-    B-compose = record
-      { F₀   = λ ((F , F-mor) , (G , G-mor)) → F BC.⊗ G , H-∘ G F G-mor F-mor
-      ; F₁   = BC.⊗.₁
-      ; F-id = BC.⊗.F-id
-      ; F-∘  = BC.⊗.F-∘
-      }
-
-    B-assoc : Associator-for B[_,_] B-compose
-    B-assoc = to-natural-iso record
-      { eta = λ _ → BC.α≅ .to
-      ; inv = λ _ → BC.α≅ .from
-      ; eta∘inv = λ _ → BC.α≅ .invl
-      ; inv∘eta = λ _ → BC.α≅ .invr
-      ; natural = λ _ _ _ → sym $ BC.α→nat _ _ _
-      }
-
-    pb : Prebicategory _ _ _
-    pb .Ob = Ob'
-    pb .Hom = B[_,_]
-    pb .id = B-id
-    pb .compose = B-compose
-    pb .unitor-r = to-natural-iso record
-      { eta = λ _ → BC.ρ≅ .to
-      ; inv = λ _ → BC.ρ≅ .from
-      ; eta∘inv = λ (f , _) → BC.ρ≅ .invl
-      ; inv∘eta = λ (f , _) → BC.ρ≅ .invr
-      ; natural = λ _ _ _ → sym $ BC.ρ→nat _
-      }
-    pb .unitor-l = to-natural-iso record
-      { eta = λ _ → BC.λ≅ .to
-      ; inv = λ _ → BC.λ≅ .from
-      ; eta∘inv = λ (f , _) → BC.λ≅ .invl
-      ; inv∘eta = λ (f , _) → BC.λ≅ .invr
-      ; natural = λ _ _ _ → sym $ BC.λ→nat _
-      }
-    pb .associator = B-assoc
-    pb .triangle (f , _) (g , _) = BC.triangle f g
-    pb .pentagon (f , _) (g , _) (h , _) (i , _) = BC.pentagon f g h i
 
 
 cat→bicat : ∀ {o ℓ} → Precategory o ℓ → Prebicategory o ℓ ℓ
@@ -294,10 +222,119 @@ cat→bicat C = pb where
   pb .pentagon _ _ _ _ = C.Hom-set _ _ _ _ _ _
 
 
+module _ {o h ℓ} (C : Prebicategory o h ℓ) where
+  open Reasoning C
+  open Hom hiding (Ob ; Hom ; id ; _∘_)
+  private
+    module Pb = Prebicategory
+
+  open Cr._≅_
+  open Cr.Inverses
+
+  infixl 60 _^co
+  _^co : Prebicategory o h ℓ
+  _^co .Pb.Ob = Ob
+  _^co .Pb.Hom x y = Hom x y ^op
+  _^co .Pb.id = id
+  _^co .Pb.compose = op compose F∘ ×ᶜ-op
+  _^co .Pb.unitor-l = to-natural-iso record
+    { eta = λ←
+    ; inv = λ→
+    ; eta∘inv = λ _ → λ≅ .invl
+    ; inv∘eta = λ _ → λ≅ .invr
+    ; natural = λ _ _ _ → λ←nat _
+    }
+  _^co .Pb.unitor-r = to-natural-iso record
+    { eta = ρ←
+    ; inv = ρ→
+    ; eta∘inv = λ _ → ρ≅ .invl
+    ; inv∘eta = λ _ → ρ≅ .invr
+    ; natural = λ _ _ _ → ρ←nat _
+    }
+  _^co .Pb.associator = to-natural-iso record
+    { eta = associator.from .η
+    ; inv = associator.to .η
+    ; eta∘inv = λ _ → α≅ .invl
+    ; inv∘eta = λ _ → α≅ .invr
+    ; natural = λ _ _ _ → α←nat _ _ _
+    }
+  _^co .Pb.triangle f g = inverse-unique refl refl
+    (α≅ Iso⁻¹ ∙Iso ◀.F-map-iso (ρ≅ Iso⁻¹))
+    (▶.F-map-iso (λ≅ Iso⁻¹))
+    (triangle f g)
+  _^co .Pb.pentagon _ _ _ _ = sym (assoc _ _ _) ∙ pentagon-α→
+
+
+  module _ {ℓx ℓp} (O : Ob → Type ℓx) where
+    -- We define sub-bicategories whose hom-categories are full
+    -- subcategories.
+
+    Ob' : Type _
+    Ob' = Σ Ob O
+
+    B'[_,_] : Ob' → Ob' → Precategory _ _
+    B'[ A , B ] = Hom (A .fst) (B .fst)
+
+    Birestrict
+      : (H : (A B : Ob') → ⌞ B'[ A , B ] ⌟ → Type ℓp)
+      → (H-id : {A : Ob'} → H A A id)
+      → (H-∘
+          : {A B C : Ob'} (F : ⌞ B'[ A , B ] ⌟) (G : ⌞ B'[ B , C ] ⌟)
+          → H A B F → H B C G → H A C (G ⊗ F))
+      → Prebicategory (o ⊔ ℓx) (h ⊔ ℓp) ℓ
+    Birestrict H H-id H-∘ = pb where
+
+      B[_,_] : Ob' → Ob' → Precategory _ _
+      B[ A , B ] = Restrict {C = B'[ A , B ]} (H A B)
+
+      B-id : {C : Ob'} → ⌞ B[ C , C ] ⌟
+      B-id = id , H-id
+
+      B-compose : {A B C : Ob'} → Functor (B[ B , C ] ×ᶜ B[ A , B ]) B[ A , C ]
+      B-compose = record
+        { F₀   = λ ((F , F-mor) , (G , G-mor)) → F ⊗ G , H-∘ G F G-mor F-mor
+        ; F₁   = ⊗.₁
+        ; F-id = ⊗.F-id
+        ; F-∘  = ⊗.F-∘
+        }
+
+      B-assoc : Associator-for B[_,_] B-compose
+      B-assoc = to-natural-iso record
+        { eta = λ _ → α≅ .to
+        ; inv = λ _ → α≅ .from
+        ; eta∘inv = λ _ → α≅ .invl
+        ; inv∘eta = λ _ → α≅ .invr
+        ; natural = λ _ _ _ → sym $ α→nat _ _ _
+        }
+
+      pb : Prebicategory _ _ _
+      pb .Pb.Ob = Ob'
+      pb .Pb.Hom = B[_,_]
+      pb .Pb.id = B-id
+      pb .Pb.compose = B-compose
+      pb .Pb.unitor-r = to-natural-iso record
+        { eta = λ _ → ρ≅ .to
+        ; inv = λ _ → ρ≅ .from
+        ; eta∘inv = λ (f , _) → ρ≅ .invl
+        ; inv∘eta = λ (f , _) → ρ≅ .invr
+        ; natural = λ _ _ _ → sym $ ρ→nat _
+        }
+      pb .Pb.unitor-l = to-natural-iso record
+        { eta = λ _ → λ≅ .to
+        ; inv = λ _ → λ≅ .from
+        ; eta∘inv = λ (f , _) → λ≅ .invl
+        ; inv∘eta = λ (f , _) → λ≅ .invr
+        ; natural = λ _ _ _ → sym $ λ→nat _
+        }
+      pb .Pb.associator = B-assoc
+      pb .Pb.triangle (f , _) (g , _) = triangle f g
+      pb .Pb.pentagon (f , _) (g , _) (h , _) (i , _) = pentagon f g h i
+
+
 module _ {o h ℓ} {C : Prebicategory o h ℓ} where
   open Reasoning C
+  open Hom hiding (Ob ; Hom ; id ; _∘_)
   private
-    module H = Hom
     module Cat = Prebicategory (Cat h ℓ)
 
   module _ (X : Ob) where
@@ -315,21 +352,17 @@ module _ {o h ℓ} {C : Prebicategory o h ℓ} where
     Hom-from-bi = lf where
 
       Hom-compositor : ∀ {A B C} → Cat.compose F∘ (Hom-from-bi₁ {B} {C} F× Hom-from-bi₁ {A} {B}) => Hom-from-bi₁ F∘ compose
-      Hom-compositor .η (f , g) .η = α← f g
-      Hom-compositor .η (f , g) .is-natural x y h =
-        α← f g y ∘ (H.id ◆ (H.id ◆ h)) ≡⟨ α←nat H.id H.id h ⟩
-        ((H.id ◆ H.id) ◆ h) ∘ α← f g x ≡⟨ ap (_◆ _) ⊗.F-id H.⟩∘⟨refl ⟩
-        (H.id ◆ h) ∘ α← f g x          ∎
-      Hom-compositor .is-natural (f , g) (f' , g') (α , β) = ext λ h →
-        α← f' g' h ∘ (H.id ◆ (β ◆ H.id)) ∘ (α ◆ H.id)   ≡˘⟨ H.refl⟩∘⟨ ⊗.F-∘ _ _ ⟩
-        α← f' g' h ∘ ((H.id ∘ α) ◆ ((β ◆ H.id) ∘ H.id)) ≡⟨ H.refl⟩∘⟨ ⊗.⟨ ap₂ _,_ (H.idl _) (H.idr _) ⟩ ⟩
-        α← f' g' h ∘ (α ◆ (β ◆ H.id))                   ≡⟨ α←nat α β H.id ⟩
-        ((α ◆ β) ◆ H.id) ∘ α← f g h                     ∎
+      Hom-compositor .η (f , g) .η x = α← f g x
+      Hom-compositor .η (f , g) .is-natural _ _ h =
+        ▶-assoc .from .is-natural _ _ _
+      Hom-compositor .is-natural _ _ (α , β) = ext λ h →
+        α← _ _ _ ∘ (_ ▶ (β ◀ _)) ∘ (α ◀ _) ≡⟨ refl⟩∘⟨ ⊗.collapse (ap₂ _,_ (idl _) (idr _)) ⟩
+        α← _ _ _ ∘ (α ◆ (β ◀ _))           ≡⟨ α←nat _ _ _ ⟩
+        ((α ◆ β) ◀ _) ∘ α← _ _ _           ∎
 
       Hom-unitor : ∀ {A} → Cat.id => Hom-from-bi₁ {A} {A} .F₀ id
-      Hom-unitor .η f = λ→ f ∘ H.id
-      Hom-unitor .is-natural _ _ α =
-        ap (_∘ _) (H.idr _) ∙ λ→nat α ∙ ap ((H.id ◆ α) ∘_) (sym $ H.idr _)
+      Hom-unitor .η = λ→
+      Hom-unitor .is-natural _ _ α = λ→nat α
 
       lf : Lax-functor _ _
       lf .P₀ = Hom X
@@ -337,20 +370,18 @@ module _ {o h ℓ} {C : Prebicategory o h ℓ} where
       lf .compositor = Hom-compositor
       lf .unitor = Hom-unitor
       lf .hexagon f g h = ext λ u →
-        α→ f g h ◀ u ∘ α← (f ⊗ g) h u ∘ _ ∘ α← f g (h ⊗ u)          ≡⟨ H.refl⟩∘⟨ H.refl⟩∘⟨ ⊗.eliml refl ⟩
-        α→ f g h ◀ u ∘ α← (f ⊗ g) h u ∘ α← f g (h ⊗ u)              ≡˘⟨ H.refl⟩∘⟨ pentagon f g h u ⟩
-        α→ f g h ◀ u ∘ α← f g h ◀ u ∘ α← f (g ⊗ h) u ∘ f ▶ α← g h u ≡⟨ H.pulll $ sym ◀-distribl ⟩
-        (α→ f g h ∘ α← f g h) ◀ u ∘ α← f (g ⊗ h) u ∘ f ▶ α← g h u   ≡⟨ ap (_◀ u) (α≅ .invl) H.⟩∘⟨refl ⟩
-        (H.id ◀ u) ∘ α← f (g ⊗ h) u ∘ f ▶ α← g h u                  ≡⟨ ⊗.eliml refl ∙ ap (α← _ _ _ ∘_) (sym $ H.idr _ ∙ H.idr _) ⟩
-        α← f (g ⊗ h) u ∘ ((f ▶ α← g h u) H.∘ H.id) ∘ H.id           ∎
+        α→ f g h ◀ u ∘ α← (f ⊗ g) h u ∘ _ ∘ α← f g (h ⊗ u)          ≡⟨ refl⟩∘⟨ refl⟩∘⟨ ⊗.eliml refl ⟩
+        α→ f g h ◀ u ∘ α← (f ⊗ g) h u ∘ α← f g (h ⊗ u)              ≡˘⟨ refl⟩∘⟨ pentagon f g h u ⟩
+        α→ f g h ◀ u ∘ α← f g h ◀ u ∘ α← f (g ⊗ h) u ∘ f ▶ α← g h u ≡⟨ cancell $ ◀.annihilate (α≅ .invl) ⟩
+        α← f (g ⊗ h) u ∘ f ▶ α← g h u                               ≡˘⟨ refl⟩∘⟨ idr _ ∙ idr _ ⟩
+        α← f (g ⊗ h) u ∘ ((f ▶ α← g h u) ∘ Hom.id) ∘ Hom.id         ∎
       lf .right-unit f = ext λ h →
-        ρ← f ◀ h ∘ α← f id h ∘ f ▶ (λ→ h ∘ _) ∘ _ ≡⟨ H.refl⟩∘⟨ H.refl⟩∘⟨ H.idr _ ∙ ap (H.id ◆_) (H.idr _) ⟩
-        ρ← f ◀ h ∘ α← f id h ∘ f ▶ λ→ h           ≡⟨ H.pulll (triangle f h) ∙ sym ▶-distribr ⟩
-        f ▶ (λ← h ∘ λ→ h)                         ≡⟨ ap (f ▶_) (λ≅ .invr) ∙ ⊗.F-id ⟩
-        H.id                                      ∎
+        ρ← f ◀ h ∘ α← f id h ∘ f ▶ λ→ h ∘ _ ≡⟨ refl⟩∘⟨ refl⟩∘⟨ idr _ ⟩
+        ρ← f ◀ h ∘ α← f id h ∘ f ▶ λ→ h     ≡⟨ pulll (triangle f h) ⟩
+        f ▶ λ← h ∘ f ▶ λ→ h                 ≡⟨ ▶.annihilate (λ≅ .invr) ⟩
+        Hom.id                              ∎
       lf .left-unit  f = ext λ h →
-        λ← f ◀ h ∘ α← id f h ∘ _ ∘ λ→ (f ⊗ h) ∘ _ ≡⟨ H.refl⟩∘⟨ H.refl⟩∘⟨ ⊗.eliml refl ∙ H.idr _ ⟩
-        λ← f ◀ h ∘ α← id f h ∘ λ→ (f ⊗ h)         ≡⟨ H.pushl $ sym triangle-λ← ⟩
-        λ← _ ∘ α→ id f h ∘ α← id f h ∘ λ→ _       ≡⟨ H.refl⟩∘⟨ H.cancell (α≅ .invl) ⟩
-        λ← (f ⊗ h) ∘ λ→ (f ⊗ h)                   ≡⟨ λ≅ .invr ⟩
-        H.id                                      ∎
+        λ← f ◀ h ∘ α← id f h ∘ _ ∘ λ→ (f ⊗ h) ≡⟨ refl⟩∘⟨ refl⟩∘⟨ ⊗.eliml refl ⟩
+        λ← f ◀ h ∘ α← id f h ∘ λ→ (f ⊗ h)     ≡⟨ refl⟩∘⟨ lswizzle triangle-λ→ (α≅ .invr) ⟩
+        λ← f ◀ h ∘ λ→ f ◀ h                   ≡⟨ ◀.annihilate (λ≅ .invr) ⟩
+        Hom.id                                ∎
