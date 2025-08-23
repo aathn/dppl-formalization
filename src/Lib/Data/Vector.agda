@@ -40,8 +40,8 @@ tail = _∘ fsuc
 π[ i ] = _$ i
 
 instance
-  Map-List : Map (eff (_^ n))
-  Map-List = record { map = λ f xs → f ∘ xs }
+  Map-Vector : Map (eff (_^ n))
+  Map-Vector = record { map = λ f xs → f ∘ xs }
 
 foldr : (A → B → B) → B → A ^ n → B
 foldr {n = zero} f z xs = z
