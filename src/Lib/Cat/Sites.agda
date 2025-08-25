@@ -2,7 +2,6 @@ module Lib.Cat.Sites where
 
 open import Lib.Cat.Bi
 open import Lib.Cat.Concrete
-open import Lib.Cat.Yoneda
 
 open import Cat.Prelude
 open import Cat.Bi.Base
@@ -15,9 +14,7 @@ open import Cat.Functor.Base
 open import Cat.Functor.Coherence
 open import Cat.Functor.Constant
 open import Cat.Functor.Hom
-open import Cat.Functor.Hom.Yoneda
-open import Cat.Functor.Naturality
-open import Cat.Instances.Comma
+open import Cat.Functor.Kan.Nerve
 open import Cat.Instances.Functor.Limits
 open import Cat.Instances.Sets.Cocomplete
 open import Cat.Instances.Sheaves
@@ -197,7 +194,8 @@ module _ {κ}
   (F : Functor C D)
   where
 
-  open Tensor {C = C} {PSh κ D} (Functor-cat-is-cocomplete (Sets-is-cocomplete {ι = κ} {κ} {κ}))
+  cocompl : is-cocomplete κ κ (PSh κ D)
+  cocompl = Functor-cat-is-cocomplete (Sets-is-cocomplete {ι = κ} {κ} {κ})
 
   private
     module F = Functor F
@@ -208,13 +206,14 @@ module _ {κ}
   -- morphisms of corresponding sheaf toposes.  We proceed to define
   -- the components of these geometric morphisms, known as the direct
   -- and inverse image functors.  We do so using tensor and hom
-  -- functors as in Mac Lane and Moerdijk (Chapter VII).
+  -- functors as in Mac Lane and Moerdijk (Chapter VII), which are
+  -- defined as Realisation and Nerve respectively in the 1Lab.
 
   direct-image-presheaf : Functor (PSh κ D) (PSh κ C)
-  direct-image-presheaf = Hom⟨ よ D F∘ F ,-⟩
+  direct-image-presheaf = Nerve (よ _ F∘ F)
 
   inverse-image-presheaf : Functor (PSh κ C) (PSh κ D)
-  inverse-image-presheaf = -⊗⟨ よ D F∘ F ⟩
+  inverse-image-presheaf = Realisation (よ _ F∘ F) cocompl
 
   module _ (JC : Coverage C κ) (JD : Coverage D κ) where
     open Coverage JC using (Sem-covers)
