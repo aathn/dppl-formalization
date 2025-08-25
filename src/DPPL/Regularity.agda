@@ -5,6 +5,9 @@ open import Data.Bool.Base
 open import Data.Dec.Base
 open import Data.Id.Base
 open import Order.Base
+open import Order.Diagram.Join
+open import Order.Diagram.Meet
+open import Order.Lattice
 open import Order.Instances.Lower
 import Lib.Order.Wide as Wide
 
@@ -55,5 +58,42 @@ A≠M p = subst (λ {A → ⊤ ; _ → ⊥}) p tt
 Reg-poset : Poset lzero lzero
 Reg-poset = Wide.Wide A M A≠M
 
-Reg↓ : Poset lzero lzero
-Reg↓ = Lower-sets Reg-poset
+module Reg≤ = Poset Reg-poset
+
+Reg↓ : Type
+Reg↓ = Lower-set Reg-poset
+
+Reg↓-poset : Poset lzero lzero
+Reg↓-poset = Lower-sets Reg-poset
+
+module Reg↓≤ = Poset Reg↓-poset
+
+Reg↓-lattice : is-lattice Reg↓-poset
+Reg↓-lattice = lat where
+  open is-lattice
+  lat : is-lattice Reg↓-poset
+  lat ._∩_ a b     = Meet.glb (Lower-sets-meets Reg-poset a b)
+  lat .∩-meets a b = Meet.has-meet (Lower-sets-meets Reg-poset a b)
+  lat ._∪_ a b     = Join.lub (Lower-sets-joins Reg-poset a b)
+  lat .∪-joins a b = Join.has-join (Lower-sets-joins Reg-poset a b)
+  lat .has-top     = Lower-sets-top Reg-poset
+  lat .has-bottom  = Lower-sets-bottom Reg-poset
+
+open is-lattice Reg↓-lattice
+
+R↓ : Reg → Reg↓
+R↓ = ↓ Reg-poset
+
+R≤↓ : ∀ {a b} → a Reg≤.≤ b → R↓ a Reg↓≤.≤ R↓ b
+R≤↓ = よₚ Reg-poset .pres-≤
+
+A↓ P↓ C↓ PC↓ M↓ Ø↓ : Reg↓
+A↓  = R↓ A
+P↓  = R↓ P
+C↓  = R↓ C
+PC↓ = P↓ ∪ C↓
+M↓  = R↓ M
+Ø↓  = bot
+
+A↓-is-top : top ≡ A↓
+A↓-is-top = ext λ _ → Ω-ua (λ _ → inc Wide.x≤⊤) (λ _ → tt)

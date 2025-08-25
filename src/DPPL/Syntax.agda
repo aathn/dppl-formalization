@@ -8,16 +8,19 @@ open import DPPL.Regularity
 
 open import Lib.Prelude
 open import Lib.Data.Vector
-open import Lib.LocallyNameless.Unfinite
-open import Lib.LocallyNameless.oc-Sets
 open import Lib.LocallyNameless.Support
 open import Lib.LocallyNameless.BindingSignature
 
 open import Cat.Instances.Shape.Interval
 open import Order.Base
 
-Eff : Poset lzero lzero
-Eff = Bool-poset
+Eff : Type
+Eff = Bool
+
+Eff-poset : Poset lzero lzero
+Eff-poset = Bool-poset
+
+module Eff≤ = Poset Eff-poset
 
 pattern det = false
 pattern rnd = true
@@ -25,10 +28,10 @@ pattern rnd = true
 -- Types
 
 data Ty : Type where
-  treal   : ⌞ Reg↓ ⌟ → Ty
-  _⇒[_]_  : Ty → ⌞ Eff ⌟ → Ty → Ty
   ttup    : (n : Nat) → Vector Ty n → Ty
   tdist   : Ty → Ty
+  treal  : Reg↓ → Ty
+  _⇒[_]_ : Ty → Eff → Ty → Ty
 
 -- Terms
 
@@ -124,7 +127,7 @@ module MetaVars where
     r    : ℝ
     ϕ    : Prim
     D    : Dist
-    T T′ : Ty
-    e e′ : ⌞ Eff ⌟
-    c c′ : ⌞ Reg↓ ⌟
-    t t′ : Tm
+    T T' : Ty
+    e e' : Eff
+    c c' : Reg↓
+    t t' : Tm
