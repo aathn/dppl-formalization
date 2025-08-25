@@ -39,6 +39,9 @@ tail = _∘ fsuc
 π[_] : Fin n → A ^ n → A
 π[ i ] = _$ i
 
+make : A → A ^ n
+make x _ = x
+
 instance
   Map-Vector : Map (eff (_^ n))
   Map-Vector = record { map = λ f xs → f ∘ xs }

@@ -2,7 +2,7 @@ open import Lib.Algebra.Reals
 
 module DPPL.Syntax (R : Reals₀) where
 
-open Reals R
+open Reals R hiding (_+_)
 
 open import DPPL.Regularity
 
@@ -28,40 +28,46 @@ pattern rnd = true
 -- Types
 
 data Ty : Type where
-  ttup    : (n : Nat) → Vector Ty n → Ty
-  tdist   : Ty → Ty
   treal  : Reg↓ → Ty
   _⇒[_]_ : Ty → Eff → Ty → Ty
+  ttup   : (n : Nat) → Ty ^ n → Ty
+  tdist  : Ty → Ty
+
+instance
+  Discrete-Ty : Discrete Ty
+  Discrete-Ty = {!!}
+
+opaque
+  Ty-is-set : is-set Ty
+  Ty-is-set = Discrete→is-set Discrete-Ty
+
+instance
+  H-Level-Ty : ∀ {n} → H-Level Ty (2 + n)
+  H-Level-Ty = basic-instance 2 Ty-is-set
 
 -- Terms
-
-data Dist : Type where
-  dnormal : Dist
-  dbeta   : Dist
-  dwiener : Dist
-
-DistAr : Dist → Nat
-DistAr dnormal = 2
-DistAr dbeta   = 2
-DistAr dwiener = 0
 
 data Prim : Type where
   padd    : Prim
   pmul    : Prim
   psin    : Prim
-  pwiener : ℝ → Prim
+  pnormal : Prim
+  pbeta   : Prim
+  pwiener : Prim
 
 PrimAr : Prim → Nat
 PrimAr padd = 2
 PrimAr pmul = 2
 PrimAr psin = 1
-PrimAr (pwiener _) = 1
+PrimAr pnormal = 3
+PrimAr pbeta   = 3
+PrimAr pwiener = 2
 
 TmSig : Sig
 TmSig = mkSig TmOp TmAr
   module _ where
   data TmOp : Type where
-    abs    : Ty → TmOp
+    lam    : Ty → TmOp
     app    : TmOp
     prim   : Prim → TmOp
     oreal  : ℝ → TmOp
@@ -70,12 +76,12 @@ TmSig = mkSig TmOp TmAr
     if     : TmOp
     diff   : TmOp
     solve  : TmOp
-    dist   : Dist → TmOp
+    osample : TmOp
     assume : TmOp
     weight : TmOp
     infer  : TmOp
   TmAr : TmOp → Array Nat
-  length (TmAr (abs _))    = 1
+  length (TmAr (lam _))    = 1
   length (TmAr app)        = 2
   length (TmAr (prim ϕ))   = PrimAr ϕ
   length (TmAr (oreal _))  = 0
@@ -84,11 +90,11 @@ TmSig = mkSig TmOp TmAr
   length (TmAr if)         = 3
   length (TmAr diff)       = 2
   length (TmAr solve)      = 3
-  length (TmAr (dist D))   = DistAr D
+  length (TmAr osample)    = 0
   length (TmAr assume)     = 1
   length (TmAr weight)     = 1
   length (TmAr infer)      = 1
-  index  (TmAr (abs _)) _  = 1
+  index  (TmAr (lam _)) _  = 1
   index  (TmAr _)       _  = 0
 
 Tm : Type
@@ -110,7 +116,7 @@ pattern _▸_ x y = op (x , y)
 tunit : Ty
 tunit = ttup 0 λ()
 
-treals : (n : Nat) → Vector ⌞ Reg↓ ⌟ n → Ty
+treals : (n : Nat) → Reg↓ ^ n → Ty
 treals n cs = ttup n $ map treal cs
 
 unit : Tm
@@ -119,14 +125,16 @@ unit = tup 0 ▸ λ()
 real : ℝ → Tm
 real r = oreal r ▸ λ ()
 
+sample : Tm
+sample = osample ▸ λ ()
+
 -- Metavariables
 
-module MetaVars where
+module SyntaxVars where
   variable
     m n  : Nat
     r    : ℝ
     ϕ    : Prim
-    D    : Dist
     T T' : Ty
     e e' : Eff
     c c' : Reg↓
