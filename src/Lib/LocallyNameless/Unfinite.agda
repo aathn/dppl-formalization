@@ -14,6 +14,7 @@ open import Lib.Prelude
 open import Lib.Data.Finset
 
 open import Data.Finset.Base
+open import Data.Nat
 
 ----------------------------------------------------------------------
 -- The property of being an unfinite set
@@ -104,6 +105,9 @@ opaque
   instance
     Discrete-𝔸 : Discrete 𝔸
     Discrete-𝔸 = Discrete-Nat
+
+    H-Level-𝔸 : ∀ {n} → H-Level 𝔸 (2 + n)
+    H-Level-𝔸 = H-Level-Nat
 
 instance
   Unfinite-𝔸 : Unfinite 𝔸

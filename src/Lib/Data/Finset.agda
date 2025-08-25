@@ -3,8 +3,9 @@ module Lib.Data.Finset where
 open import 1Lab.Prelude hiding (_≠_ ; _∉_)
 
 open import Lib.Data.Dec
-open import Lib.Data.Vector
+open import Lib.Data.Vector hiding (_++_)
 open import Data.Finset.Base
+open import Data.Finset.Properties
 
 open import Order.Base using (Poset)
 open import Order.Diagram.Join using (Join)
@@ -12,12 +13,12 @@ open import Order.Instances.Nat using (Nat-poset; Nat-joins; Nat-bottom)
 open import Order.Semilattice.Join using (is-join-semilattice)
 open import Data.Dec.Base using (Discrete)
 open import Data.Fin using (Fin ; fzero ; fsuc ; fin-view ; suc ; zero)
+open import Data.List using (List ; _++_)
+open import Data.List.Membership using (++-memberₗ ; ++-memberᵣ ; member-++-view)
 open import Data.Nat.Base using (max)
 open import Data.Nat.Order using (¬sucx≤x)
 open import Data.Sum.Base using (_⊎_ ; inr ; inl)
 open import Data.Sum.Properties using (Discrete-⊎)
-open import Data.Finset.Properties
-  using (map-∈ᶠˢ ; unionl-∈ᶠˢ ; unionr-∈ᶠˢ ; ∈ᶠˢ-union ; filter-∈ᶠˢ ; ∈ᶠˢ-filter)
 
 private variable
   ℓ ℓ' : Level
@@ -83,6 +84,20 @@ maxfs+1∉ : (xs : Finset Nat) → suc (maxfs xs) ∉ xs
 maxfs+1∉ xs = ¬∈→∉ {ℙA = Finset Nat} λ H∈ → ¬sucx≤x _ (≤fold H∈)
 
 open FinsetSyntax
+
+from-list-++
+  : ∀ {ℓ} {X : Type ℓ} (l1 l2 : List X)
+  → from-list (l1 ++ l2) ≡ (from-list l1 ∪ from-list l2)
+from-list-++ l1 l2 = finset-ext
+  (λ x H∈ →
+    case ∈ᶠˢ-from-list H∈ of λ H∈++ →
+    case member-++-view l1 l2 H∈++ of λ where
+      (inl (H∈l , _)) → unionl-∈ᶠˢ _ _ _ (from-list-∈ᶠˢ H∈l)
+      (inr (H∈r , _)) → unionr-∈ᶠˢ _ (from-list l1) _ (from-list-∈ᶠˢ H∈r))
+  (λ x H∈ →
+    case ∈ᶠˢ-union _ (from-list l1) (from-list l2) H∈ of λ where
+      (inl H∈l) → case ∈ᶠˢ-from-list H∈l of λ H∈l' → from-list-∈ᶠˢ (++-memberₗ H∈l')
+      (inr H∈r) → case ∈ᶠˢ-from-list H∈r of λ H∈r' → from-list-∈ᶠˢ (++-memberᵣ H∈r'))
 
 -- Finite union of finite subsets
 ⋃ : {n : Nat} → Vector (Finset A) n → Finset A

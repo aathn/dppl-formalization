@@ -28,6 +28,10 @@ module _ {ℓ : Level} {A : Type ℓ} where
   ifᵈ-no : ∀ {ℓ'} {B : Type ℓ'} {x y : B} (d : Dec A) → is-no d → (ifᵈ d then x else y) ≡ y
   ifᵈ-no (no _) _ = refl
 
+  is-no-is-prop : ∀ {d} → is-prop (is-no d)
+  is-no-is-prop {yes _} = hlevel 1
+  is-no-is-prop {no  _} = hlevel 1
+
 module _ {ℓ ℓ' : Level} {A : Type ℓ} {B : Type ℓ'} ⦃ _ : Discrete A ⦄ where
 
   ifᵈ-≡ : {a b : A} {x y : B} → a ≡ b → (ifᵈ (a ≡? b) then x else y) ≡ x
