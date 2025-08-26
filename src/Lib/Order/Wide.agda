@@ -1,6 +1,7 @@
 open import 1Lab.Prelude
 
 open import Order.Base
+open import Data.Dec.Base
 
 module Lib.Order.Wide {ℓ} {A : Type ℓ} ⦃ hl : H-Level A 2 ⦄ (⊤ ⊥ : A) (⊤≠⊥ : ⊤ ≠ ⊥) where
 
@@ -38,6 +39,21 @@ module Lib.Order.Wide {ℓ} {A : Type ℓ} ⦃ hl : H-Level A 2 ⦄ (⊤ ⊥ : A
     hlevel 2 _ _ (≤-antisym ⊥≤x H≤) (≤-antisym ⊥≤x H≤') i
   ≤-antisym (squash H≤ H≤₁ i) H≤' =
     hlevel 2 _ _ (≤-antisym H≤ H≤') (≤-antisym H≤₁ H≤') i
+
+  instance
+    ≤-dec : ⦃ Discrete A ⦄ → ∀ {a b} → Dec (a ≤ b)
+    ≤-dec ⦃ x ⦄ {a} {b} with b ≡? ⊤
+    ... | yes p = yes (subst (a ≤_) (sym p) x≤⊤)
+    ... | no ¬p with a ≡? ⊥
+    ... | yes q = yes (subst (_≤ b) (sym q) ⊥≤x)
+    ... | no ¬q with a ≡? b
+    ... | yes s = yes (subst (a ≤_) s ≤-refl)
+    ... | no ¬s = no ¬a≤b where
+      ¬a≤b : _
+      ¬a≤b x≤⊤    = absurd (¬p refl)
+      ¬a≤b ⊥≤x    = absurd (¬q refl)
+      ¬a≤b ≤-refl = absurd (¬s refl)
+      ¬a≤b (squash a≤b a≤b' i) = hlevel 1 (¬a≤b a≤b) (¬a≤b a≤b') i
 
   Wide : Poset ℓ ℓ
   Wide .Poset.Ob = A

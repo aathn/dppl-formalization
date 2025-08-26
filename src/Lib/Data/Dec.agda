@@ -3,14 +3,14 @@ module Lib.Data.Dec where
 open import 1Lab.Prelude hiding (_≠_ ; _∉_)
 
 open import Data.Dec.Base
-  using (Dec ; yes ; no ; Discrete ; _≡?_ ; holds? ; is-yes ; ifᵈ_then_else_)
+open import Data.Bool.Base
 
 module _ {ℓ : Level} {A : Type ℓ} where
 
   is-no : Dec A → Type
   is-no (yes _) = ⊥
   is-no (no _)  = ⊤
-  
+
   true-is-yes : {d : Dec A} → A → is-yes d
   true-is-yes {yes _} _ = tt
   true-is-yes {no ¬a} a = ¬a a
@@ -18,6 +18,9 @@ module _ {ℓ : Level} {A : Type ℓ} where
   false-is-no : {d : Dec A} → ¬ A → is-no d
   false-is-no {yes a} ¬a = ¬a a
   false-is-no {no _} ¬a = tt
+
+  is-yes-true : {d : Dec A} → is-yes d → A
+  is-yes-true {yes a} _ = a
 
   is-no-false : {d : Dec A} → is-no d → ¬ A
   is-no-false {no ¬a} _ = ¬a
@@ -31,6 +34,13 @@ module _ {ℓ : Level} {A : Type ℓ} where
   is-no-is-prop : ∀ {d} → is-prop (is-no d)
   is-no-is-prop {yes _} = hlevel 1
   is-no-is-prop {no  _} = hlevel 1
+
+  so-is-yes : {d : Dec A} → So (Dec→Bool d) → is-yes d
+  so-is-yes {yes a} _ = tt
+  so-is-yes {no ¬a} p = absurd (¬so-false p)
+
+  is-yes-so : {d : Dec A} → is-yes d → So (Dec→Bool d)
+  is-yes-so {yes a} _ = oh
 
 module _ {ℓ ℓ' : Level} {A : Type ℓ} {B : Type ℓ'} ⦃ _ : Discrete A ⦄ where
 
