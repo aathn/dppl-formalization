@@ -8,8 +8,7 @@ open import Data.Bool.Base
 module _ {ℓ : Level} {A : Type ℓ} where
 
   is-no : Dec A → Type
-  is-no (yes _) = ⊥
-  is-no (no _)  = ⊤
+  is-no d = is-yes (Dec-→ ⦃ d ⦄ ⦃ Dec-⊥ ⦄)
 
   true-is-yes : {d : Dec A} → A → is-yes d
   true-is-yes {yes _} _ = tt
@@ -31,9 +30,9 @@ module _ {ℓ : Level} {A : Type ℓ} where
   ifᵈ-no : ∀ {ℓ'} {B : Type ℓ'} {x y : B} (d : Dec A) → is-no d → (ifᵈ d then x else y) ≡ y
   ifᵈ-no (no _) _ = refl
 
-  is-no-is-prop : ∀ {d} → is-prop (is-no d)
-  is-no-is-prop {yes _} = hlevel 1
-  is-no-is-prop {no  _} = hlevel 1
+  is-yes-is-prop : {d : Dec A} → is-prop (is-yes d)
+  is-yes-is-prop {yes _} = hlevel 1
+  is-yes-is-prop {no  _} = hlevel 1
 
   so-is-yes : {d : Dec A} → So (Dec→Bool d) → is-yes d
   so-is-yes {yes a} _ = tt
@@ -41,6 +40,9 @@ module _ {ℓ : Level} {A : Type ℓ} where
 
   is-yes-so : {d : Dec A} → is-yes d → So (Dec→Bool d)
   is-yes-so {yes a} _ = oh
+
+  is-yes≃so : {d : Dec A} → is-yes d ≃ So (Dec→Bool d)
+  is-yes≃so = prop-ext is-yes-is-prop (hlevel 1) is-yes-so so-is-yes
 
 module _ {ℓ ℓ' : Level} {A : Type ℓ} {B : Type ℓ'} ⦃ _ : Discrete A ⦄ where
 

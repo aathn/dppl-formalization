@@ -100,7 +100,7 @@ raw-mem-∈ (there H∈)      = thereₛ (raw-mem-∈ H∈)
 -- ∈-raw-mem H∈ = {!!}
 
 raw-mem-is-prop : ⦃ _ : H-Level X 2 ⦄ {T : X} → is-prop (raw-mem a T l)
-raw-mem-is-prop (here reflᵢ H∉) (here _ H∉')  = ap₂ here prop! (is-no-is-prop H∉ H∉')
+raw-mem-is-prop (here reflᵢ H∉) (here _ H∉')  = ap₂ here prop! (is-yes-is-prop H∉ H∉')
 raw-mem-is-prop (here reflᵢ H∉) (there Hmem') = absurd (is-no-false H∉ (raw-mem-∈ Hmem'))
 raw-mem-is-prop (there Hmem) (here _ H∉')     = absurd (is-no-false H∉' (raw-mem-∈ Hmem))
 raw-mem-is-prop (there Hmem) (there Hmem')    = ap there (raw-mem-is-prop Hmem Hmem')
