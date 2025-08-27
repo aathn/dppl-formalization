@@ -201,9 +201,7 @@ op-inj' :
   (p : op(c , ts) ≡ op(c , ts'))
   → --------------------------------------
   ts ≡ ts'
-op-inj' {Σ} {c} {ts} {ts'} p = pair-inj' Nat-is-set q where
-  q : _,_ {B = Trm Σ ^_} (length (ar Σ c)) ts ≡ (length (ar Σ c) , ts')
-  q i = length (ar Σ (op-inj p i .fst)) , op-inj p i .snd
+op-inj' {Σ} p = is-set→cast-pathp (Trm Σ ^_) Nat-is-set (ap snd (op-inj p))
 
 bvar≠fvar : {Σ : Sig} {i : Nat} {a : 𝔸} → ¬ _≡_ {A = Trm Σ} (bvar i) (fvar a)
 bvar≠fvar p = subst distinguish p tt where

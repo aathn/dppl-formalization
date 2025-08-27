@@ -19,20 +19,3 @@ open import Data.Vec.Base public using (Vec ; lookup)
 
 module VecSyntax where
   open import Data.Vec.Base public using ([] ; _∷_)
-
-pair-inj' :
-  {ℓ ℓ' : Level}
-  {A : Type ℓ}
-  {n : A}
-  {X : A → Type ℓ'}
-  {xs xs' : X n}
-  (_ : is-set A)
-  → _,_ {B = X} n xs ≡ (n , xs')
-  → xs ≡ xs'
-pair-inj' {X = X} {xs} {xs'} A-set p =
-  let n≡n      = ap fst p
-      xs≡xs'   = ap snd p
-      n≡n-refl = A-set _ _ n≡n refl
-  in
-  subst (λ x → PathP (λ i → X (x i)) xs xs') n≡n-refl xs≡xs'
-
