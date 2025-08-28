@@ -40,11 +40,11 @@ PrimTy pnormal = make M↓ , M↓
 PrimTy pbeta   = make M↓ , M↓
 PrimTy pwiener = lookup (M↓ ∷ C↓ ∷ []) , C↓
 
-_⊙_ : Reg↓ → Ty → Ty
-c ⊙ treal c'       = treal (c ∩ c')
-c ⊙ ttup n Ts      = ttup n λ i → c ⊙ Ts i
-c ⊙ (T₁ ⇒[ e ] T₂) = (c ⊙ T₁) ⇒[ e ] (c ⊙ T₂)
-c ⊙ tdist T        = tdist T
+_∩ᵗ_ : Reg↓ → Ty → Ty
+c ∩ᵗ treal c'       = treal (c ∩ c')
+c ∩ᵗ ttup n Ts      = ttup n λ i → c ∩ᵗ Ts i
+c ∩ᵗ (T₁ ⇒[ e ] T₂) = (c ∩ᵗ T₁) ⇒[ e ] (c ∩ᵗ T₂)
+c ∩ᵗ tdist T        = tdist T
 
 _≤ᵗ_ : Ty → Reg↓ → Type
 treal d        ≤ᵗ c = d ≤ᶜ c
@@ -192,10 +192,10 @@ data _⊢_:[_,_]_ : TyEnv → Tm → Reg↓ → Eff → Ty → Type where
     (_ : Γ ⊢ t :[ c , e ] T)
     (_ : c ≤ᶜ c')
     → ----------------------
-    Γ ⊢ t :[ c' , e ] c ⊙ T
+    Γ ⊢ t :[ c' , e ] c ∩ᵗ T
 
   tdemote :
-    (_ : Γ ⊢ t :[ c' , e ] c ⊙ T)
+    (_ : Γ ⊢ t :[ c' , e ] c ∩ᵗ T)
     (_ : c ≤ᶜ c')
     → ---------------------------
     Γ ⊢ t :[ c , e ] T

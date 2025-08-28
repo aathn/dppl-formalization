@@ -62,7 +62,7 @@ module Denotations (ax : Denot-assumptions) where
   open SyntaxVars
   open TypingVars
 
-  Tm-denot : Γ ⊢ t :[ c , e ] T → Hom ⟦ Γ ⟧ ⟦ T ⟧
+  Tm-denot : Γ ⊢ t :[ c , e ] T → Hom ⟦ Γ ⟧ ⟦ c ∩ᵗ T ⟧
   Tm-denot = {!!}
 
 
