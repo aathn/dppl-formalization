@@ -2,7 +2,6 @@ open import Lib.Algebra.Reals
 
 module DPPL.Typing (R : Reals₀) where
 
-open Reals R hiding (_≤_)
 open import DPPL.Syntax R
 open import DPPL.Regularity
 

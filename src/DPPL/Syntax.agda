@@ -2,7 +2,7 @@ open import Lib.Algebra.Reals
 
 module DPPL.Syntax (R : Reals₀) where
 
-open Reals R hiding (_+_)
+open Reals R using (ℝ)
 
 open import DPPL.Regularity
 
