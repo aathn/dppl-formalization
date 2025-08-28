@@ -1,21 +1,106 @@
-open import Lib.Reals
+open import Lib.Algebra.Reals
 
-module Denotations (R : Reals₀) where
+module DPPL.Denotations (R : Reals₀) where
 
-open Reals R using (ℝ; 0ᴿ; _≲?_)
+open import DPPL.Regularity
+open import DPPL.Syntax R
+open import DPPL.Typing R
 
-open import Syntax R hiding (n; m; D)
-open import Typing R
+open import Lib.Cat.Concrete
+open import Lib.Syntax.Env
 
-open import Lib.Prelude hiding (_∈_ ; _∷_ ; [])
+open import Cat.Prelude
+open import Cat.Cartesian
+open import Cat.Diagram.Exponential
+open import Cat.Diagram.Product.Finite
+open import Cat.Diagram.Product.Indexed
+open import Cat.Site.Base
 
-open import Lib.Concrete.Concrete
-open import Lib.Concrete.Construction
-open import Lib.Concrete.Properties
+open import Data.List.Base
 
-open import Categories.Category using (Category)
+-- open Reals R using (ℝ; 0r; compare)
 
-open import Relation.Unary using (_∈_)
+record Denot-assumptions : Type₁ where
+  field
+    Reg-cat  : Precategory lzero lzero
+    Reg-cov  : Coverage Reg-cat lzero
+    Reg-conc : Conc-coverage Reg-cov
+
+  𝔇 : Type₁
+  𝔇 = ⌞ ConcSh Reg-conc lzero ⌟
+
+  field
+    Reg-ℝ : Reg↓ → 𝔇
+
+module Denotations (ax : Denot-assumptions) where
+  open Denot-assumptions ax
+  open Cartesian-category (CSh[]-cartesian {C = Reg-cat} {JC = Reg-conc})
+  open Cartesian-closed (CSh[]-cc {C = Reg-cat} {JC = Reg-conc})
+
+  Ty-denot : Ty → 𝔇
+  Ty-denot (treal c)        = Reg-ℝ c
+  Ty-denot (T₁ ⇒[ det ] T₂) = [ Ty-denot T₁ , Ty-denot T₂ ]
+  Ty-denot (ttup n Ts) =
+    Indexed-product.ΠF $
+    Cartesian→standard-finite-products terminal products λ i → Ty-denot (Ts i)
+  -- Distributions are interpreted trivially for the time being.
+  Ty-denot (tdist _)      = top
+  Ty-denot (_ ⇒[ rnd ] _) = top
+
+  instance
+    ⟦⟧-Ty : ⟦⟧-notation Ty
+    ⟦⟧-Ty = brackets _ Ty-denot
+
+  RawEnv-denot : RawEnv Ty → 𝔇
+  RawEnv-denot []            = top
+  RawEnv-denot ((_ , T) ∷ l) = RawEnv-denot l ⊗₀ ⟦ T ⟧
+
+  instance
+    ⟦⟧-RawEnv : ⟦⟧-notation (RawEnv Ty)
+    ⟦⟧-RawEnv = brackets _ RawEnv-denot
+
+  open SyntaxVars
+  open TypingVars
+
+  Tm-denot : Γ ⊢ t :[ c , e ] T → Hom ⟦ Γ ⟧ ⟦ T ⟧
+  Tm-denot = {!!}
+
+
+--     field
+--       𝔉-const : (r : ℝ) → const r ∈ 𝔉 []
+  
+--       𝔉-proj : id ∈ 𝔉′ Θ Θ
+  
+--       𝔉-cond :
+--         (λ θ → if (θ ₀ ≲? 0ᴿ) then θ ₁ else θ ₂)
+--           ∈ 𝔉 (P ∷ c ∷ c ∷ [])
+  
+--       𝔉-sub :
+--         {f : ℝ ^ n → ℝ}
+--         (_ : ∀ i → π[ i ] Θ ≤′ π[ i ] Θ′)
+--         (_ : c′ ≤′ c)
+--         → -------------------------------
+--         f ∈ 𝔉 Θ → f ∈ 𝔉 Θ′
+  
+      -- 𝔉-promote :
+      --   {f : ℝ ^ n → ℝ}
+      --   (_ : ∀ i → c′ ≤′ π[ i ] Θ)
+      --   → ------------------------
+      --   f ∈ 𝔉 Θ c → f ∈ 𝔉 Θ c′
+
+
+-- open import Syntax R hiding (n; m; D)
+-- open import Typing R
+
+-- open import Lib.Prelude hiding (_∈_ ; _∷_ ; [])
+
+-- open import Lib.Concrete.Concrete
+-- open import Lib.Concrete.Construction
+-- open import Lib.Concrete.Properties
+
+-- open import Categories.Category using (Category)
+
+-- open import Relation.Unary using (_∈_)
 
 -- open import Lib.LocallyNameless.Unfinite
 -- open import Lib.Env
@@ -27,7 +112,7 @@ open import Relation.Unary using (_∈_)
 -- open import Data.List.Relation.Unary.All as All using (All)
 -- open import Data.Sum using ([_,_])
 -- open import Data.Sum.Properties using (inj₁-injective; inj₂-injective)
-open import Data.Vec.Functional
+-- open import Data.Vec.Functional
 -- open import Relation.Unary using (_∈_; Pred; ⋃)
 -- open import Relation.Binary using (Rel)
 
@@ -37,71 +122,71 @@ open import Data.Vec.Functional
 -- open import Function.Construct.Setoid as FuncS using (_∙_)
 -- import Relation.Binary.Reasoning.Setoid as SetoidR
 
-private
-  variable
-    n m : ℕ
-    Θ : Coeff ^ n
-    Θ′ : Coeff ^ m
+-- private
+--   variable
+--     n m : ℕ
+--     Θ : Coeff ^ n
+--     Θ′ : Coeff ^ m
 
-record c-assumptions : Set₁ where
-  field
-    c-cat   : Coeff → CCat ℓ₀ ℓ₀ ℓ₀
-    c-site  : (c : Coeff) → CSite (c-cat c) ℓ₀ ℓ₀
-    c-sheaf : (c : Coeff) → CSheaf (c-site c) ℓ₀ ℓ₀
+-- record c-assumptions : Set₁ where
+--   field
+--     c-cat   : Coeff → CCat ℓ₀ ℓ₀ ℓ₀
+--     c-site  : (c : Coeff) → CSite (c-cat c) ℓ₀ ℓ₀
+--     c-sheaf : (c : Coeff) → CSheaf (c-site c) ℓ₀ ℓ₀
 
-    Θ-cat : CCat ℓ₀ ℓ₀ ℓ₀
+--     Θ-cat : CCat ℓ₀ ℓ₀ ℓ₀
 
-  module c-cat (c : Coeff) = CCat (c-cat c)
-  module Θ-cat = CCat Θ-cat
+--   module c-cat (c : Coeff) = CCat (c-cat c)
+--   module Θ-cat = CCat Θ-cat
 
-  field
-    Θ-obj : Coeff ^ n → Θ-cat.Obj
+--   field
+--     Θ-obj : Coeff ^ n → Θ-cat.Obj
 
-    c-proj : (c : Coeff) → Geom[ Θ-cat.Cat , c-cat.Cat c ]
+--     c-proj : (c : Coeff) → Geom[ Θ-cat.Cat , c-cat.Cat c ]
 
-module _ (c-ass : c-assumptions) where
-  open c-assumptions c-ass
-  open Pull
-  open Meet
+-- module _ (c-ass : c-assumptions) where
+--   open c-assumptions c-ass
+--   open Pull
+--   open Meet
 
-  Θc-site : (c : Coeff) → CSite Θ-cat ℓ₀ ℓ₀
-  Θc-site c = PullSite (c-site c) (c-proj c)
+--   Θc-site : (c : Coeff) → CSite Θ-cat ℓ₀ ℓ₀
+--   Θc-site c = PullSite (c-site c) (c-proj c)
 
-  Θc-sheaf : (c : Coeff) → CSheaf (Θc-site c) ℓ₀ ℓ₀
-  Θc-sheaf c = PullSheaf (c-site c) (c-proj c) (c-sheaf c)
+--   Θc-sheaf : (c : Coeff) → CSheaf (Θc-site c) ℓ₀ ℓ₀
+--   Θc-sheaf c = PullSheaf (c-site c) (c-proj c) (c-sheaf c)
 
-  Θ-site : CSite Θ-cat ℓ₀ ℓ₀
-  Θ-site =
-    MeetSite (Θc-site A) $
-    MeetSite (Θc-site P)
-             (Θc-site N)
+--   Θ-site : CSite Θ-cat ℓ₀ ℓ₀
+--   Θ-site =
+--     MeetSite (Θc-site A) $
+--     MeetSite (Θc-site P)
+--              (Θc-site N)
 
-  Θ-sheaf : CSheaf Θ-site ℓ₀ ℓ₀
-  Θ-sheaf = {!!}
+--   Θ-sheaf : CSheaf Θ-site ℓ₀ ℓ₀
+--   Θ-sheaf = {!!}
 
-  𝔉 : (Θ : Coeff ^ n) → ℙ (ℝ ^ n → ℝ) ℓ₀
-  𝔉 Θ f = {!!} -- f ∈ R[ Θ-sheaf , Θ-obj Θ ]
+--   𝔉 : (Θ : Coeff ^ n) → ℙ (ℝ ^ n → ℝ) ℓ₀
+--   𝔉 Θ f = {!!} -- f ∈ R[ Θ-sheaf , Θ-obj Θ ]
 
-  𝔉′ : (Θ : Coeff ^ n) (Θ′ : Coeff ^ m) → ℙ (ℝ ^ n → ℝ ^ m) ℓ₀
-  𝔉′ Θ Θ′ f = {!!}
+--   𝔉′ : (Θ : Coeff ^ n) (Θ′ : Coeff ^ m) → ℙ (ℝ ^ n → ℝ ^ m) ℓ₀
+--   𝔉′ Θ Θ′ f = {!!}
 
-  record 𝔉-assumptions : Set₁ where
+--   record 𝔉-assumptions : Set₁ where
 
-    field
-      𝔉-const : (r : ℝ) → const r ∈ 𝔉 []
+--     field
+--       𝔉-const : (r : ℝ) → const r ∈ 𝔉 []
   
-      𝔉-proj : id ∈ 𝔉′ Θ Θ
+--       𝔉-proj : id ∈ 𝔉′ Θ Θ
   
-      𝔉-cond :
-        (λ θ → if (θ ₀ ≲? 0ᴿ) then θ ₁ else θ ₂)
-          ∈ 𝔉 (P ∷ c ∷ c ∷ [])
+--       𝔉-cond :
+--         (λ θ → if (θ ₀ ≲? 0ᴿ) then θ ₁ else θ ₂)
+--           ∈ 𝔉 (P ∷ c ∷ c ∷ [])
   
-      𝔉-sub :
-        {f : ℝ ^ n → ℝ}
-        (_ : ∀ i → π[ i ] Θ ≤′ π[ i ] Θ′)
-        (_ : c′ ≤′ c)
-        → -------------------------------
-        f ∈ 𝔉 Θ → f ∈ 𝔉 Θ′
+--       𝔉-sub :
+--         {f : ℝ ^ n → ℝ}
+--         (_ : ∀ i → π[ i ] Θ ≤′ π[ i ] Θ′)
+--         (_ : c′ ≤′ c)
+--         → -------------------------------
+--         f ∈ 𝔉 Θ → f ∈ 𝔉 Θ′
   
       -- 𝔉-promote :
       --   {f : ℝ ^ n → ℝ}
