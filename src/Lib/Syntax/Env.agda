@@ -5,9 +5,11 @@ open import Lib.Data.Finset
 open import Lib.Data.Dec
 open import Lib.LocallyNameless.Unfinite
 
+open import Data.Dec.Base
 open import Data.Finset.Base
 open import Data.Finset.Properties
-open import Data.List
+open import Data.List.Base
+open import Data.List.Properties
 open import Data.Set.Coequaliser
 
 open FinsetSyntax
@@ -41,8 +43,15 @@ Env X = RawEnv X / dup-step
 private variable
   Γ Γ' : Env X
 
+pattern ε         = inc []
+pattern [_∶_] x T = inc ((x , T) ∷ [])
+
 env-cons : 𝔸 → X → Env X → Env X
 env-cons x T = Coeq-rec (λ Γ → inc ((x , T) ∷ Γ)) λ (_ , _ , Hdup) → quot (step-cong Hdup)
+
+infixl 5 _,_∶_
+_,_∶_ : Env X → 𝔸 → X → Env X
+Γ , a ∶ T = env-cons a T Γ
 
 dup-raw-dom : dup-step l l' → raw-dom l ≡ raw-dom l'
 dup-raw-dom (step-cong Hdup) = ap (_ ∷_) (dup-raw-dom Hdup)
@@ -51,9 +60,9 @@ dup-raw-dom (step-dup  H∈)   = sym $ uncons _ _ H∈
 env-dom : Env X → Finset 𝔸
 env-dom = Coeq-rec raw-dom λ (_ , _ , Hdup) → dup-raw-dom Hdup
 
-env-cons-∈ : a ∈ env-dom Γ → env-cons a T Γ ≡ Γ
+env-cons-∈ : a ∈ env-dom Γ → (Γ , a ∶ T) ≡ Γ
 env-cons-∈ {Γ = Γ} =
-  Coeq-elim-prop {C = λ Γ → ∀ {x T} → x ∈ env-dom Γ → env-cons x T Γ ≡ Γ}
+  Coeq-elim-prop {C = λ Γ → ∀ {a T} → a ∈ env-dom Γ → (Γ , a ∶ T) ≡ Γ}
     (λ _ → hlevel 1) (λ _ H∈ → quot (step-dup H∈)) Γ
 
 step-++ₗ : {l1 : RawEnv X} → dup-step l l' → dup-step (l1 ++ l) (l1 ++ l')
@@ -82,7 +91,11 @@ env-append : Env X → Env X → Env X
 env-append Γ Γ' =
   Coeq-rec (λ l → raw-append l Γ') (λ (_ , _ , Hdup) → dup-append Γ' Hdup) Γ
 
-env-dom-++ : (Γ Γ' : Env X) → env-dom (env-append Γ Γ') ≡ (env-dom Γ ∪ env-dom Γ')
+infixl 5 _&_
+_&_ : Env X → Env X → Env X
+Γ & Γ' = env-append Γ' Γ
+
+env-dom-++ : (Γ Γ' : Env X) → env-dom (Γ' & Γ) ≡ (env-dom Γ ∪ env-dom Γ')
 env-dom-++ =
   Coeq-elim-prop (λ _ → hlevel 1) λ l  →
   Coeq-elim-prop (λ _ → hlevel 1) λ l' →
@@ -131,20 +144,37 @@ instance
   Membership-Env : {X : Type ℓ} → ⦃ H-Level X 2 ⦄ → Membership (𝔸 × X) (Env X) ℓ
   Membership-Env = record { _∈_ = λ (x , T) Γ → ⌞ env-mem x T Γ ⌟ }
 
-infixl 5 _,_∶_
-_,_∶_ : Env X → 𝔸 → X → Env X
-Γ , a ∶ T = env-cons a T Γ
-
-infixl 5 _&_
-_&_ : Env X → Env X → Env X
-Γ & Γ' = env-append Γ' Γ
-
 infixl 5 _∶_∈_
 _∶_∈_ : {X : Type ℓ} → ⦃ H-Level X 2 ⦄ → 𝔸 → X → Env X → Type ℓ
 a ∶ T ∈ Γ = ⌞ env-mem a T Γ ⌟
 
-pattern ε         = inc []
-pattern [_∶_] x T = inc ((x , T) ∷ [])
+raw-nub : RawEnv X → RawEnv X
+raw-nub []      = []
+raw-nub (x ∷ l) =
+  ifᵈ holds? (fst x ∈ raw-dom (raw-nub l)) then
+    raw-nub l
+  else
+    x ∷ raw-nub l
+
+raw-dom-nub : (l : RawEnv X) → raw-dom (raw-nub l) ≡ raw-dom l
+raw-dom-nub [] = refl
+raw-dom-nub (x ∷ l) with holds? (fst x ∈ raw-dom (raw-nub l))
+... | yes H∈ = uncons _ _ H∈ ∙ ap (fst x ∷_) (raw-dom-nub l)
+... | no  H∉ = ap (fst x ∷_) (raw-dom-nub l)
+
+dup-raw-nub : dup-step l l' → raw-nub l ≡ raw-nub l'
+dup-raw-nub (step-cong {x = x} Hdup) =
+  ap (λ l → ifᵈ (holds? (fst x ∈ raw-dom l)) then l else x ∷ l) (dup-raw-nub Hdup)
+dup-raw-nub (step-dup  {x = x} {l} H∈) =
+  ifᵈ-yes (holds? (fst x ∈ raw-dom (raw-nub l)))
+    (true-is-yes (subst (fst x ∈_) (sym $ raw-dom-nub l) H∈))
+
+env-nub : ⦃ H-Level X 2 ⦄ → Env X → RawEnv X
+env-nub = Coeq-rec raw-nub λ (_ , _ , Hdup) → dup-raw-nub Hdup
+
+instance
+  ⟦⟧-Env : ⦃ H-Level X 2 ⦄ → ⦃ ⟦⟧-notation (RawEnv X) ⦄ → ⟦⟧-notation (Env X)
+  ⟦⟧-Env = brackets _ λ Γ → ⟦ env-nub Γ ⟧
 
 
 -- dom-∈ : {Γ : Env X} {x : 𝔸} → x ∈ dom Γ → Σ[ T ∈ X ] (x , T) ∈ Γ
