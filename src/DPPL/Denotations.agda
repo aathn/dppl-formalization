@@ -34,18 +34,19 @@ record Denot-assumptions : Type₁ where
 
 module Denotations (ax : Denot-assumptions) where
   open Denot-assumptions ax
-  open Cartesian-category (CSh[]-cartesian {C = Reg-cat} {JC = Reg-conc})
-  open Cartesian-closed (CSh[]-cc {C = Reg-cat} {JC = Reg-conc})
+  open Cartesian-category (CSh[]-cartesian {JC = Reg-conc})
+  open Cartesian-closed (CSh[]-closed {JC = Reg-conc})
+
+  module ip {n} (F : Fin n → Ob) =
+    Indexed-product (Cartesian→standard-finite-products terminal products F)
 
   Ty-denot : Ty → 𝔇
   Ty-denot (treal c)        = Reg-ℝ c
   Ty-denot (T₁ ⇒[ det ] T₂) = [ Ty-denot T₁ , Ty-denot T₂ ]
-  Ty-denot (ttup n Ts) =
-    Indexed-product.ΠF $
-    Cartesian→standard-finite-products terminal products λ i → Ty-denot (Ts i)
+  Ty-denot (ttup n Ts)      = ip.ΠF λ i → Ty-denot (Ts i)
   -- Distributions are interpreted trivially for the time being.
-  Ty-denot (tdist _)      = top
-  Ty-denot (_ ⇒[ rnd ] _) = top
+  Ty-denot (tdist _)        = top
+  Ty-denot (_ ⇒[ rnd ] _)   = top
 
   instance
     ⟦⟧-Ty : ⟦⟧-notation Ty

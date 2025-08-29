@@ -9,6 +9,10 @@ module _ {o ℓ ℓc ℓs} {C : Precategory o ℓ} {J : Coverage C ℓc} {A : Fu
   open Coverage J
   open Sheafification J A
 
+  instance
+    H-Level-Sheafify₀ : ∀ {U} {n} → H-Level (Sheafify₀ U) (2 + n)
+    H-Level-Sheafify₀ = basic-instance 2 squash
+
   private
     module A = Functor A
     -- variable

@@ -3,6 +3,7 @@ module Lib.Cat.Concrete where
 -- Our definitions of concrete sites and sheaves.
 
 open import Lib.Cat.Sheafification
+open import Lib.Cat.Subcategory
 
 open import Cat.Prelude
 open import Cat.Cartesian
@@ -11,7 +12,6 @@ open import Cat.Diagram.Exponential
 open import Cat.Diagram.Limit.Base
 open import Cat.Diagram.Limit.Product
 open import Cat.Diagram.Product
-open import Cat.Diagram.Sieve
 open import Cat.Diagram.Terminal
 open import Cat.Functor.Adjoint
 open import Cat.Functor.Adjoint.Compose
@@ -20,9 +20,9 @@ open import Cat.Functor.Adjoint.Monadic
 open import Cat.Functor.Adjoint.Reflective
 open import Cat.Functor.Equivalence
 open import Cat.Functor.Equivalence.Properties
-open import Cat.Functor.FullSubcategory
 open import Cat.Functor.Hom.Yoneda
 open import Cat.Functor.Properties
+open import Cat.Functor.Subcategory
 open import Cat.Instances.Algebras.Limits
 open import Cat.Instances.Functor
 open import Cat.Instances.Functor.Limits
@@ -36,10 +36,10 @@ open import Cat.Instances.Sheaf.Limits
 open import Cat.Site.Base
 open import Cat.Site.Sheafification
 import Cat.Functor.Hom as Hom
-import Cat.Functor.Reasoning.Presheaf as PSh
 
 open _=>_
 open Functor
+open Subcat-hom
 
 record Conc-coverage {o ℓ ℓc} {C : Precategory o ℓ} (J : Coverage C ℓc) : Type (o ⊔ ℓ ⊔ ℓc) where
   no-eta-equality
@@ -75,7 +75,6 @@ module _ {o ℓ ℓc}
 
   open Precategory C
   open Conc-coverage JC
-  open Coverage J using (Sem-covers)
 
   private variable
     ℓs : Level
@@ -115,7 +114,7 @@ module _ {o ℓ ℓc}
     -- be resolved using the Image type of that module, but for now
     -- this will work for us.
     Concretize : Functor (C ^op) (Sets (ℓ ⊔ ℓs))
-    Concretize .F₀ U = el (image (conc-sections A U)) (hlevel 2)
+    Concretize .F₀ U = el! (image (conc-sections A U))
     Concretize .F₁ f (fr , ∥r∥) =
       fr ⊙ hom∣ f ∣ ,
       case ∥r∥ of λ r Hr →
@@ -128,7 +127,7 @@ module _ {o ℓ ℓc}
     is-concrete→Concretize-equiv conc {U} =
       image-inc (conc-sections A U) ,
       is-embedding→image-inc-is-equiv λ ca (x , p) (y , q) →
-        Σ-pathp.to (conc (p ∙ sym q) , is-prop→pathp (λ i → hlevel 1) _ _)
+        conc (p ∙ sym q) ,ₚ prop!
 
   module _ {ℓs} (A : Functor (C ^op) (Sets ℓs)) where
     open Concretize
@@ -161,7 +160,8 @@ module _ {o ℓ ℓc}
           Sheafify-elim-prop A (λ {U} y → ∀ x₀ → cs U (inc x₀) ≡ cs U y → inc x₀ ≡ y)
             (λ _ → hlevel 1)
             (λ y₀ x₀ p → ap inc $ conc $ ext λ g →
-              inc-inj (is-concrete→is-separated A conc) (inc-natural x₀ ∙ p $ₚ g ∙ sym (inc-natural y₀)))
+              inc-inj (is-concrete→is-separated A conc)
+                (inc-natural x₀ ∙ p $ₚ g ∙ sym (inc-natural y₀)))
             (λ {U} S x p x₀ q → sep S λ f Hf →
               sym (inc-natural x₀) ∙ p f Hf (A ⟪ f ⟫ x₀) (ext λ g →
                 ap (map g) (inc-natural x₀) ∙ sym (map-∘ _) ∙ q $ₚ (f ∘ g) ∙ map-∘ _))
@@ -170,11 +170,8 @@ module _ {o ℓ ℓc}
           p f Hf (map f x₀) (funext λ g → sym (map-∘ _) ∙ q $ₚ (f ∘ g) ∙ map-∘ _))
         x y
       where
-      open Sheafification J
-      cs = conc-sections (Sheafify A)
-      instance
-        _ : ∀ {U} → H-Level (Sheafify₀ A U) 2
-        _ = hlevel-instance squash
+        open Sheafification J
+        cs = conc-sections (Sheafify A)
 
   -- The converse, that concretization preserves the sheaf property,
   -- appears impossible to prove.  Given a patch of concrete sections,
@@ -202,21 +199,18 @@ module _ {o ℓ ℓc}
 
     -- The forgetful functor from ConcPSh to PSh
     Forget-conc : Functor ConcPSh (PSh ℓs C)
-    Forget-conc .F₀ = fst
-    Forget-conc .F₁ x = x
-    Forget-conc .F-id = refl
-    Forget-conc .F-∘ f g = refl
+    Forget-conc = Forget-subcat
 
     -- The concrete sheaves as a full subcategory of concrete presheaves
     ConcSh : Precategory (o ⊔ ℓ ⊔ ℓc ⊔ lsuc ℓs) (o ⊔ ℓ ⊔ ℓs)
-    ConcSh = Restrict {C = ConcPSh} (is-sheaf J ⊙ fst)
+    ConcSh = Restrict {C = PSh ℓs C} λ X → is-concrete X × is-sheaf J X
 
     -- The forgetful functor from ConcSh to ConcPSh
     Forget-sheaf-to-conc : Functor ConcSh ConcPSh
-    Forget-sheaf-to-conc .F₀ = fst
-    Forget-sheaf-to-conc .F₁ x = x
-    Forget-sheaf-to-conc .F-id = refl
-    Forget-sheaf-to-conc .F-∘ f g = refl
+    Forget-sheaf-to-conc .F₀ (X , conc , _) = X , conc
+    Forget-sheaf-to-conc .F₁ f    = full-hom (hom f)
+    Forget-sheaf-to-conc .F-id    = Subcat-hom-path refl
+    Forget-sheaf-to-conc .F-∘ _ _ = Subcat-hom-path refl
 
     -- And their composite
     Forget-conc-sheaf : Functor ConcSh (PSh ℓs C)
@@ -242,41 +236,48 @@ module Free {ℓ} {C : Precategory ℓ ℓ} {J : Coverage C ℓ} (JC : Conc-cove
   univ {A = A} B conc eta .η U (ca , im) =
     equiv→inverse (is-concrete→Concretize-equiv B conc .snd) im' where
     im' : image (conc-sections JC B U)
-    im' = eta .η _ ⊙ ca , flip ∥-∥-map im λ (au , p) →
-      eta .η _ au ,
-      (conc-sections JC B U (eta .η _ au) ≡⟨ ext (λ g → sym (eta .is-natural _ _ g $ₚ au)) ⟩
-       eta .η _ ⊙ conc-sections JC A U au ≡⟨ ap (eta .η _ ⊙_) p ⟩
-       eta .η _ ⊙ ca                      ∎)
+    im' = eta .η _ ⊙ ca , case im of λ au p → pure record
+      { fst = eta .η _ au
+      ; snd =
+        conc-sections JC B U (eta .η _ au) ≡⟨ ext (λ g → sym (eta .is-natural _ _ g $ₚ au)) ⟩
+        eta .η _ ⊙ conc-sections JC A U au ≡⟨ ap (eta .η _ ⊙_) p ⟩
+        eta .η _ ⊙ ca                      ∎
+      }
   univ {A = A} B conc eta .is-natural U V f = ext λ _ au _ →
     eta .is-natural _ _ f $ₚ au
 
   unique
-    : (B : Functor (C ^op) (Sets ℓ)) (conc : is-concrete JC B) (eta : A => B) (eps : Concretize A => B)
+    : (B : Functor (C ^op) (Sets ℓ)) (conc : is-concrete JC B)
+      (eta : A => B) (eps : Concretize A => B)
     → (∀ U (au : A ʻ U) → eps .η U (image-inc (conc-sections JC A U) au) ≡ eta .η U au)
     → univ B conc eta ≡ eps
   unique {A = A} B conc eta eps comm = ext λ U ca au p →
     eta .η U au                            ≡˘⟨ comm U au ⟩
-    eps .η U (conc-sections JC A U au , _) ≡⟨ ap (eps .η _) (Σ-pathp.to (p , is-prop→pathp (λ i → hlevel 1) _ _)) ⟩
+    eps .η U (conc-sections JC A U au , _) ≡⟨ ap (eps .η _) (p ,ₚ prop!) ⟩
     eps .η U (ca , inc (au , p))           ∎
 
   private module fo = Free-object
 
   make-free-conc-psh : ∀ A → Free-object (Forget-conc JC ℓ) A
-  make-free-conc-psh A .fo.free = Concretize A , Concretize-is-concrete JC A
+  make-free-conc-psh A .fo.free =
+    Concretize A , Concretize-is-concrete JC A
   make-free-conc-psh A .fo.unit = unit
-  make-free-conc-psh A .fo.fold {B , conc} = univ B conc
+  make-free-conc-psh A .fo.fold {B , conc} f = full-hom (univ B conc f)
   make-free-conc-psh A .fo.commute = ext λ _ _ → refl
-  make-free-conc-psh A .fo.unique {B , conc} {f} g p = sym $
-    unique B conc _ _ λ U x → p ηₚ _ $ₚ _
+  make-free-conc-psh A .fo.unique {B , conc} {f} g p =
+    Subcat-hom-path $ sym $ unique B conc _ _ λ V x → p ηₚ V $ₚ _
 
   make-free-conc-sh : ∀ A → Free-object (Forget-sheaf-to-conc JC ℓ) A
   make-free-conc-sh (A , conc) .fo.free =
-    (Sheafify A , Sheafify-is-concrete JC A conc) , Sheafify-is-sheaf _
-  make-free-conc-sh A .fo.unit = FreeSheaf.unit
-  make-free-conc-sh A .fo.fold {(B , _) , shf} = FreeSheaf.univ B shf
+    Sheafify A , Sheafify-is-concrete JC A conc , Sheafify-is-sheaf _
+  make-free-conc-sh A .fo.unit = full-hom FreeSheaf.unit
+  make-free-conc-sh A .fo.fold {B , _ , shf} f =
+    full-hom (FreeSheaf.univ B shf (f .hom))
   make-free-conc-sh A .fo.commute = ext λ _ _ → refl
-  make-free-conc-sh (A , _) .fo.unique {(B , _) , shf} =
-    FreeSheaf.make-free-sheaf A .fo.unique {B , shf}
+  make-free-conc-sh (A , _) .fo.unique {B , _ , shf} g p =
+    Subcat-hom-path
+      $ FreeSheaf.make-free-sheaf A .fo.unique {B , shf}
+        (g .hom) (ap hom p)
 
 
 -- We turn to the computation of limits and exponentials of concrete
@@ -300,20 +301,20 @@ is-concrete-limit {C = C} _ {F = F} {L} {ψ} lim dconc {U} {x} {y} p =
       F.₁ j g (ψ .η j .η U x) ∎))
   where
   module lim = is-limit lim
-  module F x = PSh (F .F₀ x)
-  module L = PSh L
+  module F x = Functor (F .F₀ x)
+  module L = Functor L
   open Hom C
 
 -- Concrete presheaves form an exponential ideal, just like sheaves.
 -- Morally, this is because if we can distinguish points of B, then we
 -- can also distinguish maps into B.
 is-concrete-exponential
-  : ∀ {ℓ ℓc} {C : Precategory ℓ ℓ} {J : Coverage C ℓc} (JC : Conc-coverage J)
-  → (A B : Functor (C ^op) (Sets ℓ))
+  : ∀ {ℓ ℓc} {C : Precategory ℓ ℓ} {J : Coverage C ℓc}
+  → (JC : Conc-coverage J) (A B : Functor (C ^op) (Sets ℓ))
   → is-concrete JC B
   → is-concrete JC (PSh[_,_] C A B)
-is-concrete-exponential {C = C} JC A B bconc {x = x} {y} p = ext λ V f au →
-  bconc $ ext λ g →
+is-concrete-exponential {C = C} JC A B bconc {x = x} {y} p =
+  ext λ V f au → bconc $ ext λ g →
     B ⟪ g ⟫ x .η V (f , au)            ≡˘⟨ x .is-natural V _ g $ₚ (f , au) ⟩
     _                                  ≡˘⟨ ap (λ fg → x .η _ (fg , _)) (idr _) ⟩
     x .η _ ((f ∘ g) ∘ id , A ⟪ g ⟫ au) ≡⟨ (p $ₚ (f ∘ g) ηₚ _) $ₚ (id , A ⟪ g ⟫ au) ⟩
@@ -356,10 +357,11 @@ module _ {ℓ} {C : Precategory ℓ ℓ} {J : Coverage C ℓ} {JC : Conc-coverag
     Sheafification⊣ι = free-objects→left-adjoint (Free.make-free-conc-sh JC)
 
   ConcShfication-is-reflective : is-reflective ConcShfication⊣ι
-  ConcShfication-is-reflective = id-equiv
+  ConcShfication-is-reflective = Full-hom≃Hom .snd
 
   ConcShfication-is-monadic : is-monadic ConcShfication⊣ι
-  ConcShfication-is-monadic = is-reflective→is-monadic _ id-equiv
+  ConcShfication-is-monadic =
+    is-reflective→is-monadic _ ConcShfication-is-reflective
 
   CSh[]-is-complete : is-complete ℓ ℓ CSh[ C , JC ]
   CSh[]-is-complete = equivalence→complete
@@ -376,54 +378,63 @@ module _ {ℓ} {C : Precategory ℓ ℓ} {J : Coverage C ℓ} {JC : Conc-coverag
       left-adjoint-colimit ConcShfication⊣ι psh-colim
 
     done = natural-iso→colimit
-      (F∘-iso-id-l (is-reflective→counit-iso ConcShfication⊣ι id-equiv))
+      (F∘-iso-id-l
+        (is-reflective→counit-iso
+          ConcShfication⊣ι ConcShfication-is-reflective))
       concretized
 
 
   CSh[]-products : has-products CSh[ C , JC ]
-  CSh[]-products ((A , aconc) , ashf) ((B , bconc) , bshf) = prod where
+  CSh[]-products (A , aconc , ashf) (B , bconc , bshf) = prod where
     prod' = PSh-products _ C A B
 
     prod : Product CSh[ C , JC ] _ _
-    prod .apex .fst .fst = prod' .apex
-    prod .apex .fst .snd = is-concrete-limit JC
+    prod .apex .fst = prod' .apex
+    prod .apex .snd .fst = is-concrete-limit JC
       {F = 2-object-diagram _ _} {ψ = 2-object-nat-trans _ _}
       (is-product→is-limit (PSh ℓ C) (prod' .has-is-product))
-      (λ { true → aconc ; false → bconc })
-    prod .π₁ = prod' .π₁
-    prod .π₂ = prod' .π₂
-    prod .has-is-product .⟨_,_⟩  = prod' .⟨_,_⟩
-    prod .has-is-product .π₁∘⟨⟩  = prod' .π₁∘⟨⟩
-    prod .has-is-product .π₂∘⟨⟩  = prod' .π₂∘⟨⟩
-    prod .has-is-product .unique = prod' .unique
+      λ { true → aconc ; false → bconc }
+    prod .π₁ = full-hom (prod' .π₁)
+    prod .π₂ = full-hom (prod' .π₂)
+    prod .has-is-product .⟨_,_⟩ f g =
+      full-hom (prod' .⟨_,_⟩ (f .hom) (g .hom))
+    prod .has-is-product .π₁∘⟨⟩ = Subcat-hom-path $ prod' .π₁∘⟨⟩
+    prod .has-is-product .π₂∘⟨⟩ = Subcat-hom-path $ prod' .π₂∘⟨⟩
+    prod .has-is-product .unique p q = Subcat-hom-path
+      $ prod' .unique (ap hom p) (ap hom q)
 
-    prod .apex .snd =
-      is-sheaf-limit
+    prod .apex .snd .snd = is-sheaf-limit
       {F = 2-object-diagram _ _} {ψ = 2-object-nat-trans _ _}
       (is-product→is-limit (PSh ℓ C) (prod' .has-is-product))
-      (λ { true → ashf ; false → bshf })
+      λ { true → ashf ; false → bshf }
 
   CSh[]-terminal : Terminal CSh[ C , JC ]
-  CSh[]-terminal .top .fst .fst = PSh-terminal _ C .top
-  CSh[]-terminal .top .fst .snd _ = refl
-  CSh[]-terminal .top .snd .whole _ _     = lift tt
-  CSh[]-terminal .top .snd .glues _ _ _ _ = refl
-  CSh[]-terminal .top .snd .separate _ _  = refl
-  CSh[]-terminal .has⊤ ((A , _) , _) = PSh-terminal _ C .has⊤ A
+  CSh[]-terminal .top .fst = PSh-terminal _ C .top
+  CSh[]-terminal .top .snd .fst _ = refl
+  CSh[]-terminal .top .snd .snd .whole _ _     = lift tt
+  CSh[]-terminal .top .snd .snd .glues _ _ _ _ = refl
+  CSh[]-terminal .top .snd .snd .separate _ _  = refl
+  CSh[]-terminal .has⊤ (A , _ , _) = record
+    { centre = full-hom (PSh-terminal _ C .has⊤ A .centre)
+    ; paths  = λ f → Subcat-hom-path
+      $ PSh-terminal _ C .has⊤ A .paths (f .hom)
+    }
 
   CSh[]-cartesian : Cartesian-category CSh[ C , JC ]
   CSh[]-cartesian .products = CSh[]-products
   CSh[]-cartesian .terminal = CSh[]-terminal
 
-  CSh[]-cc : Cartesian-closed CSh[ C , JC ] CSh[]-cartesian
-  CSh[]-cc .has-exp ((A , _) , _) ((B , bconc) , bshf) = exp where
+  CSh[]-closed : Cartesian-closed CSh[ C , JC ] CSh[]-cartesian
+  CSh[]-closed .has-exp (A , _ , _) (B , bconc , bshf) = exp where
     exp' = PSh-closed C .has-exp A B
 
     exp : Exponential CSh[ C , JC ] _ _ _
-    exp .B^A .fst .fst = exp' .B^A
-    exp .B^A .fst .snd = is-concrete-exponential JC A B bconc
-    exp .B^A      .snd = is-sheaf-exponential J A B bshf
-    exp .ev = exp' .ev
-    exp .has-is-exp .ƛ        = exp' .ƛ
-    exp .has-is-exp .commutes = exp' .commutes
-    exp .has-is-exp .unique   = exp' .unique
+    exp .B^A .fst      = exp' .B^A
+    exp .B^A .snd .fst = is-concrete-exponential JC A B bconc
+    exp .B^A .snd .snd = is-sheaf-exponential J A B bshf
+    exp .ev = full-hom (exp' .ev)
+    exp .has-is-exp .ƛ f = full-hom (exp' .ƛ (f .hom))
+    exp .has-is-exp .commutes m = Subcat-hom-path
+      $ exp' .commutes (m .hom)
+    exp .has-is-exp .unique m p = Subcat-hom-path
+      $ exp' .unique (m .hom) (ap hom p)
