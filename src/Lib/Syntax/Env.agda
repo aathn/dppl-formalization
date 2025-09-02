@@ -5,6 +5,9 @@ open import Lib.Data.Finset
 open import Lib.Data.Dec
 open import Lib.LocallyNameless.Unfinite
 
+open import Cat.Base
+open import Cat.Cartesian
+
 open import Data.Dec.Base
 open import Data.Finset.Base
 open import Data.Finset.Properties
@@ -46,12 +49,12 @@ private variable
 pattern ε         = inc []
 pattern [_∶_] x T = inc ((x , T) ∷ [])
 
-env-cons : 𝔸 → X → Env X → Env X
-env-cons x T = Coeq-rec (λ Γ → inc ((x , T) ∷ Γ)) λ (_ , _ , Hdup) → quot (step-cong Hdup)
+env-cons : (𝔸 × X) → Env X → Env X
+env-cons x = Coeq-rec (λ Γ → inc (x ∷ Γ)) λ (_ , _ , Hdup) → quot (step-cong Hdup)
 
 infixl 5 _,_∶_
 _,_∶_ : Env X → 𝔸 → X → Env X
-Γ , a ∶ T = env-cons a T Γ
+Γ , a ∶ T = env-cons (a , T) Γ
 
 dup-raw-dom : dup-step l l' → raw-dom l ≡ raw-dom l'
 dup-raw-dom (step-cong Hdup) = ap (_ ∷_) (dup-raw-dom Hdup)
@@ -172,10 +175,50 @@ dup-raw-nub (step-dup  {x = x} {l} H∈) =
 env-nub : ⦃ H-Level X 2 ⦄ → Env X → RawEnv X
 env-nub = Coeq-rec raw-nub λ (_ , _ , Hdup) → dup-raw-nub Hdup
 
-instance
-  ⟦⟧-Env : ⦃ H-Level X 2 ⦄ → ⦃ ⟦⟧-notation (RawEnv X) ⦄ → ⟦⟧-notation (Env X)
-  ⟦⟧-Env = brackets _ λ Γ → ⟦ env-nub Γ ⟧
+inc-raw-nub : (l : RawEnv X) → Path (Env X) (inc l) (inc (raw-nub l))
+inc-raw-nub [] = refl
+inc-raw-nub (x ∷ l) with holds? (fst x ∈ raw-dom (raw-nub l))
+... | yes H∈ = env-cons-∈ (subst (fst x ∈_) (raw-dom-nub l) H∈) ∙ inc-raw-nub l
+... | no  _  = ap (env-cons x) (inc-raw-nub l)
 
+env-nub-univ : ⦃ _ : H-Level X 2 ⦄ (Γ : Env X) → Γ ≡ inc (env-nub Γ)
+env-nub-univ = Coeq-elim-prop (λ _ → hlevel 1) inc-raw-nub
+
+raw-nub-cons
+  : (l : RawEnv X) → a ∉ raw-dom l
+  → raw-nub ((a , T) ∷ l) ≡ (a , T) ∷ raw-nub l
+raw-nub-cons {a = a} l H∉ = ifᵈ-no (holds? (a ∈ raw-dom (raw-nub l)))
+  (subst (a ∉_) (sym $ raw-dom-nub l) H∉)
+
+env-nub-cons
+  : ⦃ _ : H-Level X 2 ⦄ (Γ : Env X)
+  → a ∉ env-dom Γ → env-nub (Γ , a ∶ T) ≡ (a , T) ∷ env-nub Γ
+env-nub-cons = Coeq-elim-prop (λ _ → hlevel 1) raw-nub-cons
+
+module EnvDenot
+  {o ℓ} {C : Precategory o ℓ} (cart : Cartesian-category C)
+  (X-denot : X → Precategory.Ob C) where
+  module C = Cartesian-category cart
+  open C
+
+  RawEnv-denot : RawEnv X → Ob
+  RawEnv-denot []            = top
+  RawEnv-denot ((_ , T) ∷ l) = RawEnv-denot l ⊗₀ X-denot T
+
+  instance
+    ⟦⟧-RawEnv : ⟦⟧-notation (RawEnv X)
+    ⟦⟧-RawEnv = brackets _ RawEnv-denot
+
+  instance
+    ⟦⟧-Env : ⦃ H-Level X 2 ⦄ → ⟦⟧-notation (Env X)
+    ⟦⟧-Env = brackets _ λ Γ → ⟦ env-nub Γ ⟧
+
+  raw-lookup : raw-mem a T l → Hom ⟦ l ⟧ (X-denot T)
+  raw-lookup {l = _ ∷ l} (here reflᵢ H∉) = π₂
+  raw-lookup {l = x ∷ _} (there H∈)      = raw-lookup H∈ C.∘ π₁
+
+  env-lookup : ⦃ _ : H-Level X 2 ⦄ → a ∶ T ∈ Γ → Hom ⟦ Γ ⟧ (X-denot T)
+  env-lookup {a = a} {T} {Γ} H∈ = raw-lookup (subst (a ∶ T ∈_) (env-nub-univ Γ) H∈)
 
 -- dom-∈ : {Γ : Env X} {x : 𝔸} → x ∈ dom Γ → Σ[ T ∈ X ] (x , T) ∈ Γ
 -- dom-∈ = {!!}
