@@ -5,44 +5,73 @@ module DPPL.Denotations (R : Reals₀) where
 open import DPPL.Regularity
 open import DPPL.Syntax R
 open import DPPL.Typing R
+open import DPPL.Properties.Syntax R
 
 open import Lib.Cat.Concrete
+open import Lib.Data.Dec
+open import Lib.Data.Finset
+open import Lib.Data.Vector
+open import Lib.LocallyNameless.Unfinite
 open import Lib.Syntax.Env
 
 open import Cat.Prelude
 open import Cat.Cartesian
 open import Cat.Diagram.Exponential
+open import Cat.Diagram.Coproduct
 open import Cat.Diagram.Product.Finite
 open import Cat.Diagram.Product.Indexed
 open import Cat.Site.Base
 
+open import Data.Fin.Base hiding (_≤_)
 open import Data.List.Base
 
--- open Reals R using (ℝ; 0r; compare)
+open import Order.Lattice
 
-record Denot-assumptions : Type₁ where
+open Reals R using (ℝ)
+
+open SyntaxVars
+open Reg↓≤ hiding (Ob)
+open is-lattice Reg↓-lattice hiding (_∪_ ; ! ; top)
+
+record is-DPPL-model {o ℓ} (C : Precategory o ℓ) : Type (o ⊔ ℓ) where
   field
-    Reg-cat  : Precategory lzero lzero
-    Reg-cov  : Coverage Reg-cat lzero
-    Reg-conc : Conc-coverage Reg-cov
+    has-cartesian : Cartesian-category C
+    has-is-closed : Cartesian-closed C has-cartesian
+    has-coprods   : has-coproducts C
 
-  𝔇 : Type₁
-  𝔇 = ⌞ ConcSh Reg-conc lzero ⌟
-
-  field
-    Reg-ℝ : Reg↓ → 𝔇
-
-module Denotations (ax : Denot-assumptions) where
-  open Denot-assumptions ax
-  open Cartesian-category (CSh[]-cartesian {JC = Reg-conc})
-  open Cartesian-closed (CSh[]-closed {JC = Reg-conc})
+  open Cartesian-category has-cartesian public
+  open Cartesian-closed   has-is-closed public renaming ([_,_] to _⇒_)
+  open Binary-coproducts C has-coprods  public hiding (unique₂)
 
   module ip {n} (F : Fin n → Ob) =
     Indexed-product (Cartesian→standard-finite-products terminal products F)
 
+  𝔇 : Type o
+  𝔇 = Ob
+
+  field
+    𝔇ℝ[_] : Reg↓ → 𝔇
+    𝔇-real : ℝ → ∀ {c} → Hom top 𝔇ℝ[ c ]
+    𝔇-prim
+      : {cs : Reg↓ ^ PrimAr ϕ} → PrimTy ϕ ≡ (cs , c)
+      → Hom (ip.ΠF λ i → 𝔇ℝ[ cs i ]) 𝔇ℝ[ c ]
+    𝔇-if  : Hom 𝔇ℝ[ P↓ ] (top ⊕₀ top)
+    -- 𝔇-diff :
+    𝔇-promote
+      : {cs : Reg↓ ^ n}
+      → Hom (ip.ΠF λ i → 𝔇ℝ[ cs i ]) 𝔇ℝ[ c ]
+      → Hom (ip.ΠF λ i → 𝔇ℝ[ c' ∩ cs i ]) 𝔇ℝ[ c' ∩ c ]
+    𝔇-sub : c ≤ c' → Hom 𝔇ℝ[ c ] 𝔇ℝ[ c' ]
+
+DPPL-model : ∀ o ℓ → Type (lsuc (o ⊔ ℓ))
+DPPL-model o ℓ = Σ (Precategory o ℓ) is-DPPL-model 
+
+module Denotations {o ℓ} (model : DPPL-model o ℓ) where
+  open is-DPPL-model (model .snd)
+
   Ty-denot : Ty → 𝔇
-  Ty-denot (treal c)        = Reg-ℝ c
-  Ty-denot (T₁ ⇒[ det ] T₂) = [ Ty-denot T₁ , Ty-denot T₂ ]
+  Ty-denot (treal c)        = 𝔇ℝ[ c ]
+  Ty-denot (T₁ ⇒[ det ] T₂) = Ty-denot T₁ ⇒ Ty-denot T₂
   Ty-denot (ttup n Ts)      = ip.ΠF λ i → Ty-denot (Ts i)
   -- Distributions are interpreted trivially for the time being.
   Ty-denot (tdist _)        = top
@@ -52,20 +81,73 @@ module Denotations (ax : Denot-assumptions) where
     ⟦⟧-Ty : ⟦⟧-notation Ty
     ⟦⟧-Ty = brackets _ Ty-denot
 
-  RawEnv-denot : RawEnv Ty → 𝔇
-  RawEnv-denot []            = top
-  RawEnv-denot ((_ , T) ∷ l) = RawEnv-denot l ⊗₀ ⟦ T ⟧
+  open EnvDenot has-cartesian Ty-denot
 
-  instance
-    ⟦⟧-RawEnv : ⟦⟧-notation (RawEnv Ty)
-    ⟦⟧-RawEnv = brackets _ RawEnv-denot
-
-  open SyntaxVars
   open TypingVars
+  open FinsetSyntax hiding ([_])
 
-  Tm-denot : Γ ⊢ t :[ c , e ] T → Hom ⟦ Γ ⟧ ⟦ c ∩ᵗ T ⟧
-  Tm-denot = {!!}
+  Sub-denot : T <: T' → Hom ⟦ T ⟧ ⟦ T' ⟧
+  Sub-denot (sreal H≤)             = 𝔇-sub H≤
+  Sub-denot (stup {Ts' = Ts'} H<:) = ip.tuple _ λ i → Sub-denot (H<: i) ∘ ip.π _ i
+  Sub-denot (sarr {e' = rnd} H<: H<:' H≤)      = !
+  Sub-denot (sarr {e = det} {det} H<: H<:' H≤) =
+    [-,-]₁ _ _ has-is-closed (Sub-denot H<:') (Sub-denot H<:)
+  Sub-denot (sdist H<:) = !
 
+  Tm-denot : Γ ⊢ t :[ c , det ] T → Hom ⟦ Γ ⟧ ⟦ c ∩ᵗ T ⟧
+  Tm-denot {Γ = Γ} (tvar {T = T} H∈ H≤) =
+    subst (λ T → Hom ⟦ Γ ⟧ ⟦ T ⟧) (sym $ ≤ᵗ→∩ᵗ {T = T} H≤) (env-lookup {Γ = Γ} H∈)
+  Tm-denot (tlam {e = rnd} Hlam) = !
+  Tm-denot {Γ = Γ} {c = c} (tlam {T = T} {det} {T'} (Иi As Hty))
+    with (a , H∉) ← fresh{𝔸} (As ∪ env-dom Γ) =
+    ƛ $ subst (λ Γ → Hom ⟦ Γ ⟧ ⟦ c ∩ᵗ T' ⟧)
+        (env-nub-cons Γ (∉∪₂ As H∉)) (Tm-denot (Hty a ⦃ ∉∪₁ H∉ ⦄))
+  Tm-denot (tapp Hty Hty₁)          = ev ∘ ⟨ Tm-denot Hty , Tm-denot Hty₁ ⟩
+  Tm-denot (tprim {cs = cs} Hϕ Hty) = 𝔇-promote {cs = cs} (𝔇-prim Hϕ) ∘ Tm-denot Hty
+  Tm-denot (treal {r = r})          = 𝔇-real r ∘ !
+  Tm-denot (ttup {Ts = Ts} Htys)    = ip.tuple _ λ i → Tm-denot (Htys i)
+  Tm-denot (tproj {Ts = Ts} i Hty)  = ip.π _ i ∘ Tm-denot Hty
+  Tm-denot (tif Hty Hty₁ Hty₂)      =
+    [ Tm-denot Hty₁ , Tm-denot Hty₂ ] ∘ distr ∘ ⟨ 𝔇-if ∘ {!!} , id ⟩ -- Tm-denot Hty
+    where
+      distr : ∀ {X} → Hom ((top ⊕₀ top) ⊗₀ X) (X ⊕₀ X)
+      distr = unlambda [ ƛ (ι₁ ∘ π₂) , ƛ (ι₂ ∘ π₂) ]
+  Tm-denot (tdiff Hc Hty Hty₁)               = {!!}
+  Tm-denot (tsolve Hty Hty₁ Hty₂)            = {!!}
+  Tm-denot (tinfer Hty)                      = !
+  Tm-denot (tsub {e = det} Hty _ H<:)        = {!!} ∘ Tm-denot Hty
+  Tm-denot {Γ = Γ} (tpromote {T = T} Hty H≤) =
+    subst (λ T → Hom ⟦ Γ ⟧ ⟦ T ⟧)
+      (sym (ap (_∩ᵗ T) (∩-comm ∙ order→∩ H≤)) ∙ ∩ᵗ-action T)
+      (Tm-denot Hty)
+  Tm-denot {Γ = Γ} (tdemote {T = T} Hty H≤) =
+    subst (λ T → Hom ⟦ Γ ⟧ ⟦ T ⟧)
+      (sym (∩ᵗ-action T) ∙ ap (_∩ᵗ T) (∩-comm ∙ order→∩ H≤))
+      (Tm-denot Hty)
+
+
+--   -- ⟦_⟧ : Γ ⊢ t :[ e ] T → 𝔇-hom ⟦ Γ ⟧ᴱ ⟦ T ⟧ᵀ
+--   -- ⟦ tvar {T = T} ⟧ = 𝔇π₂ {D₁ = 𝔇𝟙} {D₂ = ⟦ T ⟧ᵀ}
+--   -- ⟦ tabs (Иi As Habs) ⟧ = 𝔇-curry ⟦ Habs (new As) {{unfinite As}} ⟧
+--   -- ⟦ tapp Htype Htype₁ ⟧ = 𝔇-eval 𝔇∘ 𝔇⟨ ⟦ Htype ⟧ , ⟦ Htype₁ ⟧ ⟩
+--   -- ⟦ tprim {ϕ = ϕ} {cs = cs} Hϕ _ Htypes ⟧ = 𝔇-prim Hϕ 𝔇∘ 𝔇∏⟨ ⟦_⟧ ∘ Htypes ⟩
+--   -- ⟦ treal {r = r} ⟧ = 𝔇-const r
+--   -- ⟦ ttup _ Htypes ⟧ = 𝔇∏⟨ ⟦_⟧ ∘ Htypes ⟩
+--   -- ⟦ tproj {Ts = Ts} i Htype ⟧ = 𝔇π[_] {Ds = ⟦_⟧ᵀ ∘ Ts} i 𝔇∘ ⟦ Htype ⟧
+--   -- ⟦ tif {T = T} Htype Htype₁ Htype₂ ⟧ =
+--   --   if-denot {T = T} ⟦ Htype₁ ⟧ ⟦ Htype₂ ⟧ 𝔇∘ 𝔇⟨ ⟦ Htype ⟧ , 𝔇-id ⟩
+--   -- ⟦ tdiff {cs = cs} H≤ Htype Htype₁ ⟧ =
+--   --   𝔇-eval {D₁ = 𝔇ℝ′ cs} 𝔇∘
+--   --   𝔇-map {D₂ = 𝔇ℝ′ cs} (𝔇-curry-hom 𝔇∘ 𝔇-diff H≤) 𝔇-id 𝔇∘
+--   --   𝔇⟨ ⟦ Htype ⟧ , ⟦ Htype₁ ⟧ ⟩
+--   -- ⟦ tsolve Htype Htype₁ Htype₂ x ⟧ = {!!}
+--   -- ⟦ tdist x x₁ x₂ ⟧ = {!!}
+--   -- ⟦ tassume Htype ⟧ = {!!}
+--   -- ⟦ tweight Htype ⟧ = {!!}
+--   -- ⟦ tinfer Htype x ⟧ = {!!}
+--   -- ⟦ tweaken Htype x x₁ ⟧ = {!!}
+--   -- ⟦ tsub Htype x x₁ ⟧ = {!!}
+--   -- ⟦ tpromote Htype x ⟧ = {!!}
 
 --     field
 --       𝔉-const : (r : ℝ) → const r ∈ 𝔉 []
