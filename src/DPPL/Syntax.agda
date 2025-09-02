@@ -17,6 +17,7 @@ open import Data.Dec.Base
 open import Data.Nat.Base using (Nat-is-set)
 open import Data.Fin.Properties
 open import Order.Base
+open import Order.Lattice
 
 Eff : Type
 Eff = Bool
@@ -36,6 +37,22 @@ data Ty : Type where
   _⇒[_]_ : Ty → Eff → Ty → Ty
   ttup   : (n : Nat) → Ty ^ n → Ty
   tdist  : Ty → Ty
+
+open is-lattice Reg↓-lattice
+open Reg↓≤
+
+_∩ᵗ_ : Reg↓ → Ty → Ty
+c ∩ᵗ treal c'       = treal (c ∩ c')
+c ∩ᵗ ttup n Ts      = ttup n λ i → c ∩ᵗ Ts i
+c ∩ᵗ (T₁ ⇒[ e ] T₂) = (c ∩ᵗ T₁) ⇒[ e ] (c ∩ᵗ T₂)
+c ∩ᵗ tdist T        = tdist T
+
+_≤ᵗ_ : Ty → Reg↓ → Type
+treal d        ≤ᵗ c = d ≤ c
+ttup n Ts      ≤ᵗ c = ∀ i → Ts i ≤ᵗ c
+(T₁ ⇒[ e ] T₂) ≤ᵗ c = T₁ ≤ᵗ c × T₂ ≤ᵗ c
+tdist T        ≤ᵗ c = ⊤
+
 
 -- Terms
 

@@ -18,7 +18,6 @@ open import Order.Lattice
 open VecSyntax
 open Reg↓≤ renaming (_≤_ to _≤ᶜ_)
 open Eff≤  renaming (_≤_ to _≤ᵉ_)
-open is-lattice Reg↓-lattice
 
 TyEnv : Type
 TyEnv = Env Ty
@@ -39,19 +38,6 @@ PrimTy psin    = make A↓ , A↓
 PrimTy pnormal = make M↓ , M↓
 PrimTy pbeta   = make M↓ , M↓
 PrimTy pwiener = lookup (M↓ ∷ C↓ ∷ []) , C↓
-
-_∩ᵗ_ : Reg↓ → Ty → Ty
-c ∩ᵗ treal c'       = treal (c ∩ c')
-c ∩ᵗ ttup n Ts      = ttup n λ i → c ∩ᵗ Ts i
-c ∩ᵗ (T₁ ⇒[ e ] T₂) = (c ∩ᵗ T₁) ⇒[ e ] (c ∩ᵗ T₂)
-c ∩ᵗ tdist T        = tdist T
-
-_≤ᵗ_ : Ty → Reg↓ → Type
-treal d        ≤ᵗ c = d ≤ᶜ c
-ttup n Ts      ≤ᵗ c = ∀ i → Ts i ≤ᵗ c
-(T₁ ⇒[ e ] T₂) ≤ᵗ c = T₁ ≤ᵗ c × T₂ ≤ᵗ c
-tdist T        ≤ᵗ c = ⊤
-
 
 infix 5 _<:_
 data _<:_ : Ty → Ty → Type where
