@@ -82,8 +82,8 @@ data _⊢_:[_,_]_ : TyEnv → Tm → Reg↓ → Eff → Ty → Type where
 
   tlam :
     {t : Tm ^ 1}
-    (_ : И[ a ∈ 𝔸 ] (Γ , a ∶ T) ⊢ conc (t ₀) a :[ c , e ] T')
-    → -------------------------------------------------------
+    (_ : И[ a ∈ 𝔸 ] (Γ , a ∶ c ∩ᵗ T) ⊢ conc (t ₀) a :[ c , e ] T')
+    → ------------------------------------------------------------
     Γ ⊢ lam T ▸ t :[ c , det ] T ⇒[ e ] T'
 
   tapp :
@@ -95,11 +95,11 @@ data _⊢_:[_,_]_ : TyEnv → Tm → Reg↓ → Eff → Ty → Type where
 
   tprim :
     {cs : Reg↓ ^ PrimAr ϕ}
-    {ts : Tm ^ PrimAr ϕ}
+    {t : Tm ^ 1}
     (_ : PrimTy ϕ ≡ (cs , c'))
-    (_ : ∀ i → Γ ⊢ ts i :[ c , e ] treal (cs i))
-    → ------------------------------------------
-    Γ ⊢ prim ϕ ▸ ts :[ c , e ] treal c'
+    (_ : Γ ⊢ t ₀ :[ c , e ] treals _ cs)
+    → ------------------------------------------------
+    Γ ⊢ prim ϕ ▸ t :[ c , e ] treal c'
 
   treal : Γ ⊢ real r :[ c , det ] treal A↓
 
@@ -128,8 +128,6 @@ data _⊢_:[_,_]_ : TyEnv → Tm → Reg↓ → Eff → Ty → Type where
 
   tdiff :
     {ts : Tm ^ 2}
-    {cs : Reg↓ ^ n}
-    {ds : Reg↓ ^ m}
     (_ : c' ≡ A↓ ⊎ c' ≡ P↓)
     (_ : Γ ⊢ ts ₀ :[ c , e ] treals n (make c') ⇒[ det ] treals m (make c'))
     (_ : Γ ⊢ ts ₁ :[ c , e ] treals n (make c'))

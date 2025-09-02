@@ -92,7 +92,7 @@ TmSig = mkSig TmOp TmAr
   TmAr : TmOp → Array Nat
   length (TmAr (lam _))    = 1
   length (TmAr app)        = 2
-  length (TmAr (prim ϕ))   = PrimAr ϕ
+  length (TmAr (prim ϕ))   = 1
   length (TmAr (oreal _))  = 0
   length (TmAr (tup n))    = n
   length (TmAr (proj _ _)) = 1
