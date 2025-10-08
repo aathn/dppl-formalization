@@ -1,8 +1,9 @@
 module Lib.Syntax.Env where
 
 open import Lib.Prelude
-open import Lib.Data.Finset
 open import Lib.Data.Dec
+open import Lib.Data.Finset
+open import Lib.Data.List
 open import Lib.LocallyNameless.Unfinite
 
 open import Cat.Base
@@ -23,14 +24,14 @@ RawEnv X = List (𝔸 × X)
 
 private variable
   ℓ : Level
-  X : Type ℓ
+  X Y : Type ℓ
   x : 𝔸 × X
   a : 𝔸
   T : X
   l l' : RawEnv X
 
 raw-dom : RawEnv X → Finset 𝔸
-raw-dom = map fst ∘ from-list
+raw-dom = from-list ∘ map fst
 
 -- Two environments are related under dup-step precisely if the second
 -- is the result of removing a single duplicate key from the first.
@@ -77,8 +78,7 @@ raw-append l = Coeq-rec (λ Γ → inc (l ++ Γ)) λ (_ , _ , Hdup) → quot (st
 
 raw-dom-++ : (l l' : RawEnv X) → raw-dom (l ++ l') ≡ (raw-dom l ∪ raw-dom l')
 raw-dom-++ l l' =
-  ap (map fst) (from-list-++ l l') ∙
-  map-union (from-list l) (from-list l') fst
+  ap from-list (map-++ fst l l') ∙ from-list-++ (map fst l) (map fst l')
 
 step-++ᵣ : {l1 : RawEnv X} → dup-step l l' → dup-step (l ++ l1) (l' ++ l1)
 step-++ᵣ (step-cong Hdup) = step-cong (step-++ᵣ Hdup)
@@ -195,6 +195,18 @@ env-nub-cons
   → a ∉ env-dom Γ → env-nub (Γ , a ∶ T) ≡ (a , T) ∷ env-nub Γ
 env-nub-cons = Coeq-elim-prop (λ _ → hlevel 1) raw-nub-cons
 
+raw-map : (X → Y) → RawEnv X → RawEnv Y
+raw-map f = map (λ (x , T) → x , f T)
+
+step-raw-map : {f : X → Y} → dup-step l l' → dup-step (raw-map f l) (raw-map f l')
+step-raw-map (step-cong Hdup) = step-cong (step-raw-map Hdup)
+step-raw-map (step-dup {x = x} H∈) = step-dup
+  $ subst (fst x ∈_) (ap from-list (sym $ map-comp _ _ _)) H∈
+
+env-map : (X → Y) → Env X → Env Y
+env-map f =
+  Coeq-rec (λ l → inc (raw-map f l)) λ (_ , _ , Hdup) → quot (step-raw-map Hdup)
+
 module EnvDenot
   {o ℓ} {C : Precategory o ℓ} (cart : Cartesian-category C)
   (X-denot : X → Precategory.Ob C) where
@@ -219,6 +231,7 @@ module EnvDenot
 
   env-lookup : ⦃ _ : H-Level X 2 ⦄ → a ∶ T ∈ Γ → Hom ⟦ Γ ⟧ (X-denot T)
   env-lookup {a = a} {T} {Γ} H∈ = raw-lookup (subst (a ∶ T ∈_) (env-nub-univ Γ) H∈)
+
 
 -- dom-∈ : {Γ : Env X} {x : 𝔸} → x ∈ dom Γ → Σ[ T ∈ X ] (x , T) ∈ Γ
 -- dom-∈ = {!!}
