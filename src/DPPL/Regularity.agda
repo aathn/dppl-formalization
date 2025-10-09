@@ -67,7 +67,7 @@ instance
 A≠M : A ≠ M
 A≠M p = subst (λ {A → ⊤ ; _ → ⊥}) p tt
 
-open Wide A M A≠M using (Wide ; ≤-dec)
+open Wide A M A≠M using (Wide ; DecOrd-Wide)
 
 Reg-poset : Poset lzero lzero
 Reg-poset = Wide
@@ -121,6 +121,10 @@ open Reg≤
 ↓-mono .hom = ↓
 ↓-mono .pres-≤ x≤y a = implies→≤ λ p →
   is-yes-so (true-is-yes (≤-trans (is-yes-true (so-is-yes p)) x≤y))
+
+instance
+  DecOrd-Reg↓ : ∀ {a} {b} → Dec (a Reg↓≤.≤ b)
+  DecOrd-Reg↓ = Listing→Π-dec
 
 A↓ P↓ C↓ PC↓ M↓ Ø↓ : Reg↓
 A↓  = ↓ A

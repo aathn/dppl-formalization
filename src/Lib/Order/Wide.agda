@@ -41,8 +41,8 @@ data _≤_ : A → A → Type ℓ where
   hlevel 2 _ _ (≤-antisym H≤ H≤') (≤-antisym H≤₁ H≤') i
 
 instance
-  ≤-dec : ⦃ Discrete A ⦄ → ∀ {a b} → Dec (a ≤ b)
-  ≤-dec ⦃ x ⦄ {a} {b} with b ≡? ⊤
+  DecOrd-Wide : ⦃ Discrete A ⦄ → ∀ {a b} → Dec (a ≤ b)
+  DecOrd-Wide ⦃ x ⦄ {a} {b} with b ≡? ⊤
   ... | yes p = yes (subst (a ≤_) (sym p) x≤⊤)
   ... | no ¬p with a ≡? ⊥
   ... | yes q = yes (subst (_≤ b) (sym q) ⊥≤x)

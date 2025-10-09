@@ -3,6 +3,7 @@ module Lib.Order.Bool where
 open import Cat.Instances.Shape.Interval public using (Bool-poset)
 open import Data.Bool.Base
 open import Data.Bool.Order
+open import Data.Dec.Base
 open import Order.Diagram.Top
 open import Order.Diagram.Bottom
 open import Order.Diagram.Join
@@ -42,3 +43,9 @@ Bool-is-join-slat : is-join-semilattice Bool-poset
 Bool-is-join-slat ._∪_ x y    = or x y
 Bool-is-join-slat .∪-joins    = Bool-has-joins
 Bool-is-join-slat .has-bottom = Bool-has-bot
+
+instance
+  DecOrd-Bool : ∀ {a b} → Dec (a ≤ b)
+  DecOrd-Bool {false} {_}    = yes (lift _)
+  DecOrd-Bool {true} {true}  = yes (lift _)
+  DecOrd-Bool {true} {false} = no λ ()

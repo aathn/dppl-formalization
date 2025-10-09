@@ -4,6 +4,7 @@ module DPPL.Denotations (R : Reals₀) where
 
 open Reals R using (ℝ)
 
+open import DPPL.Regularity
 open import DPPL.Syntax R
 open import DPPL.Typing R
 
@@ -145,6 +146,7 @@ record DenotAssumptions : Type₁ where
 
 module Denotations (Ax : DenotAssumptions) where
   open DenotAssumptions Ax
+  -- open Reg↓≤ hiding (Ob)
 
   Ob : Type
   Ob = Nat × Coeff
@@ -152,10 +154,26 @@ module Denotations (Ax : DenotAssumptions) where
   𝔇 : Type₁
   𝔇 = Ob → Type
 
-  -- 𝔇-hom : (D1 D2 : 𝔇) → ℙ (𝔇)
+  𝔇-hom : 𝔇 → 𝔇 → Type
+  𝔇-hom X Y = {o : Ob} → X o → Y o
 
-  Ty-denot : Type → 𝔇
-  Ty-denot = {!!}
+  □⟨_⟩ : Coeff → 𝔇 → 𝔇
+  □⟨ c ⟩ X (n , d) =
+    case DecOrd-Reg↓ {d} {c} of λ where
+      (yes _) → X (n , d)
+      (no  _) → X (0 , d)
+
+  𝔇ℝ[_] : Ob → 𝔇
+  𝔇ℝ[ n , c ] (m , d) = Σ[ f ∈ (ℝ ^ m → ℝ ^ n) ] f ∈ [ d , c ]-reg
+
+  𝔇Π : (Fin n → 𝔇) → 𝔇
+  𝔇Π Xs (m , d) = ∀ i → Xs i (m , d)
+
+  -- Ty-denot : Ty → 𝔇
+  -- Ty-denot (treal c) (n , d) = 
+  -- Ty-denot (T ⇒[ c , e ] T') = □⟨ c ⟩ (\)
+  -- Ty-denot (ttup n Ts) = {!!}
+  -- Ty-denot (tdist T) = {!!}
   -- ⟦ treal c ⟧ᵀ Θ = ∃ (𝔉 Θ c)
   -- ⟦ T₁ ⇒[ det ] T₂ ⟧ᵀ Θ = {m : ℕ} {Θ′ : Coeff ^ m} → Θ ⊆ Θ′ → ⟦ T₁ ⟧ᵀ Θ′ → ⟦ T₂ ⟧ᵀ Θ′
   -- ⟦ ttup n Ts ⟧ᵀ Θ = (i : Fin n) → ⟦ Ts i ⟧ᵀ Θ
