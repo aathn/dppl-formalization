@@ -2,7 +2,7 @@ open import Lib.Algebra.Reals
 
 module DPPL.Denotations (R : Reals₀) where
 
-open Reals R using (ℝ)
+open Reals R using (ℝ ; 0r)
 
 open import DPPL.Regularity
 open import DPPL.Syntax R
@@ -14,6 +14,7 @@ open import Lib.LocallyNameless.Unfinite
 open import Lib.Syntax.Env
 
 open import Cat.Prelude
+open import Cat.Diagram.Terminal
 open import Cat.Functor.Base
 open import Cat.Functor.Compose
 open import Data.Dec.Base
@@ -40,7 +41,7 @@ open SyntaxVars
 open Reg↓≤ using (_≤_ ; ≤-refl ; ≤-trans)
 
 is-const : ℙ (ℝ ^ m → ℝ ^ n)
-is-const {n = n} f = elΩ (Σ[ x ∈ ℝ ^ n ] f ≡ λ _ → x) 
+is-const {n = n} f = elΩ (Σ[ x ∈ ℝ ^ n ] f ≡ λ _ → x)
 
 record DenotAssumptions : Type₁ where
   field
@@ -55,7 +56,7 @@ record DenotAssumptions : Type₁ where
 
   [_,_]-reg : Coeff → Coeff → ∀ {m n} → ℙ (ℝ ^ m → ℝ ^ n)
   [_,_]-reg c d =
-    ifᵈ DecOrd-Reg↓ {c} {d} then
+    ifᵈ holds? (c ≤ d) then
       ⟨ c ⟩-reg
     else
       is-const
@@ -172,67 +173,79 @@ module Denotations (Ax : DenotAssumptions) where
   open DenotAssumptions Ax
 
   [,]-reg-≤ : c ≤ c' → [ c , c' ]-reg {m} {n} ≡ ⟨ c ⟩-reg
-  [,]-reg-≤ {c = c} {c'} H≤ = ifᵈ-yes (DecOrd-Reg↓ {c} {c'}) (true-is-yes H≤)
+  [,]-reg-≤ {c = c} {c'} H≤ = ifᵈ-yes (holds? (c ≤ c')) (true-is-yes H≤)
 
   [,]-reg-≰ : ¬ c ≤ c' → [ c , c' ]-reg {m} {n} ≡ is-const
-  [,]-reg-≰ {c = c} {c'} H≰ = ifᵈ-no (DecOrd-Reg↓ {c} {c'}) (false-is-no H≰)
+  [,]-reg-≰ {c = c} {c'} H≰ = ifᵈ-no (holds? (c ≤ c')) (false-is-no H≰)
 
   id-reg' : (λ x → x) ∈ [ c , c ]-reg {m}
-  id-reg' {c = c} =
-    subst ((λ x → x) ∈_) (sym $ [,]-reg-≤ {c} {c} (≤-refl {c})) id-reg
+  id-reg' = subst ((λ x → x) ∈_) (sym $ [,]-reg-≤ ≤-refl) id-reg
 
   const-reg' : (x : ℝ ^ n) → (λ _ → x) ∈ [ c , c' ]-reg {m}
-  const-reg' {c = c} {c'} x with DecOrd-Reg↓ {c} {c'}
+  const-reg' {c = c} {c'} x with holds? (c ≤ c')
   ... | yes _ = const-reg x
   ... | no  _ = inc (_ , refl)
 
   ∘-reg'
     : {c d e : Coeff} {m n k : Nat} {f : ℝ ^ n → ℝ ^ k} {g : ℝ ^ m → ℝ ^ n}
     → f ∈ [ d , e ]-reg → g ∈ [ c , d ]-reg → f ⊙ g ∈ [ c , e ]-reg
-  ∘-reg' {c} {d} {e} {f = f} {g} Hf Hg with DecOrd-Reg↓ {c} {d}
-  ... | no c≰d =
+  ∘-reg' {c} {d} {e} {f = f} {g} Hf Hg with holds? (c ≤ d) | holds? (d ≤ e)
+  ... | no c≰d | _ =
     □-rec ([ c , e ]-reg _ .is-tr)
-      (λ (x , Hg') →
-        subst (λ g → f ⊙ g ∈ [ c , e ]-reg) (sym Hg') (const-reg' {c = c} {e} (f x)))
+      (λ (x , Hg') → subst (λ g → f ⊙ g ∈ [ c , e ]-reg) (sym Hg') (const-reg' (f x)))
       Hg
-  ... | yes c≤d with DecOrd-Reg↓ {d} {e}
-  ... | no d≰e =
+  ... | yes c≤d | no d≰e =
     □-rec ([ c , e ]-reg _ .is-tr)
-      (λ (x , Hf') →
-        subst (λ f → f ⊙ g ∈ [ c , e ]-reg) (sym Hf') (const-reg' {c = c} {e} x))
+      (λ (x , Hf') → subst (λ f → f ⊙ g ∈ [ c , e ]-reg) (sym Hf') (const-reg' x))
       Hf
-  ... | yes d≤e = 
-    subst (_ ∈_) (sym $ [,]-reg-≤ {c} {e} (≤-trans {c} {d} {e} c≤d d≤e))
-      (∘-reg (⊆-reg c≤d _ Hf) Hg)
+  ... | yes c≤d | yes d≤e =
+    subst (_ ∈_) (sym $ [,]-reg-≤ (≤-trans c≤d d≤e)) (∘-reg (⊆-reg c≤d _ Hf) Hg)
 
   module _ where
     open Precategory
-  
+
     ℛ : Precategory lzero lzero
     ℛ .Ob = Nat × Coeff
     ℛ .Hom (m , c) (n , d) = Σ[ f ∈ (ℝ ^ m → ℝ ^ n) ] f ∈ [ c , d ]-reg
     ℛ .Hom-set _ _ _ _ = hlevel 1
-    ℛ .id {m , c} = (λ x → x) , id-reg' {c}
-    ℛ ._∘_ {_ , c} {_ , d} {_ , e} (f , Hf) (g , Hg) =
-      f ⊙ g , ∘-reg' {c} {d} {e} Hf Hg
+    ℛ .id {m , c} = (λ x → x) , id-reg'
+    ℛ ._∘_ (f , Hf) (g , Hg) = f ⊙ g , ∘-reg' Hf Hg
     ℛ .idr f = refl ,ₚ prop!
     ℛ .idl g = refl ,ₚ prop!
     ℛ .assoc f g h = refl ,ₚ prop!
 
-  𝔇 : Precategory _ _
-  𝔇 = PSh lzero ℛ
+  ℛ-terminal : Terminal ℛ
+  ℛ-terminal = record
+    { top  = (0 , A↓)
+    ; has⊤ = λ (m , c) → contr
+      ((λ _ ()) , const-reg' λ ())
+      (λ (x , _) → ext (λ _ ()) ,ₚ
+        is-prop→pathp (λ _ → [ c , A↓ ]-reg _ .is-tr) _ _)
+    }
+
+  module ℛ⊤ = Terminal ℛ-terminal
 
   open Functor
 
   μ⟨_⟩ : Coeff → Functor ℛ ℛ
   μ⟨ c ⟩ .F₀ (m , d) =
-    ifᵈ DecOrd-Reg↓ {d} {c} then
-      (m , d)
+    ifᵈ holds? (d ≤ c) then
+      m , d
     else
-      (0 , A↓)
-  μ⟨ c ⟩ .F₁ {m , d} {n , e} f = {!!}
-  μ⟨ c ⟩ .F-id = {!!}
-  μ⟨ c ⟩ .F-∘ = {!!}
+      ℛ⊤.top
+  μ⟨ c ⟩ .F₁ {_ , z} {_ , y} (f , Hf) with holds? (y ≤ c) | holds? (z ≤ c)
+  ... | yes _ | yes _ = f , Hf
+  ... | yes _ | no _  = (λ _ → f (make 0r)) , const-reg' (f (make 0r))
+  ... | no _  | _     = ℛ⊤.!
+  μ⟨ c ⟩ .F-id {_ , z} with holds? (z ≤ c)
+  ... | yes _ = refl
+  ... | no  _ = ℛ⊤.!-unique _
+  μ⟨ c ⟩ .F-∘ {_ , z} {_ , y} {_ , x} (f , Hf) (g , Hg)
+    with holds? (x ≤ c) | holds? (y ≤ c) | holds? (z ≤ c)
+  ... | foo | bar | baz = {!!}
+
+  𝔇 : Precategory _ _
+  𝔇 = PSh lzero ℛ
 
   □⟨_⟩ : Coeff → Functor 𝔇 𝔇
   □⟨ c ⟩ = precompose (op μ⟨ c ⟩)

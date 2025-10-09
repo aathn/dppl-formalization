@@ -74,57 +74,64 @@ Reg-poset = Wide
 
 module Reg≤ = Poset Reg-poset
 
-Reg↓-poset : Poset lzero lzero
-Reg↓-poset = Poset[ Reg-poset ^opp , Bool-poset ]
+abstract
+  Reg↓-poset : Poset lzero lzero
+  Reg↓-poset = Poset[ Reg-poset ^opp , Bool-poset ]
 
-module Reg↓≤ = Poset Reg↓-poset
+  module Reg↓≤ = Poset Reg↓-poset
 
 Reg↓ : Type
 Reg↓ = Reg↓≤.Ob
 
-instance
-  Discrete-Reg↓ : Discrete Reg↓
-  Discrete-Reg↓ .decide x y with x .hom ≡? y .hom
-  ... | yes x≡y = yes (ext (x≡y $ₚ_))
-  ... | no  x≠y = no  (x≠y ∘ ap hom)
+abstract
+  instance
+    Discrete-Reg↓ : Discrete Reg↓
+    Discrete-Reg↓ .decide x y with x .hom ≡? y .hom
+    ... | yes x≡y = yes (ext (x≡y $ₚ_))
+    ... | no  x≠y = no  (x≠y ∘ ap hom)
 
-Reg↓-meets : (a b : Reg↓) → Meet Reg↓-poset a b
-Reg↓-meets a b = Monotone-meets a b λ where
-  x .Meet.glb      → and (a · x) (b · x)
-  x .Meet.has-meet → Bool-has-meets _ _
+  Reg↓-meets : (a b : Reg↓) → Meet Reg↓-poset a b
+  Reg↓-meets a b = Monotone-meets a b λ where
+    x .Meet.glb      → and (a · x) (b · x)
+    x .Meet.has-meet → Bool-has-meets _ _
 
-Reg↓-joins : (a b : Reg↓) → Join Reg↓-poset a b
-Reg↓-joins a b = Monotone-joins a b λ where
-  x .Join.lub      → or (a · x) (b · x)
-  x .Join.has-join → Bool-has-joins _ _
+  Reg↓-joins : (a b : Reg↓≤.Ob) → Join Reg↓-poset a b
+  Reg↓-joins a b = Monotone-joins a b λ where
+    x .Join.lub      → or (a · x) (b · x)
+    x .Join.has-join → Bool-has-joins _ _
 
-Reg↓-lattice : is-lattice Reg↓-poset
-Reg↓-lattice = lat where
-  open is-lattice
-  lat : is-lattice Reg↓-poset
-  lat ._∩_ a b = Meet.glb (Reg↓-meets a b)
-  lat .∩-meets a b = Meet.has-meet (Reg↓-meets a b)
-  lat ._∪_ a b = Join.lub (Reg↓-joins a b)
-  lat .∪-joins a b = Join.has-join (Reg↓-joins a b)
-  lat .has-top = Monotone-has-top Bool-has-top
-  lat .has-bottom = Monotone-has-bot Bool-has-bot
+  Reg↓-lattice : is-lattice Reg↓-poset
+  Reg↓-lattice = lat where
+    open is-lattice
+    lat : is-lattice Reg↓-poset
+    lat ._∩_ a b = Meet.glb (Reg↓-meets a b)
+    lat .∩-meets a b = Meet.has-meet (Reg↓-meets a b)
+    lat ._∪_ a b = Join.lub (Reg↓-joins a b)
+    lat .∪-joins a b = Join.has-join (Reg↓-joins a b)
+    lat .has-top = Monotone-has-top Bool-has-top
+    lat .has-bottom = Monotone-has-bot Bool-has-bot
 
-open is-lattice Reg↓-lattice
+  open is-lattice Reg↓-lattice
+
 open Reg≤
 
-↓ : Reg → Reg↓
-↓ a .hom r = Dec→Bool (holds? (r ≤ a))
-↓ a .pres-≤ y≤x = implies→≤ λ p →
-  is-yes-so (true-is-yes (≤-trans y≤x (is-yes-true (so-is-yes p))))
+abstract
+  ↓ : Reg → Reg↓≤.Ob
+  ↓ a .hom r = Dec→Bool (holds? (r ≤ a))
+  ↓ a .pres-≤ y≤x = implies→≤ λ p →
+    is-yes-so (true-is-yes (≤-trans y≤x (is-yes-true (so-is-yes p))))
 
-↓-mono : Monotone Reg-poset Reg↓-poset
-↓-mono .hom = ↓
-↓-mono .pres-≤ x≤y a = implies→≤ λ p →
-  is-yes-so (true-is-yes (≤-trans (is-yes-true (so-is-yes p)) x≤y))
+  ↓-mono : Monotone Reg-poset Reg↓-poset
+  ↓-mono .hom = ↓
+  ↓-mono .pres-≤ x≤y a = implies→≤ λ p →
+    is-yes-so (true-is-yes (≤-trans (is-yes-true (so-is-yes p)) x≤y))
 
-instance
-  DecOrd-Reg↓ : ∀ {a} {b} → Dec (a Reg↓≤.≤ b)
-  DecOrd-Reg↓ = Listing→Π-dec
+  instance
+    DecOrd-Reg↓ : ∀ {a} {b} → Dec (a Reg↓≤.≤ b)
+    DecOrd-Reg↓ = Listing→Π-dec
+
+  A↓-is-top : top ≡ ↓ A
+  A↓-is-top = ext λ _ → refl
 
 A↓ P↓ C↓ PC↓ M↓ Ø↓ : Reg↓
 A↓  = ↓ A
@@ -134,5 +141,3 @@ PC↓ = P↓ ∪ C↓
 M↓  = ↓ M
 Ø↓  = bot
 
-A↓-is-top : top ≡ A↓
-A↓-is-top = ext λ _ → refl
