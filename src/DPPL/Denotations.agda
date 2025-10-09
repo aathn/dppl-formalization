@@ -14,6 +14,8 @@ open import Lib.LocallyNameless.Unfinite
 open import Lib.Syntax.Env
 
 open import Cat.Prelude
+open import Cat.Functor.Base
+open import Cat.Functor.Compose
 open import Data.Dec.Base
 open import Data.Power
 open import Order.Base
@@ -35,11 +37,28 @@ open SyntaxVars
 --     Θ′ : Coeff ^ m
 --     Θ″ : Coeff ^ k
 
+open Reg↓≤ using (_≤_ ; ≤-refl ; ≤-trans)
+
+is-const : ℙ (ℝ ^ m → ℝ ^ n)
+is-const {n = n} f = elΩ (Σ[ x ∈ ℝ ^ n ] f ≡ λ _ → x) 
+
 record DenotAssumptions : Type₁ where
   field
     ⟨_⟩-reg : Coeff → ∀ {m n} → ℙ (ℝ ^ m → ℝ ^ n)
+    ⊆-reg : c ≤ c' → ⟨ c' ⟩-reg {m} {n} ⊆ ⟨ c ⟩-reg
 
     id-reg : (λ x → x) ∈ ⟨ c ⟩-reg {m}
+    const-reg : (x : ℝ ^ n) → (λ _ → x) ∈ ⟨ c ⟩-reg {m}
+    ∘-reg
+      : {m n k : Nat} {f : ℝ ^ n → ℝ ^ k} {g : ℝ ^ m → ℝ ^ n}
+      → f ∈ ⟨ c ⟩-reg → g ∈ ⟨ c ⟩-reg → f ⊙ g ∈ ⟨ c ⟩-reg
+
+  [_,_]-reg : Coeff → Coeff → ∀ {m n} → ℙ (ℝ ^ m → ℝ ^ n)
+  [_,_]-reg c d =
+    ifᵈ DecOrd-Reg↓ {c} {d} then
+      ⟨ c ⟩-reg
+    else
+      is-const
 
 --     ⟦_⟧ᴾ : (ϕ : Prim) → ℝ ^ PrimAr ϕ → ℝ
 
@@ -151,17 +170,6 @@ record DenotAssumptions : Type₁ where
 
 module Denotations (Ax : DenotAssumptions) where
   open DenotAssumptions Ax
-  open Reg↓≤ using (_≤_ ; ≤-refl)
-
-  is-const : ℙ (ℝ ^ m → ℝ ^ n)
-  is-const {n = n} f = elΩ (Σ[ x ∈ ℝ ^ n ] f ≡ λ _ → x) 
-
-  [_,_]-reg : Coeff → Coeff → ∀ {m n} → ℙ (ℝ ^ m → ℝ ^ n)
-  [_,_]-reg c d =
-    ifᵈ DecOrd-Reg↓ {c} {d} then
-      ⟨ c ⟩-reg
-    else
-      is-const
 
   [,]-reg-≤ : c ≤ c' → [ c , c' ]-reg {m} {n} ≡ ⟨ c ⟩-reg
   [,]-reg-≤ {c = c} {c'} H≤ = ifᵈ-yes (DecOrd-Reg↓ {c} {c'}) (true-is-yes H≤)
@@ -173,12 +181,29 @@ module Denotations (Ax : DenotAssumptions) where
   id-reg' {c = c} =
     subst ((λ x → x) ∈_) (sym $ [,]-reg-≤ {c} {c} (≤-refl {c})) id-reg
 
+  const-reg' : (x : ℝ ^ n) → (λ _ → x) ∈ [ c , c' ]-reg {m}
+  const-reg' {c = c} {c'} x with DecOrd-Reg↓ {c} {c'}
+  ... | yes _ = const-reg x
+  ... | no  _ = inc (_ , refl)
+
   ∘-reg'
     : {c d e : Coeff} {m n k : Nat} {f : ℝ ^ n → ℝ ^ k} {g : ℝ ^ m → ℝ ^ n}
     → f ∈ [ d , e ]-reg → g ∈ [ c , d ]-reg → f ⊙ g ∈ [ c , e ]-reg
-  ∘-reg' {c} {d} {e} Hf Hg with DecOrd-Reg↓ {c} {d}
-  ... | no  c≰d = {!!}
-  ... | yes c≤d = {!!}
+  ∘-reg' {c} {d} {e} {f = f} {g} Hf Hg with DecOrd-Reg↓ {c} {d}
+  ... | no c≰d =
+    □-rec ([ c , e ]-reg _ .is-tr)
+      (λ (x , Hg') →
+        subst (λ g → f ⊙ g ∈ [ c , e ]-reg) (sym Hg') (const-reg' {c = c} {e} (f x)))
+      Hg
+  ... | yes c≤d with DecOrd-Reg↓ {d} {e}
+  ... | no d≰e =
+    □-rec ([ c , e ]-reg _ .is-tr)
+      (λ (x , Hf') →
+        subst (λ f → f ⊙ g ∈ [ c , e ]-reg) (sym Hf') (const-reg' {c = c} {e} x))
+      Hf
+  ... | yes d≤e = 
+    subst (_ ∈_) (sym $ [,]-reg-≤ {c} {e} (≤-trans {c} {d} {e} c≤d d≤e))
+      (∘-reg (⊆-reg c≤d _ Hf) Hg)
 
   module _ where
     open Precategory
@@ -194,20 +219,23 @@ module Denotations (Ax : DenotAssumptions) where
     ℛ .idl g = refl ,ₚ prop!
     ℛ .assoc f g h = refl ,ₚ prop!
 
-  -- Ob : Type
-  -- Ob = Nat × Coeff
+  𝔇 : Precategory _ _
+  𝔇 = PSh lzero ℛ
 
-  -- 𝔇 : Type₁
-  -- 𝔇 = Ob → Type
+  open Functor
 
-  -- 𝔇-hom : 𝔇 → 𝔇 → Type
-  -- 𝔇-hom X Y = {o : Ob} → X o → Y o
+  μ⟨_⟩ : Coeff → Functor ℛ ℛ
+  μ⟨ c ⟩ .F₀ (m , d) =
+    ifᵈ DecOrd-Reg↓ {d} {c} then
+      (m , d)
+    else
+      (0 , A↓)
+  μ⟨ c ⟩ .F₁ {m , d} {n , e} f = {!!}
+  μ⟨ c ⟩ .F-id = {!!}
+  μ⟨ c ⟩ .F-∘ = {!!}
 
-  -- □⟨_⟩ : Coeff → 𝔇 → 𝔇
-  -- □⟨ c ⟩ X (n , d) =
-  --   case DecOrd-Reg↓ {d} {c} of λ where
-  --     (yes _) → X (n , d)
-  --     (no  _) → X (0 , d)
+  □⟨_⟩ : Coeff → Functor 𝔇 𝔇
+  □⟨ c ⟩ = precompose (op μ⟨ c ⟩)
 
   -- 𝔇𝟙 : 𝔇
   -- 𝔇𝟙 _ = ⊤
