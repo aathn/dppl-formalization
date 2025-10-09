@@ -8,12 +8,15 @@ open import DPPL.Regularity
 open import DPPL.Syntax R
 open import DPPL.Typing R
 
-open import Lib.Prelude
 open import Lib.Data.Vector
+open import Lib.Data.Dec
 open import Lib.LocallyNameless.Unfinite
 open import Lib.Syntax.Env
 
+open import Cat.Prelude
+open import Data.Dec.Base
 open import Data.Power
+open import Order.Base
 
 open SyntaxVars
 
@@ -34,7 +37,9 @@ open SyntaxVars
 
 record DenotAssumptions : Type₁ where
   field
-    [_,_]-reg : Coeff → Coeff → ℙ (ℝ ^ n → ℝ ^ m)
+    ⟨_⟩-reg : Coeff → ∀ {m n} → ℙ (ℝ ^ m → ℝ ^ n)
+
+    id-reg : (λ x → x) ∈ ⟨ c ⟩-reg {m}
 
 --     ⟦_⟧ᴾ : (ϕ : Prim) → ℝ ^ PrimAr ϕ → ℝ
 
@@ -146,34 +151,86 @@ record DenotAssumptions : Type₁ where
 
 module Denotations (Ax : DenotAssumptions) where
   open DenotAssumptions Ax
-  -- open Reg↓≤ hiding (Ob)
+  open Reg↓≤ using (_≤_ ; ≤-refl)
 
-  Ob : Type
-  Ob = Nat × Coeff
+  is-const : ℙ (ℝ ^ m → ℝ ^ n)
+  is-const {n = n} f = elΩ (Σ[ x ∈ ℝ ^ n ] f ≡ λ _ → x) 
 
-  𝔇 : Type₁
-  𝔇 = Ob → Type
+  [_,_]-reg : Coeff → Coeff → ∀ {m n} → ℙ (ℝ ^ m → ℝ ^ n)
+  [_,_]-reg c d =
+    ifᵈ DecOrd-Reg↓ {c} {d} then
+      ⟨ c ⟩-reg
+    else
+      is-const
 
-  𝔇-hom : 𝔇 → 𝔇 → Type
-  𝔇-hom X Y = {o : Ob} → X o → Y o
+  [,]-reg-≤ : c ≤ c' → [ c , c' ]-reg {m} {n} ≡ ⟨ c ⟩-reg
+  [,]-reg-≤ {c = c} {c'} H≤ = ifᵈ-yes (DecOrd-Reg↓ {c} {c'}) (true-is-yes H≤)
 
-  □⟨_⟩ : Coeff → 𝔇 → 𝔇
-  □⟨ c ⟩ X (n , d) =
-    case DecOrd-Reg↓ {d} {c} of λ where
-      (yes _) → X (n , d)
-      (no  _) → X (0 , d)
+  [,]-reg-≰ : ¬ c ≤ c' → [ c , c' ]-reg {m} {n} ≡ is-const
+  [,]-reg-≰ {c = c} {c'} H≰ = ifᵈ-no (DecOrd-Reg↓ {c} {c'}) (false-is-no H≰)
 
-  𝔇ℝ[_] : Ob → 𝔇
-  𝔇ℝ[ n , c ] (m , d) = Σ[ f ∈ (ℝ ^ m → ℝ ^ n) ] f ∈ [ d , c ]-reg
+  id-reg' : (λ x → x) ∈ [ c , c ]-reg {m}
+  id-reg' {c = c} =
+    subst ((λ x → x) ∈_) (sym $ [,]-reg-≤ {c} {c} (≤-refl {c})) id-reg
 
-  𝔇Π : (Fin n → 𝔇) → 𝔇
-  𝔇Π Xs (m , d) = ∀ i → Xs i (m , d)
+  ∘-reg'
+    : {c d e : Coeff} {m n k : Nat} {f : ℝ ^ n → ℝ ^ k} {g : ℝ ^ m → ℝ ^ n}
+    → f ∈ [ d , e ]-reg → g ∈ [ c , d ]-reg → f ⊙ g ∈ [ c , e ]-reg
+  ∘-reg' {c} {d} {e} Hf Hg with DecOrd-Reg↓ {c} {d}
+  ... | no  c≰d = {!!}
+  ... | yes c≤d = {!!}
+
+  module _ where
+    open Precategory
+  
+    ℛ : Precategory lzero lzero
+    ℛ .Ob = Nat × Coeff
+    ℛ .Hom (m , c) (n , d) = Σ[ f ∈ (ℝ ^ m → ℝ ^ n) ] f ∈ [ c , d ]-reg
+    ℛ .Hom-set _ _ _ _ = hlevel 1
+    ℛ .id {m , c} = (λ x → x) , id-reg' {c}
+    ℛ ._∘_ {_ , c} {_ , d} {_ , e} (f , Hf) (g , Hg) =
+      f ⊙ g , ∘-reg' {c} {d} {e} Hf Hg
+    ℛ .idr f = refl ,ₚ prop!
+    ℛ .idl g = refl ,ₚ prop!
+    ℛ .assoc f g h = refl ,ₚ prop!
+
+  -- Ob : Type
+  -- Ob = Nat × Coeff
+
+  -- 𝔇 : Type₁
+  -- 𝔇 = Ob → Type
+
+  -- 𝔇-hom : 𝔇 → 𝔇 → Type
+  -- 𝔇-hom X Y = {o : Ob} → X o → Y o
+
+  -- □⟨_⟩ : Coeff → 𝔇 → 𝔇
+  -- □⟨ c ⟩ X (n , d) =
+  --   case DecOrd-Reg↓ {d} {c} of λ where
+  --     (yes _) → X (n , d)
+  --     (no  _) → X (0 , d)
+
+  -- 𝔇𝟙 : 𝔇
+  -- 𝔇𝟙 _ = ⊤
+
+  -- 𝔇ℝ[_] : Ob → 𝔇
+  -- 𝔇ℝ[ n , c ] (m , d) = Σ[ f ∈ (ℝ ^ m → ℝ ^ n) ] f ∈ [ d , c ]-reg
+
+  -- 𝔇Π : 𝔇 ^ n → 𝔇
+  -- 𝔇Π Xs (m , d) = ∀ i → Xs i (m , d)
+
+  -- _𝔇⇒_ : 𝔇 → 𝔇 → 𝔇
+  -- (X 𝔇⇒ Y) (n , c) = 𝔇-hom (𝔇Π (pair 𝔇ℝ[ n , c ] X)) Y
 
   -- Ty-denot : Ty → 𝔇
-  -- Ty-denot (treal c) (n , d) = 
-  -- Ty-denot (T ⇒[ c , e ] T') = □⟨ c ⟩ (\)
-  -- Ty-denot (ttup n Ts) = {!!}
-  -- Ty-denot (tdist T) = {!!}
+  -- Ty-denot (treal c)           = 𝔇ℝ[ 1 , c ]
+  -- Ty-denot (T ⇒[ c , det ] T') = □⟨ c ⟩ (Ty-denot T 𝔇⇒ Ty-denot T')
+  -- Ty-denot (ttup n Ts)         = 𝔇Π (λ i → Ty-denot (Ts i))
+  -- Ty-denot (_ ⇒[ _ , rnd ] _)  = 𝔇𝟙
+  -- Ty-denot (tdist _)           = 𝔇𝟙
+
+  -- instance
+  --   ⟦⟧-Ty : ⟦⟧-notation Ty
+  --   ⟦⟧-Ty = brackets _ Ty-denot
   -- ⟦ treal c ⟧ᵀ Θ = ∃ (𝔉 Θ c)
   -- ⟦ T₁ ⇒[ det ] T₂ ⟧ᵀ Θ = {m : ℕ} {Θ′ : Coeff ^ m} → Θ ⊆ Θ′ → ⟦ T₁ ⟧ᵀ Θ′ → ⟦ T₂ ⟧ᵀ Θ′
   -- ⟦ ttup n Ts ⟧ᵀ Θ = (i : Fin n) → ⟦ Ts i ⟧ᵀ Θ
