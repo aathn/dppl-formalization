@@ -5,7 +5,7 @@ module DPPL.Denotations (R : Reals₀) where
 open Reals R using (ℝ ; 0r)
 
 open import DPPL.Regularity
-open import DPPL.Syntax R
+open import DPPL.Syntax R hiding (_▸_)
 open import DPPL.Typing R
 
 open import Lib.Data.Vector
@@ -171,8 +171,8 @@ module Denotations (Ax : DenotAssumptions) where
   [,]-reg-≰ : ¬ c ≤ c' → [ c , c' ]-reg {m} {n} ≡ is-const
   [,]-reg-≰ {c = c} {c'} H≰ = ifᵈ-no (holds? (c ≤ c')) (false-is-no H≰)
 
-  id-reg' : (λ x → x) ∈ [ c , c ]-reg {m}
-  id-reg' = subst ((λ x → x) ∈_) (sym $ [,]-reg-≤ ≤-refl) id-reg
+  id-reg' : c ≤ c' → (λ x → x) ∈ [ c , c' ]-reg {m}
+  id-reg' H≤ = subst ((λ x → x) ∈_) (sym $ [,]-reg-≤ H≤) id-reg
 
   const-reg' : (x : ℝ ^ n) → (λ _ → x) ∈ [ c , c' ]-reg {m}
   const-reg' {c = c} {c'} x with holds? (c ≤ c')
@@ -201,7 +201,7 @@ module Denotations (Ax : DenotAssumptions) where
     ℛ .Ob = Nat × Coeff
     ℛ .Hom (m , c) (n , d) = Σ[ f ∈ (ℝ ^ m → ℝ ^ n) ] f ∈ [ c , d ]-reg
     ℛ .Hom-set _ _ _ _ = hlevel 1
-    ℛ .id {m , c} = (λ x → x) , id-reg'
+    ℛ .id {m , c} = (λ x → x) , id-reg' ≤-refl
     ℛ ._∘_ (f , Hf) (g , Hg) = f ⊙ g , ∘-reg' Hf Hg
     ℛ .idr f = refl ,ₚ prop!
     ℛ .idl g = refl ,ₚ prop!
@@ -221,7 +221,7 @@ module Denotations (Ax : DenotAssumptions) where
   module ℛ⊤ = Terminal ℛ-terminal
 
   open Functor
-  open _=>_ hiding (op)
+  open _=>_ renaming (op to opⁿ)
 
   μ⟨_⟩ : Coeff → Functor ℛ ℛ
   μ⟨ c ⟩ .F₀ (m , d) =
@@ -250,7 +250,10 @@ module Denotations (Ax : DenotAssumptions) where
     case f-const of λ x Hf' → funext (λ _ → Hf' $ₚ _ ∙ sym (Hf' $ₚ _)) ,ₚ prop!
 
   μ-unit : Id => μ⟨ c ⟩
-  μ-unit = {!!}
+  μ-unit {c} .η (m , x) with holds? (x ≤ c)
+  ... | yes _ = ℛ.id
+  ... | no  _ = ℛ⊤.!
+  μ-unit .is-natural = {!!}
 
   μ-≤ : c' ≤ c → μ⟨ c ⟩ => μ⟨ c' ⟩
   μ-≤ {c = c} H≤ .η (m , x) with holds? (x ≤ c)
@@ -265,6 +268,10 @@ module Denotations (Ax : DenotAssumptions) where
 
   □⟨_⟩ : Coeff → Functor 𝔇 𝔇
   □⟨ c ⟩ = precompose (op μ⟨ c ⟩)
+
+  □-≤ : c ≤ c' → □⟨ c ⟩ => □⟨ c' ⟩
+  □-≤ H≤ .η X = X ▸ opⁿ (μ-≤ H≤)
+  □-≤ H≤ .is-natural _ _ f = {!!}
 
   𝔇-cartesian : Cartesian-category 𝔇
   𝔇-cartesian = PSh-cartesian lzero ℛ
@@ -296,13 +303,13 @@ module Denotations (Ax : DenotAssumptions) where
   open EnvDenot 𝔇-cartesian Ty-denot
 
   Sub-denot : T <: T' → Hom ⟦ T ⟧ ⟦ T' ⟧
-  Sub-denot (sreal H≤)             = {!!} -- 𝔇-sub H≤
+  Sub-denot (sreal H≤)             = よ₁ ℛ ((λ x → x) , id-reg' H≤)
   Sub-denot (stup {Ts' = Ts'} H<:) =
     𝔇-ip.tuple _ λ i → Sub-denot (H<: i) ∘ 𝔇-ip.π _ i
-  Sub-denot (sarr {e = det} {det} H<: H<:' H≤c H≤e) =
-    {!!} -- [-,-]₁ _ _ 𝔇-closed (Sub-denot H<:') (Sub-denot H<:)
-  Sub-denot (sarr {e' = rnd} H<: H<:' H≤c H≤e)      = !
-  Sub-denot (sdist H<:) = !
+  Sub-denot (sarr {c = c} {e = det} {det} H<: H<:' H≤c H≤e) =
+    □-≤ H≤c .η _ ∘ □⟨ c ⟩ .F₁ ([-,-]₁ _ _ 𝔇-closed (Sub-denot H<:') (Sub-denot H<:))
+  Sub-denot (sarr {e' = rnd} H<: H<:' H≤c H≤e) = !
+  Sub-denot (sdist H<:)                        = !
 
   -- ⟦ treal c ⟧ᵀ Θ = ∃ (𝔉 Θ c)
   -- ⟦ T₁ ⇒[ det ] T₂ ⟧ᵀ Θ = {m : ℕ} {Θ′ : Coeff ^ m} → Θ ⊆ Θ′ → ⟦ T₁ ⟧ᵀ Θ′ → ⟦ T₂ ⟧ᵀ Θ′
