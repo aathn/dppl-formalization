@@ -14,29 +14,22 @@ open import Lib.LocallyNameless.Unfinite
 open import Lib.Syntax.Env
 
 open import Cat.Prelude
+open import Cat.Cartesian
+open import Cat.Diagram.Exponential
+open import Cat.Diagram.Product.Finite
+open import Cat.Diagram.Product.Indexed
 open import Cat.Diagram.Terminal
 open import Cat.Functor.Base
 open import Cat.Functor.Compose
+open import Cat.Functor.Hom
+open import Cat.Instances.Presheaf.Limits
+open import Cat.Instances.Presheaf.Exponentials
 open import Data.Dec.Base
+open import Data.Fin.Base hiding (_≤_)
 open import Data.Power
 open import Order.Base
 
 open SyntaxVars
-
--- open import Data.Fin using (splitAt)
--- open import Data.Fin.Properties using (toℕ<n)
--- open import Data.List.Relation.Unary.All as All using (All)
--- open import Data.Vec.Functional
--- open import Relation.Unary using (_∈_; Pred)
--- open import Relation.Binary.PropositionalEquality using (subst₂)
--- import Data.List.Relation.Binary.Sublist.Propositional as Sub
-
--- private
---   variable
---     n m k : ℕ
---     Θ : Coeff ^ n
---     Θ′ : Coeff ^ m
---     Θ″ : Coeff ^ k
 
 open Reg↓≤ using (_≤_ ; ≤-refl ; ≤-trans)
 
@@ -214,6 +207,8 @@ module Denotations (Ax : DenotAssumptions) where
     ℛ .idl g = refl ,ₚ prop!
     ℛ .assoc f g h = refl ,ₚ prop!
 
+  module ℛ = Precategory ℛ
+
   ℛ-terminal : Terminal ℛ
   ℛ-terminal = record
     { top  = (0 , A↓)
@@ -226,6 +221,7 @@ module Denotations (Ax : DenotAssumptions) where
   module ℛ⊤ = Terminal ℛ-terminal
 
   open Functor
+  open _=>_ hiding (op)
 
   μ⟨_⟩ : Coeff → Functor ℛ ℛ
   μ⟨ c ⟩ .F₀ (m , d) =
@@ -242,36 +238,72 @@ module Denotations (Ax : DenotAssumptions) where
   ... | no  _ = ℛ⊤.!-unique _
   μ⟨ c ⟩ .F-∘ {_ , z} {_ , y} {_ , x} (f , Hf) (g , Hg)
     with holds? (x ≤ c) | holds? (y ≤ c) | holds? (z ≤ c)
-  ... | foo | bar | baz = {!!}
+  ... | no _    | _      | _     = ℛ⊤.!-unique _
+  ... | yes _   | yes _  | yes _ = refl
+  ... | yes _   | yes _  | no  _ =
+    refl ,ₚ is-prop→pathp (λ _ → [ A↓ , x ]-reg _ .is-tr) _ _
+  ... | yes x≤c | no y≰c | z≤?c
+    with f-const ← subst (_ ∈_) ([,]-reg-≰ λ y≤x → y≰c (≤-trans y≤x x≤c)) Hf | z≤?c
+  ... | yes _ =
+    case f-const of λ x Hf' → funext (λ _ → Hf' $ₚ _ ∙ sym (Hf' $ₚ _)) ,ₚ prop!
+  ... | no  _ =
+    case f-const of λ x Hf' → funext (λ _ → Hf' $ₚ _ ∙ sym (Hf' $ₚ _)) ,ₚ prop!
+
+  μ-unit : Id => μ⟨ c ⟩
+  μ-unit = {!!}
+
+  μ-≤ : c' ≤ c → μ⟨ c ⟩ => μ⟨ c' ⟩
+  μ-≤ {c = c} H≤ .η (m , x) with holds? (x ≤ c)
+  ... | yes _ = μ-unit .η (m , x)
+  ... | no ¬a = {!!}
+  μ-≤ H≤ .is-natural = {!!}
 
   𝔇 : Precategory _ _
   𝔇 = PSh lzero ℛ
 
+  module 𝔇 = Precategory 𝔇
+
   □⟨_⟩ : Coeff → Functor 𝔇 𝔇
   □⟨ c ⟩ = precompose (op μ⟨ c ⟩)
 
-  -- 𝔇𝟙 : 𝔇
-  -- 𝔇𝟙 _ = ⊤
+  𝔇-cartesian : Cartesian-category 𝔇
+  𝔇-cartesian = PSh-cartesian lzero ℛ
 
-  -- 𝔇ℝ[_] : Ob → 𝔇
-  -- 𝔇ℝ[ n , c ] (m , d) = Σ[ f ∈ (ℝ ^ m → ℝ ^ n) ] f ∈ [ d , c ]-reg
+  𝔇-closed : Cartesian-closed 𝔇 𝔇-cartesian
+  𝔇-closed = PSh-closed ℛ
 
-  -- 𝔇Π : 𝔇 ^ n → 𝔇
-  -- 𝔇Π Xs (m , d) = ∀ i → Xs i (m , d)
+  open Cartesian-category 𝔇-cartesian
+  open Cartesian-closed 𝔇-closed renaming ([_,_] to _⇒_)
 
-  -- _𝔇⇒_ : 𝔇 → 𝔇 → 𝔇
-  -- (X 𝔇⇒ Y) (n , c) = 𝔇-hom (𝔇Π (pair 𝔇ℝ[ n , c ] X)) Y
+  module 𝔇-ip {n} (F : Fin n → ⌞ 𝔇 ⌟) =
+    Indexed-product (Cartesian→standard-finite-products terminal products F)
 
-  -- Ty-denot : Ty → 𝔇
-  -- Ty-denot (treal c)           = 𝔇ℝ[ 1 , c ]
-  -- Ty-denot (T ⇒[ c , det ] T') = □⟨ c ⟩ (Ty-denot T 𝔇⇒ Ty-denot T')
-  -- Ty-denot (ttup n Ts)         = 𝔇Π (λ i → Ty-denot (Ts i))
-  -- Ty-denot (_ ⇒[ _ , rnd ] _)  = 𝔇𝟙
-  -- Ty-denot (tdist _)           = 𝔇𝟙
+  𝔇ℝ[_] : ℛ.Ob → 𝔇.Ob
+  𝔇ℝ[_] = よ₀ ℛ
 
-  -- instance
-  --   ⟦⟧-Ty : ⟦⟧-notation Ty
-  --   ⟦⟧-Ty = brackets _ Ty-denot
+  Ty-denot : Ty → 𝔇.Ob
+  Ty-denot (treal c)            = 𝔇ℝ[ 1 , c ]
+  Ty-denot (T₁ ⇒[ c , det ] T₂) = □⟨ c ⟩ .F₀ (Ty-denot T₁ ⇒ Ty-denot T₂)
+  Ty-denot (ttup n Ts)          = 𝔇-ip.ΠF λ i → Ty-denot (Ts i)
+  -- Distributions are interpreted trivially for the time being.
+  Ty-denot (tdist _)            = top
+  Ty-denot (_ ⇒[ _ , rnd ] _)   = top
+
+  instance
+    ⟦⟧-Ty : ⟦⟧-notation Ty
+    ⟦⟧-Ty = brackets _ Ty-denot
+
+  open EnvDenot 𝔇-cartesian Ty-denot
+
+  Sub-denot : T <: T' → Hom ⟦ T ⟧ ⟦ T' ⟧
+  Sub-denot (sreal H≤)             = {!!} -- 𝔇-sub H≤
+  Sub-denot (stup {Ts' = Ts'} H<:) =
+    𝔇-ip.tuple _ λ i → Sub-denot (H<: i) ∘ 𝔇-ip.π _ i
+  Sub-denot (sarr {e = det} {det} H<: H<:' H≤c H≤e) =
+    {!!} -- [-,-]₁ _ _ 𝔇-closed (Sub-denot H<:') (Sub-denot H<:)
+  Sub-denot (sarr {e' = rnd} H<: H<:' H≤c H≤e)      = !
+  Sub-denot (sdist H<:) = !
+
   -- ⟦ treal c ⟧ᵀ Θ = ∃ (𝔉 Θ c)
   -- ⟦ T₁ ⇒[ det ] T₂ ⟧ᵀ Θ = {m : ℕ} {Θ′ : Coeff ^ m} → Θ ⊆ Θ′ → ⟦ T₁ ⟧ᵀ Θ′ → ⟦ T₂ ⟧ᵀ Θ′
   -- ⟦ ttup n Ts ⟧ᵀ Θ = (i : Fin n) → ⟦ Ts i ⟧ᵀ Θ
