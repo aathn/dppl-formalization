@@ -1,6 +1,6 @@
 module Lib.Syntax.Env where
 
-open import Lib.Prelude
+open import Lib.Prelude hiding (⟨_,_⟩)
 open import Lib.Data.Dec
 open import Lib.Data.Finset
 open import Lib.Data.List
@@ -108,6 +108,9 @@ data raw-mem {X : Type ℓ} (a : 𝔸) (T : X) : RawEnv X → Type ℓ where
   here  : x ≡ᵢ (a , T) → a ∉ raw-dom l → raw-mem a T (x ∷ l)
   there : raw-mem a T l → raw-mem a T (x ∷ l)
 
+here' : x ≡ᵢ (a , T) → raw-mem a T (x ∷ l)
+here' = {!!}
+
 raw-mem-∈ : raw-mem a T l → a ∈ raw-dom l
 raw-mem-∈ (here reflᵢ H∉) = hereₛ
 raw-mem-∈ (there H∈)      = thereₛ (raw-mem-∈ H∈)
@@ -126,6 +129,10 @@ instance
   H-Level-raw-mem = basic-instance 1 raw-mem-is-prop
 
 private
+  instance
+    Membership-RawEnv : {X : Type ℓ} → Membership (𝔸 × X) (RawEnv X) ℓ
+    Membership-RawEnv = record { _∈_ = λ (x , T) Γ → ⌞ raw-mem x T Γ ⌟ }
+
   dup-memr : dup-step l l' → raw-mem a T l → raw-mem a T l'
   dup-memr {a = a} (step-cong Hdup) (here reflᵢ H∉) =
     here reflᵢ (subst (a ∉_) (dup-raw-dom Hdup) H∉)
@@ -232,6 +239,15 @@ module EnvDenot
   env-lookup : ⦃ _ : H-Level X 2 ⦄ → a ∶ T ∈ Γ → Hom ⟦ Γ ⟧ (X-denot T)
   env-lookup {a = a} {T} {Γ} H∈ = raw-lookup (subst (a ∶ T ∈_) (env-nub-univ Γ) H∈)
 
+  raw-weaken : {l l' : RawEnv X} → l ⊆ l' → Hom ⟦ l' ⟧ ⟦ l ⟧
+  raw-weaken {[]} _     = !
+  raw-weaken {x ∷ l} H⊆ =
+    ⟨ raw-weaken (λ x H∈ → H⊆ x (there H∈))
+    , {!!} -- raw-lookup (here' reflᵢ)
+    ⟩
+
+  env-weaken : ⦃ _ : H-Level X 2 ⦄ {Γ Γ' : Env X} → Γ ⊆ Γ' → Hom ⟦ Γ' ⟧ ⟦ Γ ⟧
+  env-weaken = {!!}
 
 -- dom-∈ : {Γ : Env X} {x : 𝔸} → x ∈ dom Γ → Σ[ T ∈ X ] (x , T) ∈ Γ
 -- dom-∈ = {!!}
