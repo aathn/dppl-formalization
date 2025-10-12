@@ -253,12 +253,20 @@ module Denotations (Ax : DenotAssumptions) where
   μ-unit {c} .η (m , x) with holds? (x ≤ c)
   ... | yes _ = ℛ.id
   ... | no  _ = ℛ⊤.!
-  μ-unit .is-natural = {!!}
+  μ-unit {c} .is-natural (m , z) (n , y) (f , Hf) with holds? (z ≤ c) | holds? (y ≤ c)
+  ... | _      | no  _   = refl ,ₚ is-prop→pathp (λ _ → [ z , A↓ ]-reg _ .is-tr) _ _
+  ... | yes _  | yes _   = refl ,ₚ is-prop→pathp (λ _ → [ z , y ]-reg _ .is-tr) _ _
+  ... | no z≰c | yes y≤c =
+    case f-const of λ x Hf' → funext (λ _ → Hf' $ₚ _ ∙ sym (Hf' $ₚ _)) ,ₚ prop!
+    where f-const = subst (_ ∈_) ([,]-reg-≰ λ z≤y → z≰c (≤-trans z≤y y≤c)) Hf
 
   μ-≤ : c' ≤ c → μ⟨ c ⟩ => μ⟨ c' ⟩
-  μ-≤ {c = c} H≤ .η (m , x) with holds? (x ≤ c)
-  ... | yes _ = μ-unit .η (m , x)
-  ... | no ¬a = {!!}
+  μ-≤ {c'} {c} H≤ .η (m , x) with holds? (x ≤ c)
+  ... | yes _  = μ-unit .η (m , x)
+  ... | no x≰c =
+    subst (ℛ.Hom ℛ⊤.top)
+      (sym $ ifᵈ-no (holds? (x ≤ c')) (false-is-no λ x≤c' → x≰c (≤-trans x≤c' H≤)))
+      ℛ⊤.!
   μ-≤ H≤ .is-natural = {!!}
 
   𝔇 : Precategory _ _
@@ -271,8 +279,9 @@ module Denotations (Ax : DenotAssumptions) where
 
   □-≤ : c ≤ c' → □⟨ c ⟩ => □⟨ c' ⟩
   □-≤ H≤ .η X = X ▸ opⁿ (μ-≤ H≤)
-  □-≤ H≤ .is-natural _ _ f = {!!}
-
+  □-≤ {c} {c'} H≤ .is-natural X Y f =
+    (Y ▸ opⁿ (μ-≤ H≤)) 𝔇.∘ □⟨ c ⟩ .F₁ f  ≡⟨ {!!} ⟩
+    □⟨ c' ⟩ .F₁ f 𝔇.∘ (X ▸ opⁿ (μ-≤ H≤)) ∎
   𝔇-cartesian : Cartesian-category 𝔇
   𝔇-cartesian = PSh-cartesian lzero ℛ
 
@@ -282,7 +291,7 @@ module Denotations (Ax : DenotAssumptions) where
   open Cartesian-category 𝔇-cartesian
   open Cartesian-closed 𝔇-closed renaming ([_,_] to _⇒_)
 
-  module 𝔇-ip {n} (F : Fin n → ⌞ 𝔇 ⌟) =
+  module 𝔇-ip {n} (F : Fin n → 𝔇.Ob) =
     Indexed-product (Cartesian→standard-finite-products terminal products F)
 
   𝔇ℝ[_] : ℛ.Ob → 𝔇.Ob
