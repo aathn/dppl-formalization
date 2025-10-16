@@ -6,6 +6,7 @@ open import Data.Fin.Base using (Fin ; fzero ; fsuc ; fin-view ; zero ; suc ; sp
 open import Data.Sum.Base using (inl ; inr)
 
 open import Data.Fin.Base public using (_[_≔_] ; delete)
+open import Data.Fin.Properties using (insert-delete)
 
 Vector : {l : Level} → Type l → Nat → Type l
 Vector A n = Fin n → A
@@ -54,6 +55,17 @@ _++_ : A ^ n → A ^ m → A ^ (n + m)
 (xs ++ ys) i with split-+ i
 ... | inl j = xs j
 ... | inr k = ys k
+
+updateAt : A ^ n → Fin n → A → A ^ n
+updateAt {n = suc n} xs i x = delete xs i [ i ≔ x ]
+
+updateAt-id-local
+  : ∀ {n} {ℓ} {A : Type ℓ}
+  → (ρ : A ^ n)
+  → (i : Fin n) (a : A)
+  → ρ i ≡ a
+  → ∀ j → updateAt ρ i a j ≡ ρ j
+updateAt-id-local {suc n} = insert-delete
 
 ----------------------------------------------------------------------
 -- Arrays
