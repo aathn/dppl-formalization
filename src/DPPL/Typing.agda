@@ -137,12 +137,14 @@ data _⊢_:[_]_ : TyEnv → Tm → Eff → Ty → Type where
     Γ ⊢ proj n i ▸ t :[ e ] Ts i
 
   tif :
+    {cs : Coeff ^ n}
     {ts : Tm ^ 3}
     (_ : Γ ⊢ ts ₀ :[ e ] treal P↓)
-    (_ : Γ ⊢ ts ₁ :[ e ] T)
-    (_ : Γ ⊢ ts ₂ :[ e ] T)
-    → ----------------------------
-    Γ ⊢ if ▸ ts :[ e ] T
+    (_ : Γ ⊢ ts ₁ :[ e ] treals n cs)
+    (_ : Γ ⊢ ts ₂ :[ e ] treals n cs)
+    (_ : ∀ i → P↓ ≤reg cs i )
+    → -------------------------------
+    Γ ⊢ if ▸ ts :[ e ] treals n cs
 
   tuniform : Γ ⊢ uniform :[ rnd ] treal M↓
 
@@ -166,7 +168,7 @@ data _⊢_:[_]_ : TyEnv → Tm → Eff → Ty → Type where
 
   tdiff :
     {ts : Tm ^ 2}
-    (_ : Γ ⊢ ts ₀ :[ e ] treals n (make c) ⇒[ A↓ , det ] treals m (make c))
+    (_ : Γ ⊢ ts ₀ :[ e ] treals n (make c) ⇒[ P↓ , det ] treals m (make c))
     (_ : Γ ⊢ ts ₁ :[ e ] treals n (make c))
     (_ : c ≡ A↓ ⊎ c ≡ P↓)
     → ----------------------------------------------------------------------
