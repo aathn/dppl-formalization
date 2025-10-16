@@ -108,9 +108,6 @@ data raw-mem {X : Type ℓ} (a : 𝔸) (T : X) : RawEnv X → Type ℓ where
   here  : x ≡ᵢ (a , T) → a ∉ raw-dom l → raw-mem a T (x ∷ l)
   there : raw-mem a T l → raw-mem a T (x ∷ l)
 
-here' : x ≡ᵢ (a , T) → raw-mem a T (x ∷ l)
-here' = {!!}
-
 raw-mem-∈ : raw-mem a T l → a ∈ raw-dom l
 raw-mem-∈ (here reflᵢ H∉) = hereₛ
 raw-mem-∈ (there H∈)      = thereₛ (raw-mem-∈ H∈)
@@ -202,6 +199,20 @@ env-nub-cons
   → a ∉ env-dom Γ → env-nub (Γ , a ∶ T) ≡ (a , T) ∷ env-nub Γ
 env-nub-cons = Coeq-elim-prop (λ _ → hlevel 1) raw-nub-cons
 
+data is-nubbed {X : Type ℓ} : RawEnv X → Type ℓ where
+  []  : is-nubbed []
+  _∷_ : fst x ∉ raw-dom l → is-nubbed l → is-nubbed (x ∷ l)
+
+raw-nub-is-nubbed : (l : RawEnv X) → is-nubbed (raw-nub l)
+raw-nub-is-nubbed [] = []
+raw-nub-is-nubbed (x ∷ l) with holds? (fst x ∈ raw-dom (raw-nub l))
+... | yes _ = raw-nub-is-nubbed l
+... | no H∉ = false-is-no H∉ ∷ raw-nub-is-nubbed l
+
+env-nub-is-nubbed : ⦃ _ : H-Level X 2 ⦄ (Γ : Env X) → is-nubbed (env-nub Γ)
+env-nub-is-nubbed Γ = subst (is-nubbed ∘ env-nub)
+  (sym $ env-nub-univ Γ) (raw-nub-is-nubbed (env-nub Γ))
+
 raw-map : (X → Y) → RawEnv X → RawEnv Y
 raw-map f = map (λ (x , T) → x , f T)
 
@@ -239,15 +250,16 @@ module EnvDenot
   env-lookup : ⦃ _ : H-Level X 2 ⦄ → a ∶ T ∈ Γ → Hom ⟦ Γ ⟧ (X-denot T)
   env-lookup {a = a} {T} {Γ} H∈ = raw-lookup (subst (a ∶ T ∈_) (env-nub-univ Γ) H∈)
 
-  raw-weaken : {l l' : RawEnv X} → l ⊆ l' → Hom ⟦ l' ⟧ ⟦ l ⟧
-  raw-weaken {[]} _     = !
-  raw-weaken {x ∷ l} H⊆ =
-    ⟨ raw-weaken (λ x H∈ → H⊆ x (there H∈))
-    , {!!} -- raw-lookup (here' reflᵢ)
+  raw-weaken : {l l' : RawEnv X} → is-nubbed l → l ⊆ l' → Hom ⟦ l' ⟧ ⟦ l ⟧
+  raw-weaken [] _           = !
+  raw-weaken (H∉ ∷ Hnub) H⊆ =
+    ⟨ raw-weaken Hnub (λ x H∈ → H⊆ x (there H∈))
+    , raw-lookup (H⊆ _ (here reflᵢ H∉))
     ⟩
 
   env-weaken : ⦃ _ : H-Level X 2 ⦄ {Γ Γ' : Env X} → Γ ⊆ Γ' → Hom ⟦ Γ' ⟧ ⟦ Γ ⟧
-  env-weaken = {!!}
+  env-weaken {Γ} {Γ'} H⊆ = raw-weaken (env-nub-is-nubbed Γ)
+    (subst₂ _⊆_ (env-nub-univ Γ) (env-nub-univ Γ') H⊆)
 
 -- dom-∈ : {Γ : Env X} {x : 𝔸} → x ∈ dom Γ → Σ[ T ∈ X ] (x , T) ∈ Γ
 -- dom-∈ = {!!}
