@@ -8,6 +8,8 @@ open import DPPL.Regularity
 open import DPPL.Syntax R hiding (_▸_)
 open import DPPL.Typing R
 
+open import Lib.Cat.Concrete
+open import Lib.Cat.Subcategory
 open import Lib.Data.Dec
 open import Lib.Data.Finset
 open import Lib.Data.Vector
@@ -24,8 +26,6 @@ open import Cat.Functor.Base
 open import Cat.Functor.Compose
 open import Cat.Functor.Hom
 open import Cat.Functor.Naturality
-open import Cat.Instances.Presheaf.Limits
-open import Cat.Instances.Presheaf.Exponentials
 open import Data.Dec.Base
 open import Data.Fin.Base hiding (_≤_)
 open import Data.Power hiding (_∪_)
@@ -124,6 +124,17 @@ module Denotations (Ax : DenotAssumptions) where
 
   module ℛ⊤ = Terminal ℛ-terminal
 
+  ℛ-id≤ : c ≤ c' → ℛ.Hom (m , c) (m , c')
+  ℛ-id≤ H≤ = (λ x → x) , id-reg' H≤
+
+  ℛ-const : ℝ ^ m → ℛ.Hom ℛ⊤.top (m , c)
+  ℛ-const x = (λ _ → x) , const-reg' x
+
+  ℛ-conc : Conc-category ℛ
+  ℛ-conc .Conc-category.terminal          = ℛ-terminal
+  ℛ-conc .Conc-category.⋆-hom-faithful H≡ =
+    funext (λ z → ap fst (H≡ $ₚ ℛ-const z) $ₚ make 0r) ,ₚ prop!
+
   μ⟨_⟩ : Coeff → Functor ℛ ℛ
   μ⟨ c ⟩ .F₀ (m , d) =
     ifᵈ holds? (d ≤ c) then
@@ -178,15 +189,15 @@ module Denotations (Ax : DenotAssumptions) where
   μ⟨A⟩-Id = {!!}
 
   𝔇 : Precategory _ _
-  𝔇 = PSh lzero ℛ
+  𝔇 = ConcPSh lzero ℛ-conc
 
   module 𝔇 = Precategory 𝔇
 
   𝔇-cartesian : Cartesian-category 𝔇
-  𝔇-cartesian = PSh-cartesian lzero ℛ
+  𝔇-cartesian = ConcPSh-cartesian ℛ-conc
 
   𝔇-closed : Cartesian-closed 𝔇 𝔇-cartesian
-  𝔇-closed = PSh-closed ℛ
+  𝔇-closed = ConcPSh-closed ℛ-conc
 
   open Cartesian-category 𝔇-cartesian
   open Cartesian-closed 𝔇-closed renaming ([_,_] to _⇒_)
@@ -195,20 +206,20 @@ module Denotations (Ax : DenotAssumptions) where
     Indexed-product (Cartesian→standard-finite-products terminal products F)
 
   □⟨_⟩ : Coeff → Functor 𝔇 𝔇
-  □⟨ c ⟩ = precompose (op μ⟨ c ⟩)
+  □⟨ c ⟩ = {!!} -- precompose (op μ⟨ c ⟩)
 
   □-counit : □⟨ c ⟩ => Id
   □-counit = {!!}
 
-  □-≤ : c ≤ c' → □⟨ c ⟩ => □⟨ c' ⟩
-  □-≤ H≤ .η X = X ▸ opⁿ (μ-≤ H≤)
-  □-≤ {c} {c'} H≤ .is-natural _ _ f = Nat-path λ _ → sym $ f .is-natural _ _ _
+  -- □-≤ : c ≤ c' → □⟨ c ⟩ => □⟨ c' ⟩
+  -- □-≤ H≤ .η X = X ▸ opⁿ (μ-≤ H≤)
+  -- □-≤ {c} {c'} H≤ .is-natural _ _ f = Nat-path λ _ → sym $ f .is-natural _ _ _
 
   □⟨A⟩-Id : □⟨ A↓ ⟩ ≅ⁿ Id
   □⟨A⟩-Id = {!!}
 
   𝔇ℝ[_] : ℛ.Ob → 𝔇.Ob
-  𝔇ℝ[_] = よ₀ ℛ
+  𝔇ℝ[_] = Conc-よ₀ ℛ-conc
 
   Ty-denot : Ty → 𝔇.Ob
   Ty-denot (treal c)            = 𝔇ℝ[ 1 , c ]
@@ -227,19 +238,19 @@ module Denotations (Ax : DenotAssumptions) where
   open FinsetSyntax
 
   Sub-denot : T <: T' → Hom ⟦ T ⟧ ⟦ T' ⟧
-  Sub-denot (sreal H≤)             = よ₁ ℛ ((λ x → x) , id-reg' H≤)
+  Sub-denot (sreal H≤)             = full-hom (よ₁ ℛ (ℛ-id≤ H≤))
   Sub-denot (stup {Ts' = Ts'} H<:) =
     𝔇-ip.tuple _ λ i → Sub-denot (H<: i) ∘ 𝔇-ip.π _ i
-  Sub-denot (sarr {c = c} {e = det} {det} H<: H<:' H≤c H≤e) =
-    □-≤ H≤c .η _ ∘ □⟨ c ⟩ .F₁ ([-,-]₁ _ _ 𝔇-closed (Sub-denot H<:') (Sub-denot H<:))
+  Sub-denot (sarr {c = c} {e = det} {det} H<: H<:' H≤c H≤e) = {!!}
+    -- □-≤ H≤c .η _ ∘ □⟨ c ⟩ .F₁ ([-,-]₁ _ _ 𝔇-closed (Sub-denot H<:') (Sub-denot H<:))
   Sub-denot (sarr {e' = rnd} H<: H<:' H≤c H≤e) = !
   Sub-denot (sdist H<:)                        = !
 
-  -- env-≤-□ : Γ ≤ c → ⟦ Γ ⟧ ≅ⁿ □⟨ c ⟩ .F₀ ⟦ Γ ⟧
-  -- env-≤-□ = ?
+  -- -- env-≤-□ : Γ ≤ c → ⟦ Γ ⟧ ≅ⁿ □⟨ c ⟩ .F₀ ⟦ Γ ⟧
+  -- -- env-≤-□ = ?
 
-  -- ∩ᵗ-is-□ : ⟦ c ∩ᵗ T ⟧ ≡ □⟨ c ⟩ .F₀ ⟦ T ⟧
-  -- ∩ᵗ-is-□ = {!!}
+  -- -- ∩ᵗ-is-□ : ⟦ c ∩ᵗ T ⟧ ≡ □⟨ c ⟩ .F₀ ⟦ T ⟧
+  -- -- ∩ᵗ-is-□ = {!!}
 
   Tm-denot : Γ ⊢ t :[ det ] T → Hom ⟦ Γ ⟧ ⟦ T ⟧
   Tm-denot (tsub {e = det} Hty _ H<:) = Sub-denot H<: ∘ Tm-denot Hty
@@ -247,16 +258,19 @@ module Denotations (Ax : DenotAssumptions) where
     {!!} ∘ env-weaken {Γ} {Γ'} H⊆
   Tm-denot {Γ} (tvar H∈) = env-lookup {Γ = Γ} H∈
   Tm-denot (tlam {e = rnd} Hlam) = !
-  Tm-denot {Γ} (tlam {e = det} {T'} (Иi As Hty))
-    with (a , H∉) ← fresh{𝔸} (As ∪ env-dom Γ) = □⟨A⟩-Id .from .η _ ∘ ƛ body where
-    body = subst (λ Γ → Hom ⟦ Γ ⟧ ⟦ T' ⟧) (env-nub-cons Γ (∉∪₂ As H∉))
-      (Tm-denot (Hty a ⦃ ∉∪₁ H∉ ⦄))
-  Tm-denot (tapp Hty Hty₁) = ev ∘ ⟨ □-counit .η _ ∘ Tm-denot Hty , Tm-denot Hty₁ ⟩
+  Tm-denot {Γ} (tlam {T = T} {e = det} {T'} (Иi As Hty))
+    with (a , H∉) ← fresh{𝔸} (As ∪ env-dom Γ) = □⟨A⟩-Id .from .η _ ∘ ƛ {⟦ T ⟧} body
+    where
+      body = subst (λ Γ → Hom ⟦ Γ ⟧ ⟦ T' ⟧) (env-nub-cons Γ (∉∪₂ As H∉))
+        (Tm-denot (Hty a ⦃ ∉∪₁ H∉ ⦄))
+  Tm-denot (tapp {T = T} {T' = T'} Hty Hty₁) =
+    ev {⟦ T ⟧} ∘ ⟨ □-counit {A↓} .η (⟦ T ⟧ ⇒ ⟦ T' ⟧) ∘ Tm-denot Hty , Tm-denot Hty₁ ⟩
   Tm-denot (tprim Hϕ Hty) = {!!}
-  Tm-denot (treal {r = r}) = {!!} ∘ !
+  Tm-denot (treal {r = r}) =
+    full-hom (よ₁ ℛ (ℛ-const (make r))) ∘ よ⋆-is-terminal ℛ-conc _ .centre ∘ !
   Tm-denot (ttup Htys) = 𝔇-ip.tuple _ λ i → Tm-denot (Htys i)
   Tm-denot (tproj i Hty) = 𝔇-ip.π _ i ∘ Tm-denot Hty
-  Tm-denot (tif Hty Hty₁ Hty₂) = {!!}
+  Tm-denot (tif Hty Hty₁ Hty₂ H≤) = {!!}
   Tm-denot (tinfer Hty) = !
   Tm-denot (tdiff Hty Hty₁ Hc) = {!!}
   Tm-denot (tsolve Hty Hty₁ Hty₂ Hc) = {!!}
