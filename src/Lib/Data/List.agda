@@ -3,6 +3,9 @@ module Lib.Data.List where
 open import 1Lab.Prelude
 open import Data.List.Base
 
+module ListSyntax where
+  open import Data.List.Base public using ([] ; _∷_)
+
 map-comp
   : ∀ {ℓ ℓ' ℓ''} {A : Type ℓ} {B : Type ℓ'} {C : Type ℓ''}
   → (xs : List A) (f : B → C) (g : A → B)
