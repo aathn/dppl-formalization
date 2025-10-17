@@ -112,8 +112,15 @@ raw-mem-∈ : raw-mem a T l → a ∈ raw-dom l
 raw-mem-∈ (here reflᵢ H∉) = hereₛ
 raw-mem-∈ (there H∈)      = thereₛ (raw-mem-∈ H∈)
 
--- ∈-raw-mem : a ∈ raw-dom l → Σ[ T ∈ X ] raw-mem a T l
--- ∈-raw-mem H∈ = {!!}
+∈-raw-mem : a ∈ raw-dom l → ∃[ T ∈ X ] raw-mem a T l
+∈-raw-mem {l = []}    H∈ = absurd (¬mem-[] H∈)
+∈-raw-mem {l = x ∷ l} H∈ = ∈ᶠˢ-split
+  (λ { reflᵢ → case holds? (fst x ∈ raw-dom l) of λ where
+       (yes H∈') → case ∈-raw-mem H∈' of λ _ H∈'' → inc (_ , there H∈'')
+       (no  H∉)  → inc (_ , here reflᵢ (false-is-no H∉))
+     })
+  (λ { p → case ∈-raw-mem p of λ _ H∈' → inc (_ , there H∈') })
+  H∈
 
 raw-mem-is-prop : ⦃ _ : H-Level X 2 ⦄ {T : X} → is-prop (raw-mem a T l)
 raw-mem-is-prop (here reflᵢ H∉) (here _ H∉')  = ap₂ here prop! (is-yes-is-prop H∉ H∉')
@@ -224,6 +231,14 @@ step-raw-map (step-dup {x = x} H∈) = step-dup
 env-map : (X → Y) → Env X → Env Y
 env-map f =
   Coeq-rec (λ l → inc (raw-map f l)) λ (_ , _ , Hdup) → quot (step-raw-map Hdup)
+
+env-⊆-nil : ⦃ _ : H-Level X 2 ⦄ (Γ : Env X) → Γ ⊆ ε → Γ ≡ ε
+env-⊆-nil {X = X} =
+  Coeq-elim-prop {C = λ Γ → Γ ⊆ ε → Γ ≡ ε} (λ _ → hlevel 1) λ where
+    []      _  → refl
+    (x ∷ l) H⊆ →
+      case ∈-raw-mem (hereₛ {xs = raw-dom l}) of λ _ H∈ →
+      case H⊆ _ H∈ of λ ()
 
 module EnvDenot
   {o ℓ} {C : Precategory o ℓ} (cart : Cartesian-category C)

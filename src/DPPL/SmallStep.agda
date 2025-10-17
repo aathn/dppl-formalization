@@ -34,20 +34,23 @@ instance
 data IsValue : Tm → Type where
 
   vabs :
-    {t : Vector Tm 1}
+    {t : Tm ^ 1}
     → -----------------
     IsValue (lam T ▸ t)
 
-  vreal : IsValue (real r)
+  vreal :
+    {t : Tm ^ 0}
+    → -------------------
+    IsValue (oreal r ▸ t)
 
   vtup :
-    {vs : Vector Tm n}
+    {vs : Tm ^ n}
     (_ : ∀ i → IsValue (vs i))
     → ------------------------
     IsValue (tup n ▸ vs)
 
   vinfer :
-    {v : Vector Tm 1}
+    {v : Tm ^ 1}
     (_ : IsValue (v ₀))
     → -----------------
     IsValue (infer ▸ v)
@@ -59,15 +62,23 @@ DetCtx : (Tm → Tm) → Type
 DetCtx = EvalCtx IsValue
 
 RndCtx : (Tm × ℝ × List 𝕀 → Tm × ℝ × List 𝕀) → Type
-RndCtx E = Σ _ λ E' → DetCtx E' × E ≡ λ (x , y) → (E' x , y)
+RndCtx E = Σ _ λ E' → DetCtx E' × E ≡ ×-map₁ E'
 
 record EvalAssumptions : Type where
   field
     is-pos : ℝ → Bool
-    PrimEv : (ϕ : Prim) → Vector ℝ (PrimAr ϕ) → ℝ
+    PrimEv : (ϕ : Prim) → ℝ ^ PrimAr ϕ → ℝ
     Infer  : Value → 𝕀 → Value
     Diff  : Value → Value → Tm
     Solve : Value → Value → Value → Tm
+
+module EvalVars where
+  variable
+    w : ℝ
+    p : 𝕀
+    s : List 𝕀
+
+open EvalVars
 
 module Eval (Ax : EvalAssumptions) where
   open EvalAssumptions Ax
@@ -75,8 +86,8 @@ module Eval (Ax : EvalAssumptions) where
   data _→ᵈ_ : Tm → Tm → Type where
  
     eapp :
-      {ts : Vector Tm 2}
-      {t : Vector Tm 1}
+      {ts : Tm ^ 2}
+      {t : Tm ^ 1}
       (_ : ts ₀ ≡ lam T ▸ t)
       (_ : IsValue (ts ₁))
       → ---------------------------
@@ -119,13 +130,6 @@ module Eval (Ax : EvalAssumptions) where
       → --------------------------------------------
       solve ▸ ts →ᵈ Solve (_ , v₀) (_ , v₁) (_ , v₂)
 
-  module EvalVars where
-    variable
-      w : ℝ
-      p : 𝕀
-      s : List 𝕀
-
-  open EvalVars
 
   data _→ʳ_ : (Tm × ℝ × List 𝕀) → (Tm × ℝ × List 𝕀) → Type where
 
@@ -136,7 +140,7 @@ module Eval (Ax : EvalAssumptions) where
       (t₁ , w , s) →ʳ (t₂ , w , s)
 
     eweight :
-      {t : Vector Tm 1}
+      {t : Tm ^ 1}
       (_ : t ₀ ≡ real r)
       → ------------------------------------------------------------------
       (weight ▸ t , w , s) →ʳ (unit , (if is-pos r then r * w else 0r) , s)
@@ -144,7 +148,7 @@ module Eval (Ax : EvalAssumptions) where
     euniform : (uniform , w , p ∷ s) →ʳ (real (p .fst) , w , s)
 
     esample :
-      {t t' : Vector Tm 1}
+      {t t' : Tm ^ 1}
       (_ : t ₀ ≡ infer ▸ t')
       (v : IsValue (t' ₀))
       → -------------------------------------------------------
@@ -161,8 +165,10 @@ module Eval (Ax : EvalAssumptions) where
 
   -- Multi-step relations
 
-  -- _→det*_ : Tm → Tm → Type
-  -- _→det*_ = Star _→det_
+  data _→det*_ : Tm → Tm → Type where
+    nil  : ∀ {s t} → s →det* t
+    step : ∀ {s t u} → s →det t → t →det* u → s →det* u
 
-  -- _→rnd*_ : (Tm × ℝ × List 𝕀) → (Tm × ℝ × List 𝕀) → Type
-  -- _→rnd*_ = Star _→rnd_
+  data _→rnd*_ : (Tm × ℝ × List 𝕀) → (Tm × ℝ × List 𝕀) → Type where
+    nil  : ∀ {s t} → s →rnd* t
+    step : ∀ {s t u} → s →rnd t → t →rnd* u → s →rnd* u

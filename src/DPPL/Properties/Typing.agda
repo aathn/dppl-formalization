@@ -4,21 +4,26 @@ module DPPL.Properties.Typing (R : Reals₀) where
 
 open import 1Lab.Prelude
 
-open import DPPL.Regularity
 open import DPPL.Syntax R
 open import DPPL.Typing R
 
-open import Lib.Syntax.Env
+open import Lib.Data.Vector
 
-open import Order.Lattice
+open import Data.Nat.Base using (Nat-is-set)
 
 open SyntaxVars
 open TypingVars
-open is-lattice Reg↓-lattice
 
-∩ᵗ-<:-pres : T <: T' → c ∩ᵗ T <: c ∩ᵗ T'
-∩ᵗ-<:-pres {c = c} (sreal {c = d} {c' = d'} H≤) = sreal (∩≤∩r {c} {d} {d'} H≤)
-∩ᵗ-<:-pres (stup H<:)                           = stup λ i → ∩ᵗ-<:-pres (H<: i)
-∩ᵗ-<:-pres {c = c} (sarr {c = d} {c' = d'} H<: H<:' H≤c H≤e) =
-  sarr H<: H<:' (∩≤∩r {c} {d} {d'} H≤c) H≤e
-∩ᵗ-<:-pres (sdist H<:) = sdist H<:
+ttup-inv :
+  {vs : Tm ^ n}
+  {Ts : Ty ^ n}
+  (_ : Γ ⊢ tup n ▸ vs :[ e ] T)
+  (_ : T ≡ᵢ ttup n Ts)
+  → ---------------------------
+  ∀ i → Γ ⊢ vs i :[ e ] Ts i
+ttup-inv (ttup Htys) Heq i = subst (_ ⊢ _ :[ _ ]_)
+  (is-set→cast-pathp (Ty ^_) Nat-is-set (ap snd (ttup-inj (Id≃path.to Heq))) $ₚ i)
+  (Htys i)
+ttup-inv (tsub Hty H≤ (stup H<:)) reflᵢ i = tsub (ttup-inv Hty reflᵢ i) H≤ (H<: i)
+ttup-inv (tpromote {T = ttup _ _} Hty H≤ H⊆) reflᵢ i =
+  tpromote (ttup-inv Hty reflᵢ i) H≤ H⊆

@@ -6,7 +6,7 @@ open import Data.Fin.Base using (Fin ; fzero ; fsuc ; fin-view ; zero ; suc ; sp
 open import Data.Sum.Base using (inl ; inr)
 
 open import Data.Fin.Base public using (_[_≔_] ; delete)
-open import Data.Fin.Properties using (insert-delete)
+open import Data.Fin.Properties using (insert-delete ; insert-lookup)
 
 Vector : {l : Level} → Type l → Nat → Type l
 Vector A n = Fin n → A
@@ -66,6 +66,13 @@ updateAt-id-local
   → ρ i ≡ a
   → ∀ j → updateAt ρ i a j ≡ ρ j
 updateAt-id-local {suc n} = insert-delete
+
+updateAt-updates
+  : ∀ {n} {ℓ} {A : Type ℓ}
+  → (ρ : A ^ n)
+  → (i : Fin n) (a : A)
+  → updateAt ρ i a i ≡ a
+updateAt-updates {suc n} ρ i a = insert-lookup _ i a
 
 ----------------------------------------------------------------------
 -- Arrays
