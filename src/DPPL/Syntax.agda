@@ -64,7 +64,7 @@ data Prim : Type where
   pmul    : Prim
   psin    : Prim
   pnormal : Prim
-  pbeta   : Prim
+  pgamma  : Prim
   pwiener : Prim
 
 PrimAr : Prim → Nat
@@ -72,7 +72,7 @@ PrimAr padd = 2
 PrimAr pmul = 2
 PrimAr psin = 1
 PrimAr pnormal = 3
-PrimAr pbeta   = 3
+PrimAr pgamma  = 3
 PrimAr pwiener = 2
 
 TmSig : Sig

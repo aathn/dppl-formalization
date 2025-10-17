@@ -30,14 +30,13 @@ module TypingVars where
 
 open SyntaxVars
 open TypingVars
-  
+
 PrimTy : (ϕ : Prim) → Coeff ^ PrimAr ϕ × Coeff
 PrimTy padd    = make A↓ , A↓
 PrimTy pmul    = make A↓ , A↓
 PrimTy psin    = make A↓ , A↓
--- TODO: What regularities would be appropriate for pnormal/pbeta?
 PrimTy pnormal = make M↓ , M↓
-PrimTy pbeta   = make M↓ , M↓
+PrimTy pgamma  = make M↓ , M↓
 PrimTy pwiener = lookup (M↓ ∷ C↓ ∷ []) , C↓
 
 infix 5 _<:_
