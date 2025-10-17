@@ -2,7 +2,7 @@ module Lib.Syntax.EvalCtx where
 
 open import Lib.Prelude
 open import Lib.Data.Vector
-open import Lib.LocallyNameless.BindingSignature hiding (_∙_)
+open import Lib.LocallyNameless.BindingSignature
 
 open import Data.Fin.Base
 

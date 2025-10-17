@@ -7,7 +7,7 @@ open import Lib.Data.Vector
 open import Lib.LocallyNameless.Unfinite
 open import Lib.LocallyNameless.oc-Sets
 open import Lib.LocallyNameless.LocalClosedness
-open import Lib.LocallyNameless.BindingSignature renaming (_∙_ to _◆_)
+open import Lib.LocallyNameless.BindingSignature
 
 module _ {Σ : Sig} where
 

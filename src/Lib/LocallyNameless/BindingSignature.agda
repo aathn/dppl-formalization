@@ -10,7 +10,7 @@
 
 module Lib.LocallyNameless.BindingSignature where
 
-open import Lib.Prelude hiding (⟦_⟧) renaming (_∙_ to _∙ᵖ_)
+open import Lib.Prelude hiding (⟦_⟧)
 open import Lib.Data.Dec
 open import Lib.Data.Finset
 open import Lib.Data.Nat
@@ -64,47 +64,47 @@ open Sig public
 ----------------------------------------------------------------------
 -- Set functor associated with a signature
 ----------------------------------------------------------------------
-infixr 8 _∙_ _∙′_
-_∙_ : Sig → Type → Type
-Σ ∙ X  = Σ[ c ∈ Op Σ ] (X ^ length (ar Σ c)) -- Equation (58)
+infixr 8 _◆_ _◆′_
+_◆_ : Sig → Type → Type
+Σ ◆ X  = Σ[ c ∈ Op Σ ] (X ^ length (ar Σ c)) -- Equation (58)
 
-_∙′_ : (Σ : Sig){X Y : Type} → (X → Y) → Σ ∙ X → Σ ∙ Y
-(Σ ∙′ f) (c , t) = c , (f ∘ t)
+_◆′_ : (Σ : Sig){X Y : Type} → (X → Y) → Σ ◆ X → Σ ◆ Y
+(Σ ◆′ f) (c , t) = c , (f ∘ t)
 
--- Action of Σ ∙_ on locally nameless sets
+-- Action of Σ ◆_ on locally nameless sets
 instance
-  oc∙ :
+  oc◆ :
     {Σ : Sig}
     {X : Type}
     ⦃ _ : oc X ⦄
     → ----------
-    oc (Σ ∙ X)
-  _~>_ ⦃ oc∙{Σ} ⦄ i a (c , t) =
+    oc (Σ ◆ X)
+  _~>_ ⦃ oc◆{Σ} ⦄ i a (c , t) =
     (c , λ k → (i + index (ar Σ c) k ~> a)(t k))
-  _<~_ ⦃ oc∙{Σ} ⦄ i a (c , t) =
+  _<~_ ⦃ oc◆{Σ} ⦄ i a (c , t) =
     (c , λ k → (i + index (ar Σ c) k <~ a)(t k))
-  oc₁ ⦃ oc∙{Σ} ⦄ i a b (c , t) = ap (c ,_) (funext λ k →
+  oc₁ ⦃ oc◆{Σ} ⦄ i a b (c , t) = ap (c ,_) (funext λ k →
     oc₁ (i + index (ar Σ c) k) a b (t k))
-  oc₂ ⦃ oc∙{Σ} ⦄ i j a (c , t) = ap (c ,_) (funext λ k →
+  oc₂ ⦃ oc◆{Σ} ⦄ i j a (c , t) = ap (c ,_) (funext λ k →
     oc₂ (i + index (ar Σ c) k) (j + index (ar Σ c) k) a (t k))
-  oc₃ ⦃ oc∙{Σ} ⦄ i a (c , t) = ap (c ,_) (funext λ k →
+  oc₃ ⦃ oc◆{Σ} ⦄ i a (c , t) = ap (c ,_) (funext λ k →
     oc₃ (i + index (ar Σ c) k) a (t k))
-  oc₄ ⦃ oc∙{Σ} ⦄ i a (c , t) = ap (c ,_) (funext λ k →
+  oc₄ ⦃ oc◆{Σ} ⦄ i a (c , t) = ap (c ,_) (funext λ k →
     oc₄ (i + index (ar Σ c) k) a (t k))
-  oc₅ ⦃ oc∙{Σ} ⦄ i j a b (c , t) = ap (c ,_) (funext λ k →
+  oc₅ ⦃ oc◆{Σ} ⦄ i j a b (c , t) = ap (c ,_) (funext λ k →
     oc₅ (i + index (ar Σ c) k) (j + index (ar Σ c) k) a b (t k)
     ⦃ inj≠ (+-inj' (index (ar Σ c) k) _ _) auto ⦄)
-  oc₆ ⦃ oc∙{Σ} ⦄ i j a b (c , t) = ap (c ,_) (funext λ k →
+  oc₆ ⦃ oc◆{Σ} ⦄ i j a b (c , t) = ap (c ,_) (funext λ k →
     oc₆ (i + index (ar Σ c) k) (j + index (ar Σ c) k) a  b (t k))
-  oc₇ ⦃ oc∙{Σ} ⦄ i  j a b (c , t) = ap (c ,_) (funext λ k →
+  oc₇ ⦃ oc◆{Σ} ⦄ i  j a b (c , t) = ap (c ,_) (funext λ k →
     oc₇ (i + index (ar Σ c) k) (j + index (ar Σ c) k) a b (t k)
     ⦃ inj≠ (+-inj' (index (ar Σ c) k) _ _) auto ⦄)
-  oc₈ ⦃ oc∙{Σ} ⦄ i j a b (c , t) = ap (c ,_) (funext λ k →
+  oc₈ ⦃ oc◆{Σ} ⦄ i j a b (c , t) = ap (c ,_) (funext λ k →
     oc₈ (i + index (ar Σ c) k) (j + index (ar Σ c) k) a  b (t k))
-  oc₉ ⦃ oc∙{Σ} ⦄ i j a b (c , t) = ap (c ,_) (funext λ k →
+  oc₉ ⦃ oc◆{Σ} ⦄ i j a b (c , t) = ap (c ,_) (funext λ k →
     oc₉ (i + index (ar Σ c) k) (j + index (ar Σ c) k) a  b (t k))
 
-#oc∙ :
+#oc◆ :
   {Σ : Sig}
   {X : Type}
   ⦃ _ : oc X ⦄
@@ -113,10 +113,10 @@ instance
   (a : 𝔸)
   (_ : ∀ k → a # f k)
   → ----------------------------
-  _#_ ⦃ oc∙{Σ} ⦄ a (c , f)
-#oc∙ {Σ} {c = c} a g = ap (c ,_) (funext λ k → #1 (g k))
+  _#_ ⦃ oc◆{Σ} ⦄ a (c , f)
+#oc◆ {Σ} {c = c} a g = ap (c ,_) (funext λ k → #1 (g k))
 
-≻oc∙ :
+≻oc◆ :
   {Σ : Sig}
   {X : Type}
   ⦃ _ : oc X ⦄
@@ -125,28 +125,28 @@ instance
   (i : Nat)
   (_ : ∀ k → i + index (ar Σ c) k ≻ f k)
   → ------------------------------------
-  _≻_ ⦃ oc∙{Σ} ⦄ i (c , f)
-≻oc∙ {Σ} {c = c} i g j =
+  _≻_ ⦃ oc◆{Σ} ⦄ i (c , f)
+≻oc◆ {Σ} {c = c} i g j =
   (new Ø , ap (c ,_) (funext λ k → ≻3 (g k) (+-preserves-≤r i j _ auto)))
 
 instance
-  lns∙ :
+  lns◆ :
     {Σ : Sig}
     {X : Type}
     ⦃ _ : lns X ⦄
     → -----------
-    lns (Σ ∙ X)
-  ocSet ⦃ lns∙{Σ} ⦄ = oc∙{Σ}
-  asupp ⦃ lns∙{Σ} ⦄ (c , f) = Иi
+    lns (Σ ◆ X)
+  ocSet ⦃ lns◆{Σ} ⦄ = oc◆{Σ}
+  asupp ⦃ lns◆{Σ} ⦄ (c , f) = Иi
     (⋃ λ k →  Иe₁ (asupp (f k)))
-    λ a → #oc∙ {Σ} a λ k → Иe₂ (asupp (f k)) a ⦃ ∉⋃ _ k ⦄
-  isupp ⦃ lns∙{Σ} ⦄ (c , f) =
+    λ a → #oc◆ {Σ} a λ k → Иe₂ (asupp (f k)) a ⦃ ∉⋃ _ k ⦄
+  isupp ⦃ lns◆{Σ} ⦄ (c , f) =
     let i = Max λ k → fst (isupp (f k)) in
-    (i , ≻oc∙ {Σ} i λ k →  ≻1 (≤-trans (≤-Max _ k) (+-≤l _ _)) (snd (isupp (f k))))
+    (i , ≻oc◆ {Σ} i λ k →  ≻1 (≤-trans (≤-Max _ k) (+-≤l _ _)) (snd (isupp (f k))))
 
--- Action of Σ ∙′_ on morphisms of locally nameless sets
+-- Action of Σ ◆′_ on morphisms of locally nameless sets
 instance
-  oc∙′ :
+  oc◆′ :
     {Σ : Sig}
     {X Y : Type}
     ⦃ ocX : oc X ⦄
@@ -154,13 +154,13 @@ instance
     {φ : X → Y}
     ⦃ _ : oc-hom φ ⦄
     → -----------------------------------
-    oc-hom ⦃ oc∙{Σ} ⦄ ⦃ oc∙{Σ} ⦄ (Σ ∙′ φ)
-  oc-hom-open ⦃ oc∙′ ⦄ (c , _) =
+    oc-hom ⦃ oc◆{Σ} ⦄ ⦃ oc◆{Σ} ⦄ (Σ ◆′ φ)
+  oc-hom-open ⦃ oc◆′ ⦄ (c , _) =
     ap (c ,_) (funext λ _ → oc-hom-open _)
-  oc-hom-close ⦃ oc∙′ ⦄ (c , _) =
+  oc-hom-close ⦃ oc◆′ ⦄ (c , _) =
     ap (c ,_) (funext λ _ → oc-hom-close _)
 
-  lns∙′ :
+  lns◆′ :
     {Σ : Sig}
     {X Y : Type}
     ⦃ lnsX : lns X ⦄
@@ -168,15 +168,15 @@ instance
     {φ : X → Y}
     ⦃ _ : lns-hom φ ⦄
     → --------------------------------------
-    lns-hom ⦃ lns∙{Σ} ⦄ ⦃ lns∙{Σ} ⦄ (Σ ∙′ φ)
-  ochom ⦃ lns∙′ ⦄ = oc∙′
+    lns-hom ⦃ lns◆{Σ} ⦄ ⦃ lns◆{Σ} ⦄ (Σ ◆′ φ)
+  ochom ⦃ lns◆′ ⦄ = oc◆′
 
 ----------------------------------------------------------------------
 -- Terms over a binding signature [Equation (65)]
 ----------------------------------------------------------------------
 data Trm (Σ : Sig) : Type where
   var : Nat𝔸 → Trm Σ
-  op  : Σ ∙ Trm Σ → Trm Σ
+  op  : Σ ◆ Trm Σ → Trm Σ
 
 pattern bvar i = var (inl i)
 pattern fvar a = var (inr a)
@@ -353,7 +353,7 @@ instance
   with (a , q) ← p (j - index (ar Σ c) k) ⦃ monus-adj _ _ _ auto ⦄ = (a , e')
   where
   H≡ : j - index (ar Σ c) k + index (ar Σ c) k ≡ j
-  H≡ = +-comm _ (index (ar Σ c) k) ∙ᵖ monus-inversel j (index (ar Σ c) k) (≤-trans (+-≤r _ _) auto)
+  H≡ = +-comm _ (index (ar Σ c) k) ∙ monus-inversel j (index (ar Σ c) k) (≤-trans (+-≤r _ _) auto)
   e' : (j ~> a)(ts k) ≡ ts k
   e' =
     (j ~> a)(ts k)                                         ≡˘⟨ ap (λ j' → (j' ~> a)(ts k)) H≡ ⟩
@@ -381,7 +381,7 @@ lnsTrm {Σ} = mklns asp isp
     (i ,  ≻Trm c ts i λ k → ≻1 (≤-trans (≤-Max _ k) (+-≤l _ _)) (snd (isp (ts k))))
 
 ----------------------------------------------------------------------
--- The locally nameless set Trm Σ is the free Σ∙_-algebra on Nat𝔸
+-- The locally nameless set Trm Σ is the free Σ◆_-algebra on Nat𝔸
 -- [Theorem 4.1]
 ----------------------------------------------------------------------
 module UniversalProperty
@@ -390,7 +390,7 @@ module UniversalProperty
   {Σ : Sig}
   {X : Type}
   (f : Nat𝔸 → X)
-  (g : Σ ∙ X → X)
+  (g : Σ ◆ X → X)
   where
   instance
     _ : lns Nat𝔸
@@ -405,7 +405,7 @@ module UniversalProperty
   module _
     (h : Trm Σ → X)
     (hvar : ∀ v → h (var v) ≡ f v)
-    (hop : ∀ x → h(op x) ≡ g ((Σ ∙′ h) x))
+    (hop : ∀ x → h(op x) ≡ g ((Σ ◆′ h) x))
     where
     uniq : h ≡ rec
     uniq = funext uniq'
@@ -414,7 +414,7 @@ module UniversalProperty
       uniq' (var v) = hvar v
       uniq' (op(c , ts)) =
         h (op (c , ts))          ≡⟨ hop (c , ts) ⟩
-        g ((Σ ∙′ h)(c , ts))     ≡⟨⟩
+        g ((Σ ◆′ h)(c , ts))     ≡⟨⟩
         g (c , (h ∘ ts))         ≡⟨ ap (λ x → g (c , x)) (funext λ k → uniq' (ts k)) ⟩
         g (c , λ k → rec (ts k)) ∎
 
@@ -423,7 +423,7 @@ module UniversalProperty
     module _
       ⦃ _ : oc X ⦄
       ⦃ homf : oc-hom f ⦄
-      ⦃ homg : oc-hom ⦃ oc∙{Σ} ⦄ g ⦄
+      ⦃ homg : oc-hom ⦃ oc◆{Σ} ⦄ g ⦄
       ⦃ _ : oc-hom h ⦄
       where
     -- ...then rec is also a morphism
@@ -440,7 +440,7 @@ module UniversalProperty
           hopn {i} {a} (op(c , ts)) =
             g (c , λ k → rec ((i + index (ar Σ c) k ~> a)(ts k))) ≡⟨ ap (λ t → g(c , t))
                                                                         (funext λ k → hopn {i + index (ar Σ c) k} {a} (ts k)) ⟩
-            g (_~>_ ⦃ oc∙{Σ} ⦄ i a (c , λ k → rec (ts k)))        ≡⟨ oc-hom-open _ ⟩
+            g (_~>_ ⦃ oc◆{Σ} ⦄ i a (c , λ k → rec (ts k)))        ≡⟨ oc-hom-open _ ⟩
             (i ~> a) (g (c , λ k → rec (ts k)))                   ∎
           hcls :
             {i : Nat}
@@ -452,7 +452,7 @@ module UniversalProperty
           hcls {i} {a} (op(c , ts)) =
             g (c , λ k → rec ((i + index (ar Σ c) k <~ a)(ts k))) ≡⟨ ap (λ t → g(c , t))
                                                                         (funext λ k → hcls {i + index (ar Σ c) k} {a} (ts k)) ⟩
-            g (_<~_ ⦃ oc∙{Σ} ⦄ i a (c , λ k → rec (ts k)))        ≡⟨ oc-hom-close _ ⟩
+            g (_<~_ ⦃ oc◆{Σ} ⦄ i a (c , λ k → rec (ts k)))        ≡⟨ oc-hom-close _ ⟩
             (i <~ a) (g(c , λ k → rec (ts k)))                    ∎
 
 ----------------------------------------------------------------------
@@ -519,7 +519,7 @@ module LocalClosed {Σ : Sig} where
     where
     p : ¬ i ≤ j
     p i≤j with q ← snd (i≻bvarj j ⦃ i≤j ⦄) =
-      absurd (bvar≠fvar $ sym q ∙ᵖ ap var (ifᵈ-≡ (refl {x = j})))
+      absurd (bvar≠fvar $ sym q ∙ ap var (ifᵈ-≡ (refl {x = j})))
   ≻→lc-at _ (fvar _) _ = lc-at-fvar
   ≻→lc-at i (op(c , ts)) p = lc-at-op λ k →
     ≻→lc-at (i + index (ar Σ c) k) (ts k) (≻Trm′ c ts i p k)
@@ -529,8 +529,8 @@ module LocalClosed {Σ : Sig} where
     (t : Trm Σ)
     → ---------------
     lc-at i t → i ≻ t
-  lc-at→≻ _ (bvar j) lc-at-bvar k ⦃ p ⦄ = new Ø , ap var (ifᵈ-≠ $ <-not-equal (≤-trans auto p) ∘ sym)
-    -- rewrite <→≠ j k (<≤ it p) = (new Ø , refl)
+  lc-at→≻ _ (bvar j) lc-at-bvar k ⦃ p ⦄ =
+    new Ø , ap var (ifᵈ-≠ $ <-not-equal (≤-trans auto p) ∘ sym)
   lc-at→≻ _ (fvar _) lc-at-fvar _ = (new Ø , refl)
   lc-at→≻ i (op(c , ts)) (lc-at-op f) =
     ≻Trm c ts i λ k → lc-at→≻ (i + index (ar Σ c) k) (ts k) (f k)
@@ -639,7 +639,7 @@ module DenotationsViaInitiality
   oc-hom-close ⦃ oc-homvrCD ⦄ _ = funext λ _ → refl
 
   -- lmCD and apCD combine to give a ΛSig-algebra structure for CD
-  alg : ΛSig ∙ CD → CD
+  alg : ΛSig ◆ CD → CD
   alg (Λlam , f) = lmCD (f (fin 0))
   alg (Λapp , f) = apCD (f (fin 0) , f (fin 1))
 
