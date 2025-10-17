@@ -149,33 +149,35 @@ pair x y = lookup (x ∷ y ∷ []) where
 module SyntaxVars where
   variable
     m n  : Nat
-    r    : ℝ
+    r r' : ℝ
     ϕ    : Prim
     T T' : Ty
     e e' : Eff
     c c' : Reg↓
     t t' : Tm
 
--- Lemmas about type syntax
+open SyntaxVars
 
-treal-inj : ∀ {c c'} → treal c ≡ treal c' → c ≡ c'
+-- Injectivity and distinctness lemmas
+
+treal-inj : treal c ≡ treal c' → c ≡ c'
 treal-inj {c} = ap λ where
   (treal c) → c
   _ → c
 
 tarr-inj
-  : ∀ {S S' c c' e e' T T'}
+  : ∀ {S S'}
   → S ⇒[ c , e ] T ≡ S' ⇒[ c' , e' ] T' → (S , c , e , T) ≡ (S' , c' , e' , T')
-tarr-inj {S} {c = c} {e = e} {T = T} = ap λ where
+tarr-inj {c} {e} {T} {S = S} = ap λ where
   (S ⇒[ c , e ] T) → S , c , e , T
   _ → S , c , e , T
 
-ttup-inj : ∀ {n m Ts Ts'} → ttup n Ts ≡ ttup m Ts' → (n , Ts) ≡ (m , Ts')
+ttup-inj : ∀ {Ts Ts'} → ttup n Ts ≡ ttup m Ts' → (n , Ts) ≡ (m , Ts')
 ttup-inj {n} {Ts = Ts} = ap λ where
   (ttup n Ts) → n , Ts
   _ → n , Ts
 
-tdist-inj : ∀ {T T'} → tdist T ≡ tdist T' → T ≡ T'
+tdist-inj : tdist T ≡ tdist T' → T ≡ T'
 tdist-inj {T} = ap λ where
   (tdist T) → T
   _ → T
@@ -235,3 +237,9 @@ Ty-is-set = Discrete→is-set Discrete-Ty
 instance
   H-Level-Ty : ∀ {n} → H-Level Ty (2 + n)
   H-Level-Ty = basic-instance 2 Ty-is-set
+
+
+real-inj : real r ≡ real r' → r ≡ r'
+real-inj {r = r} = ap λ where
+  (oreal r ▸ _) → r
+  _             → r
