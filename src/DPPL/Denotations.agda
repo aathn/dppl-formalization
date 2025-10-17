@@ -4,7 +4,7 @@ module DPPL.Denotations (R : Reals₀) where
 
 open Reals R using (ℝ ; 0r)
 
-open import DPPL.Regularity
+open import DPPL.Regularity hiding (A;P;C;M)
 open import DPPL.Syntax R hiding (_▸_)
 open import DPPL.Typing R
 
@@ -26,6 +26,7 @@ open import Cat.Functor.Base
 open import Cat.Functor.Compose
 open import Cat.Functor.Hom
 open import Cat.Functor.Naturality
+open import Cat.Functor.Subcategory
 open import Data.Dec.Base
 open import Data.Fin.Base hiding (_≤_)
 open import Data.Power hiding (_∪_)
@@ -38,6 +39,14 @@ open Reg↓≤ using (_≤_ ; ≤-refl ; ≤-trans)
 
 is-const : ℙ (ℝ ^ m → ℝ ^ n)
 is-const {n = n} f = elΩ (Σ[ x ∈ ℝ ^ n ] f ≡ λ _ → x)
+
+π'[_] : Fin m → ℝ ^ m → ℝ ^ 1
+π'[ i ] = make ⊙ π[ i ]
+
+π'1 : {f : ℝ ^ m → ℝ ^ 1} → π'[ fzero ] ⊙ f ≡ f
+π'1 {f = f} = ext go where
+  go : ∀ x i → π'[ fzero ] (f x) i ≡ f x i
+  go x i with zero ← fin-view i = refl
 
 record DenotAssumptions : Type₁ where
   field
@@ -52,15 +61,26 @@ record DenotAssumptions : Type₁ where
     -- cond-reg
     --   : (λ a → if a ₀ ≲? 0r then a ₁ else a ₂) ∈ ⟨ P↓ ⟩-reg {3} {1}
 
-  [_,_]-reg : Coeff → Coeff → ∀ {m n} → ℙ (ℝ ^ m → ℝ ^ n)
-  [_,_]-reg c d =
+  ⟨_∣_⟩-reg : Coeff → Coeff → ∀ {m n} → ℙ (ℝ ^ m → ℝ ^ n)
+  ⟨_∣_⟩-reg c d =
     ifᵈ holds? (c ≤ d) then
       ⟨ c ⟩-reg
     else
       is-const
 
+  ⟨_⟩-sec : Coeff ^ n → ∀ {m} → Coeff → ℙ (ℝ ^ m → ℝ ^ n)
+  ⟨ cs ⟩-sec c g = elΩ $ ∀ i → π'[ i ] ⊙ g ∈ ⟨ c ∣ cs i ⟩-reg
+
+  ⟨_∥_⟩-reg : Coeff ^ m → Coeff ^ n → ℙ (ℝ ^ m → ℝ ^ n)
+  ⟨_∥_⟩-reg {m} {n} cs cs' f = elΩ $
+    ∀ {k : Nat} {c : Coeff} (g : ℝ ^ k → ℝ ^ m)
+    → g ∈ ⟨ cs ⟩-sec c → f ⊙ g ∈ ⟨ cs' ⟩-sec c
+
   field
-    Prim-denot : (ϕ : Prim) → ℝ ^ PrimAr ϕ → ℝ
+    Prim-denot : (ϕ : Prim) → ℝ ^ PrimAr ϕ → ℝ ^ 1
+    Prim-reg
+      : {cs : Coeff ^ PrimAr ϕ} → PrimTy ϕ ≡ (cs , c)
+      → Prim-denot ϕ ∈ ⟨ cs ∥ make c ⟩-reg
 
 
 module Denotations (Ax : DenotAssumptions) where
@@ -68,43 +88,44 @@ module Denotations (Ax : DenotAssumptions) where
 
   open Functor
   open _=>_ renaming (op to opⁿ)
+  open Subcat-hom
   open CR._≅_
 
-  [,]-reg-≤ : c ≤ c' → [ c , c' ]-reg {m} {n} ≡ ⟨ c ⟩-reg
-  [,]-reg-≤ {c = c} {c'} H≤ = ifᵈ-yes (holds? (c ≤ c')) (true-is-yes H≤)
+  ⟨∣⟩-reg-≤ : c ≤ c' → ⟨ c ∣ c' ⟩-reg {m} {n} ≡ ⟨ c ⟩-reg
+  ⟨∣⟩-reg-≤ {c = c} {c'} H≤ = ifᵈ-yes (holds? (c ≤ c')) (true-is-yes H≤)
 
-  [,]-reg-≰ : ¬ c ≤ c' → [ c , c' ]-reg {m} {n} ≡ is-const
-  [,]-reg-≰ {c = c} {c'} H≰ = ifᵈ-no (holds? (c ≤ c')) (false-is-no H≰)
+  ⟨∣⟩-reg-≰ : ¬ c ≤ c' → ⟨ c ∣ c' ⟩-reg {m} {n} ≡ is-const
+  ⟨∣⟩-reg-≰ {c = c} {c'} H≰ = ifᵈ-no (holds? (c ≤ c')) (false-is-no H≰)
 
-  id-reg' : c ≤ c' → (λ x → x) ∈ [ c , c' ]-reg {m}
-  id-reg' H≤ = subst ((λ x → x) ∈_) (sym $ [,]-reg-≤ H≤) id-reg
+  id-reg' : c ≤ c' → (λ x → x) ∈ ⟨ c ∣ c' ⟩-reg {m}
+  id-reg' H≤ = subst ((λ x → x) ∈_) (sym $ ⟨∣⟩-reg-≤ H≤) id-reg
 
-  const-reg' : (x : ℝ ^ n) → (λ _ → x) ∈ [ c , c' ]-reg {m}
+  const-reg' : (x : ℝ ^ n) → (λ _ → x) ∈ ⟨ c ∣ c' ⟩-reg {m}
   const-reg' {c = c} {c'} x with holds? (c ≤ c')
   ... | yes _ = const-reg x
   ... | no  _ = inc (_ , refl)
 
   ∘-reg'
     : {c d e : Coeff} {m n k : Nat} {f : ℝ ^ n → ℝ ^ k} {g : ℝ ^ m → ℝ ^ n}
-    → f ∈ [ d , e ]-reg → g ∈ [ c , d ]-reg → f ⊙ g ∈ [ c , e ]-reg
+    → f ∈ ⟨ d ∣ e ⟩-reg → g ∈ ⟨ c ∣ d ⟩-reg → f ⊙ g ∈ ⟨ c ∣ e ⟩-reg
   ∘-reg' {c} {d} {e} {f = f} {g} Hf Hg with holds? (c ≤ d) | holds? (d ≤ e)
   ... | no c≰d | _ =
-    □-rec ([ c , e ]-reg _ .is-tr)
-      (λ (x , Hg') → subst (λ g → f ⊙ g ∈ [ c , e ]-reg) (sym Hg') (const-reg' (f x)))
+    □-rec (⟨ c ∣ e ⟩-reg _ .is-tr)
+      (λ (x , Hg') → subst (λ g → f ⊙ g ∈ ⟨ c ∣ e ⟩-reg) (sym Hg') (const-reg' (f x)))
       Hg
   ... | yes c≤d | no d≰e =
-    □-rec ([ c , e ]-reg _ .is-tr)
-      (λ (x , Hf') → subst (λ f → f ⊙ g ∈ [ c , e ]-reg) (sym Hf') (const-reg' x))
+    □-rec (⟨ c ∣ e ⟩-reg _ .is-tr)
+      (λ (x , Hf') → subst (λ f → f ⊙ g ∈ ⟨ c ∣ e ⟩-reg) (sym Hf') (const-reg' x))
       Hf
   ... | yes c≤d | yes d≤e =
-    subst (_ ∈_) (sym $ [,]-reg-≤ (≤-trans c≤d d≤e)) (∘-reg (⊆-reg c≤d _ Hf) Hg)
+    subst (_ ∈_) (sym $ ⟨∣⟩-reg-≤ (≤-trans c≤d d≤e)) (∘-reg (⊆-reg c≤d _ Hf) Hg)
 
   module _ where
     open Precategory
 
     ℛ : Precategory lzero lzero
     ℛ .Ob = Nat × Coeff
-    ℛ .Hom (m , c) (n , d) = Σ[ f ∈ (ℝ ^ m → ℝ ^ n) ] f ∈ [ c , d ]-reg
+    ℛ .Hom (m , c) (n , d) = Σ[ f ∈ (ℝ ^ m → ℝ ^ n) ] f ∈ ⟨ c ∣ d ⟩-reg
     ℛ .Hom-set _ _ _ _ = hlevel 1
     ℛ .id {m , c} = (λ x → x) , id-reg' ≤-refl
     ℛ ._∘_ (f , Hf) (g , Hg) = f ⊙ g , ∘-reg' Hf Hg
@@ -119,7 +140,7 @@ module Denotations (Ax : DenotAssumptions) where
     { top  = (0 , A↓)
     ; has⊤ = λ (m , c) → contr
       ((λ _ ()) , const-reg' λ ())
-      (λ (x , _) → ext (λ _ ()) ,ₚ is-prop→pathp (λ _ → [ c , A↓ ]-reg _ .is-tr) _ _)
+      (λ (x , _) → ext (λ _ ()) ,ₚ is-prop→pathp (λ _ → ⟨ c ∣ A↓ ⟩-reg _ .is-tr) _ _)
     }
 
   module ℛ⊤ = Terminal ℛ-terminal
@@ -153,9 +174,9 @@ module Denotations (Ax : DenotAssumptions) where
   ... | no _    | _      | _     = ℛ⊤.!-unique _
   ... | yes _   | yes _  | yes _ = refl
   ... | yes _   | yes _  | no  _ =
-    refl ,ₚ is-prop→pathp (λ _ → [ A↓ , x ]-reg _ .is-tr) _ _
+    refl ,ₚ is-prop→pathp (λ _ → ⟨ A↓ ∣ x ⟩-reg _ .is-tr) _ _
   ... | yes x≤c | no y≰c | z≤?c
-    with f-const ← subst (_ ∈_) ([,]-reg-≰ λ y≤x → y≰c (≤-trans y≤x x≤c)) Hf | z≤?c
+    with f-const ← subst (_ ∈_) (⟨∣⟩-reg-≰ λ y≤x → y≰c (≤-trans y≤x x≤c)) Hf | z≤?c
   ... | yes _ =
     case f-const of λ x Hf' → funext (λ _ → Hf' $ₚ _ ∙ sym (Hf' $ₚ _)) ,ₚ prop!
   ... | no  _ =
@@ -166,11 +187,11 @@ module Denotations (Ax : DenotAssumptions) where
   ... | yes _ = ℛ.id
   ... | no  _ = ℛ⊤.!
   μ-unit {c} .is-natural (m , z) (n , y) (f , Hf) with holds? (z ≤ c) | holds? (y ≤ c)
-  ... | _      | no  _   = refl ,ₚ is-prop→pathp (λ _ → [ z , A↓ ]-reg _ .is-tr) _ _
-  ... | yes _  | yes _   = refl ,ₚ is-prop→pathp (λ _ → [ z , y ]-reg _ .is-tr) _ _
+  ... | _      | no  _   = refl ,ₚ is-prop→pathp (λ _ → ⟨ z ∣ A↓ ⟩-reg _ .is-tr) _ _
+  ... | yes _  | yes _   = refl ,ₚ is-prop→pathp (λ _ → ⟨ z ∣ y ⟩-reg _ .is-tr) _ _
   ... | no z≰c | yes y≤c =
     case f-const of λ x Hf' → funext (λ _ → Hf' $ₚ _ ∙ sym (Hf' $ₚ _)) ,ₚ prop!
-    where f-const = subst (_ ∈_) ([,]-reg-≰ λ z≤y → z≰c (≤-trans z≤y y≤c)) Hf
+    where f-const = subst (_ ∈_) (⟨∣⟩-reg-≰ λ z≤y → z≰c (≤-trans z≤y y≤c)) Hf
 
   μ-≤ : c' ≤ c → μ⟨ c ⟩ => μ⟨ c' ⟩
   μ-≤ {c'} {c} H≤ .η (m , x) with holds? (x ≤ c)
@@ -206,7 +227,24 @@ module Denotations (Ax : DenotAssumptions) where
     Indexed-product (Cartesian→standard-finite-products terminal products F)
 
   □⟨_⟩ : Coeff → Functor 𝔇 𝔇
-  □⟨ c ⟩ = {!!} -- precompose (op μ⟨ c ⟩)
+  □⟨ c ⟩ = F where
+    F' : Functor (PSh lzero ℛ) (PSh lzero ℛ)
+    F' = precompose (op μ⟨ c ⟩)
+
+    F'-concrete
+      : (A : ⌞ PSh lzero ℛ ⌟) → is-concrete ℛ-conc A
+      → is-concrete ℛ-conc (F' .F₀ A)
+    F'-concrete A conc {U = n , c'} H≡ with holds? (c' ≤ c) | holds? (A↓ ≤ c)
+    ... | yes _ | yes _ = conc H≡
+    ... | yes _ | no  _ = conc (funext λ z → {!!})
+    ... | no ¬a | yes _ = conc (funext λ z → {!!})
+    ... | no ¬a | no  _ = conc (funext λ z → {!!})
+
+    F : Functor 𝔇 𝔇
+    F .F₀ (A , conc) = F' .F₀ A , F'-concrete A conc
+    F .F₁ f          = full-hom (F' .F₁ (f .hom))
+    F .F-id          = Subcat-hom-path (F' .F-id)
+    F .F-∘ f g       = Subcat-hom-path (F' .F-∘ (f .hom) (g .hom))
 
   □-counit : □⟨ c ⟩ => Id
   □-counit = {!!}
@@ -220,6 +258,24 @@ module Denotations (Ax : DenotAssumptions) where
 
   𝔇ℝ[_] : ℛ.Ob → 𝔇.Ob
   𝔇ℝ[_] = Conc-よ₀ ℛ-conc
+
+  𝔇ℝ'[_] : Coeff ^ n → 𝔇.Ob
+  𝔇ℝ'[ cs ] = 𝔇-ip.ΠF λ i → 𝔇ℝ[ 1 , cs i ]
+
+  ⟨⟩-sec→section : {cs : Coeff ^ n} → ∫ₚ (⟨ cs ⟩-sec {m} c) → 𝔇ℝ'[ cs ] ʻ (m , c)
+  ⟨⟩-sec→section {n = zero} (f , Hf)                  = lift tt
+  ⟨⟩-sec→section {n = suc zero} {c = c} {cs} (f , Hf) = f , case Hf of λ Hf' →
+    subst (_∈ ⟨ c ∣ cs fzero ⟩-reg) π'1 (Hf' fzero)
+  ⟨⟩-sec→section {n = suc (suc n)} (f , Hf) =
+    {!!} , {!!} -- (λ x → π'[ fzero ] f) , {!!}
+
+  ⟨∥⟩-reg-morphism
+    : {cs : Coeff ^ m} {cs' : Coeff ^ n} (f : ℝ ^ m → ℝ ^ n)
+    → f ∈ ⟨ cs ∥ cs' ⟩-reg → Hom 𝔇ℝ'[ cs ] 𝔇ℝ'[ cs' ]
+  ⟨∥⟩-reg-morphism {n = n} f Hf = {!!}
+  -- full-hom record
+  --   { η = λ U g → {!!} -- f ⊙ g
+  --   ; is-natural = λ _ _ _ → {!!} }
 
   Ty-denot : Ty → 𝔇.Ob
   Ty-denot (treal c)            = 𝔇ℝ[ 1 , c ]
@@ -265,7 +321,8 @@ module Denotations (Ax : DenotAssumptions) where
         (Tm-denot (Hty a ⦃ ∉∪₁ H∉ ⦄))
   Tm-denot (tapp {T = T} {T' = T'} Hty Hty₁) =
     ev {⟦ T ⟧} ∘ ⟨ □-counit {A↓} .η (⟦ T ⟧ ⇒ ⟦ T' ⟧) ∘ Tm-denot Hty , Tm-denot Hty₁ ⟩
-  Tm-denot (tprim Hϕ Hty) = {!!}
+  Tm-denot (tprim {ϕ = ϕ} Hϕ Hty) =
+    ⟨∥⟩-reg-morphism (Prim-denot ϕ) (Prim-reg Hϕ) ∘ Tm-denot Hty
   Tm-denot (treal {r = r}) =
     full-hom (よ₁ ℛ (ℛ-const (make r))) ∘ よ⋆-is-terminal ℛ-conc _ .centre ∘ !
   Tm-denot (ttup Htys) = 𝔇-ip.tuple _ λ i → Tm-denot (Htys i)

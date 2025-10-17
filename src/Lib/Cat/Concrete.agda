@@ -53,13 +53,13 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
     -- g : ob∣ U ∣ → A ʻ ⋆
     -- given by the contravariant action of A on a point
     -- h : ob∣ U ∣ = Hom ⋆ U.
-    conc-sections : (U : ⌞ C ⌟) → A ʻ U → ob∣ U ∣ → A ʻ ⋆
-    conc-sections U AU f = A ⟪ f ⟫ AU
+    conc-section : {U : ⌞ C ⌟} → A ʻ U → ob∣ U ∣ → A ʻ ⋆
+    conc-section AU f = A ⟪ f ⟫ AU
 
     -- A presheaf is *concrete* if the concrete sections are a
     -- faithful representation of the functor's action.
     is-concrete : Type (o ⊔ ℓ ⊔ κ)
-    is-concrete = ∀ {U} → injective (conc-sections U)
+    is-concrete = ∀ {U} → injective (conc-section {U})
 
 -- The concrete presheaves as a full subcategory of presheaves
 ConcPSh : ∀ κ {o ℓ} {C : Precategory o ℓ} → Conc-category C → Precategory _ _
@@ -68,9 +68,28 @@ ConcPSh κ {C = C} Conc = Restrict {C = PSh κ C} (is-concrete Conc)
 module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
   open Conc-category Conc
   open Hom C
+  module CPSh {κ} = Precategory (ConcPSh κ Conc)
+
+  -- is-conc-section : ∀ {κ U} (A : CPSh.Ob {κ}) → (ob∣ U ∣ → A ʻ ⋆) → Type (ℓ ⊔ κ)
+  -- is-conc-section {U = U} (A , _) f = Σ[ au ∈ A ʻ U ] f ≡ conc-section Conc A U au
+
+  -- -- Morphisms of concrete presheaves are given by functions of underlying sets
+  -- -- which preserve membership in is-conc-section.
+  -- conc-morphism-of-function
+  --   : ∀ {A B : CPSh.Ob {ℓ}} (f : A ʻ ⋆ → B ʻ ⋆)
+  --   → (∀ {U} (g : ob∣ U ∣ → A ʻ ⋆) → is-conc-section A g → is-conc-section B (f ⊙ g))
+  --   → CPSh.Hom A B
+  -- conc-morphism-of-function {A = A , Aconc} {B , Bconc} f Hf = full-hom record
+  --   { η = λ U au → Hf (conc-section Conc A U au) (au , refl) .fst
+  --   ; is-natural = λ _ _ g → ext λ au → Bconc $ ext λ x →
+  --     let foo = Hf (conc-section Conc A _ au) (au , refl) .snd
+  --     in
+  --     {!!}
+  --     -- sym (foo $ₚ g) ∙ {!!}
+  --   }
 
   -- Representable presheaves are concrete
-  Conc-よ₀ : (U : ⌞ C ⌟) → ⌞ ConcPSh ℓ Conc ⌟
+  Conc-よ₀ : (U : ⌞ C ⌟) → CPSh.Ob
   Conc-よ₀ U = よ₀ U , ⋆-hom-faithful
 
   よ⋆-is-terminal : is-terminal (ConcPSh ℓ Conc) (Conc-よ₀ ⋆)
