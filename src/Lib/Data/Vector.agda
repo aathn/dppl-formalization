@@ -6,7 +6,8 @@ open import Data.Fin.Base using (Fin ; fzero ; fsuc ; fin-view ; zero ; suc ; sp
 open import Data.Sum.Base using (inl ; inr)
 
 open import Data.Fin.Base public using (_[_≔_] ; delete)
-open import Data.Fin.Properties using (insert-delete ; insert-lookup)
+open import Data.Fin.Properties
+  using (insert-delete ; insert-lookup ; avoid-insert ; skip-avoid ; delete-insert)
 
 Vector : {l : Level} → Type l → Nat → Type l
 Vector A n = Fin n → A
@@ -60,19 +61,34 @@ updateAt : A ^ n → Fin n → A → A ^ n
 updateAt {n = suc n} xs i x = delete xs i [ i ≔ x ]
 
 updateAt-id-local
-  : ∀ {n} {ℓ} {A : Type ℓ}
-  → (ρ : A ^ n)
+  : (ρ : A ^ n)
   → (i : Fin n) (a : A)
   → ρ i ≡ a
   → ∀ j → updateAt ρ i a j ≡ ρ j
-updateAt-id-local {suc n} = insert-delete
+updateAt-id-local {n = suc n} = insert-delete
 
 updateAt-updates
-  : ∀ {n} {ℓ} {A : Type ℓ}
-  → (ρ : A ^ n)
+  : (ρ : A ^ n)
   → (i : Fin n) (a : A)
   → updateAt ρ i a i ≡ a
-updateAt-updates {suc n} ρ i a = insert-lookup _ i a
+updateAt-updates {n = suc n} ρ i a = insert-lookup _ i a
+
+updateAt-minimal
+  : (ρ : Fin n → A)
+  → (i : Fin n) (a : A)
+  → (j : Fin n)
+  → (i≠j : i ≠ j)
+  → updateAt ρ i a j ≡ ρ j
+updateAt-minimal {n = suc n} ρ i a j i≠j =
+  avoid-insert _ i a j i≠j ∙ ap ρ (skip-avoid i j)
+
+updateAt-updateAt
+  : (ρ : A ^ n)
+  → (i : Fin n) (a b : A)
+  → (j : Fin n)
+  → updateAt (updateAt ρ i b) i a j ≡ updateAt ρ i a j
+updateAt-updateAt {n = suc n} ρ i a b j =
+  ap (λ xs → (xs [ i ≔ a ]) j) (funext $ delete-insert _ i b)
 
 ----------------------------------------------------------------------
 -- Arrays

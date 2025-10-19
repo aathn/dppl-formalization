@@ -5,6 +5,7 @@ open import Lib.Data.Vector
 open import Lib.LocallyNameless.BindingSignature
 
 open import Data.Fin.Base
+open import Data.Nat.Order
 
 -- Evaluation orders, evaluation contexts and congruence closure
 
@@ -30,6 +31,44 @@ data EvalCtx {Σ : Sig} ⦃ _ : EvalOrder Σ ⦄ (Val : (Trm Σ) → Type _)
     (_ : ∀ i → i < j → Val (ts (ord i)))
     → ------------------------------------------------------
     EvalCtx Val λ t → op (o , updateAt ts (ord j) t)
+
+EvalCtx-unique :
+  {Σ : Sig} ⦃ _ : EvalOrder Σ ⦄ (Val : (Trm Σ) → Type _)
+  {E E' : Trm Σ → Trm Σ}
+  {t u : Trm Σ}
+  (_ : EvalCtx Val E)
+  (_ : EvalCtx Val E')
+  (_ : ¬ Val t)
+  (_ : ¬ Val u)
+  → -------------------------
+  E t ≡ E' u → E ≡ E' × t ≡ u
+
+EvalCtx-unique Val {t = t} {u = u}
+  (ectx {o} {i} {ts} Hvs) (ectx {j = j} {ts'} Hvs') Ht Hu Heq
+  with reflᵢ ← Id≃path.from (ap fst (op-inj Heq)) | ≤-split (i .lower) (j .lower)
+... | inl H< = absurd (Ht (subst Val Heqt (Hvs' i H<))) where
+  Heqt =
+    ts' (ord i)        ≡˘⟨ updateAt-minimal ts' _ _ _ (<-not-equal H< ∘ sym ∘ ap lower ∘ inj) ⟩
+    updateAt ts' _ u _ ≡˘⟨ op-inj' Heq $ₚ _ ⟩
+    updateAt ts  _ t _ ≡⟨ updateAt-updates ts _ _ ⟩
+    t                  ∎
+... | inr (inl H>) = absurd (Hu (subst Val Hequ (Hvs j H>))) where
+  Hequ =
+    ts (ord j)         ≡˘⟨ updateAt-minimal ts _ _ _ (<-not-equal H> ∘ sym ∘ ap lower ∘ inj) ⟩
+    updateAt ts  _ t _ ≡⟨ op-inj' Heq $ₚ _ ⟩
+    updateAt ts' _ u _ ≡⟨ updateAt-updates ts' _ _ ⟩
+    u                  ∎
+... | inr (inr H≡) with reflᵢ ← Id≃path.from H≡ = Heq₁ , Heq₂ where
+  Heq₁ = funext λ s → ap (op ∘ (o ,_)) $
+    updateAt ts (ord i) s           ≡˘⟨ funext $ updateAt-updateAt ts _ _ _ ⟩
+    updateAt (updateAt ts  _ t) _ s ≡⟨ ap (λ xs → updateAt xs _ _ ) (op-inj' Heq) ⟩
+    updateAt (updateAt ts' _ u) _ s ≡⟨ funext $ updateAt-updateAt ts' _ _ _ ⟩
+    updateAt ts' _ s                ∎
+  Heq₂ =
+    t                  ≡˘⟨ updateAt-updates ts _ _ ⟩
+    updateAt ts  _ t _ ≡⟨ op-inj' Heq $ₚ _ ⟩
+    updateAt ts' _ u _ ≡⟨ updateAt-updates ts' _ _ ⟩
+    u                  ∎
 
 
 data CongCls
@@ -79,12 +118,12 @@ module CongStep
     where instance
     _ : Lift _ (put (ts (ord n)) a) ↝ᶜ Lift _ (put t' b)
     _ = econg (HCtx (ectx {j = n} {ts} Hvs)) Hstep
-  
+
     _ : Lift _ (put (ts (ord n)) a) ≡ put (op (o , ts)) a
     _ = ap (_$ _) HLift ∙
         ap (λ ts → put (op (o , ts)) a)
            (ext λ j → updateAt-id-local ts (ord n) _ refl j)
-  
+
     _ : Lift _ (put t' b) ≡ put (op (o , updateAt ts (ord n) t')) b
     _ = ap (_$ _) HLift
 

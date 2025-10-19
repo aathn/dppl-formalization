@@ -36,60 +36,21 @@ module _ (Ax : EvalAssumptions) where
       (_ , IsValue-is-prop Hv₁ Hv₁' i)
       (_ , IsValue-is-prop Hv₂ Hv₂' i)
 
-  -- DetCtx-unique :
-  --   {E E' : Tm → Tm}
-  --   {t u : Tm}
-  --   (_ : DetCtx E)
-  --   (_ : DetCtx E')
-  --   (_ : ¬ IsValue t)
-  --   (_ : ¬ IsValue u)
-  --   → -------------------------
-  --   E t ≡ E' u → E ≡ E' × t ≡ u
 
-  -- DetCtx-unique {t = t} {u = u} (ectx {o} {i} {ts} Hvs) (ectx {j = j} {ts'} Hvs') Ht Hu Heq
-  --   with refl , Heq' ← op-injective Heq with <-cmp i j
-  -- ... | tri< H< H≢ _ =
-  --       𝟘e $ Ht (subst IsValue Heqt (Hvs' i H<))
-  --   where
-  --   H≢' : ¬ ord {o = o} i ≡ ord {o = o} j
-  --   H≢' = H≢ ∘ inj {o = o}
-  --   Heqt = proof                                    ts' _
-  --          ≡[ symm $ updateAt-minimal _ _ ts' H≢' ] updateAt ts' _ (const u) _
-  --          ≡[ symm $ ap (_$ _) Heq' ]               updateAt ts  _ (const t) _
-  --          ≡[ updateAt-updates _ ts ]               t
-  --          qed
-  -- ... | tri> _ H≢ H> =
-  --       𝟘e $ Hu (subst IsValue Heqt (Hvs j H>))
-  --   where
-  --   H≢' : ¬ ord {o = o} j ≡ ord {o = o} i
-  --   H≢' = H≢ ∘ inj {o = o} ∘ symm
-  --   Heqt = proof                                   ts _
-  --          ≡[ symm $ updateAt-minimal _ _ ts H≢' ] updateAt ts  _ (const t) _
-  --          ≡[ ap (_$ _) Heq' ]                     updateAt ts' _ (const u) _
-  --          ≡[ updateAt-updates _ ts' ]             u
-  --          qed
-  -- ... | tri≈ _ refl _ = Heq₁ , Heq₂
-  --   where
-  --   Heq₁ = funext λ s → ap (op ∘ (o ,_)) $
-  --          proof                                       updateAt ts _ (const s)
-  --          ≡[ symm $ funext $ updateAt-updateAt _ ts ] updateAt (updateAt ts _ (const t)) _ (const s)
-  --          ≡[ ap (λ xs → updateAt xs _ _) $ Heq' ]     updateAt (updateAt ts' _ (const u)) _ (const s)
-  --          ≡[ funext $ updateAt-updateAt _ ts' ]       updateAt ts' _ (const s)
-  --          qed
-  --   Heq₂ = proof                             t
-  --          ≡[ symm $ updateAt-updates _ ts ] updateAt ts  _ (const t) _
-  --          ≡[ ap (_$ _) Heq' ]               updateAt ts' _ (const u) _
-  --          ≡[ updateAt-updates _ ts' ]       u
-  --          qed
+  DetCtx-cannot-step :
+    {E : Tm → Tm}
+    {t u : Tm}
+    (_ : DetCtx E)
+    (_ : ¬ IsValue t)
+    → ---------------
+    ¬ E t →ᵈ u
 
-  -- DetCtx-cannot-step :
-  --   {E : Term → Term}
-  --   {t u : Term}
-  --   (_ : DetCtx E)
-  --   (_ : ¬ IsValue t)
-  --   → ---------------
-  --   ¬ E t →ᵈ u
-
+  DetCtx-cannot-step (ectx _) Ht (eapp x x₁) = {!!}
+  DetCtx-cannot-step (ectx _) Ht (eprim x) = {!!}
+  DetCtx-cannot-step (ectx _) Ht (eproj i x x₁) = {!!}
+  DetCtx-cannot-step (ectx _) Ht (eif x) = {!!}
+  DetCtx-cannot-step (ectx _) Ht (ediff v₀ v₁) = {!!}
+  DetCtx-cannot-step (ectx _) Ht (esolve v₀ v₁ v₂) = {!!}
   -- DetCtx-cannot-step (ectx {j = ₀} _) Ht (eapp refl _) = Ht vabs
   -- DetCtx-cannot-step (ectx {j = ₁} _) Ht (eapp _ Hv) = Ht Hv
   -- DetCtx-cannot-step {t = t} (ectx {j = j} {ts} _) Ht (eprim {rs = rs} Heq) =
