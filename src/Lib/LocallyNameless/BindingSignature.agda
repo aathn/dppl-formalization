@@ -28,7 +28,7 @@ open import Lib.LocallyNameless.Shift
 
 open import Data.Nat.Base using (Nat-is-set ; suc-inj)
 open import Data.Nat.Properties
-  using (+-preserves-≤r ; +-≤l ; +-≤r ; monus-inversel)
+  using (+-preserves-≤r ; +-≤l ; +-≤r ; +-injr ; monus-+l-inverse)
   renaming (+-commutative to +-comm)
 open import Data.Nat.Order using (<-from-not-≤ ; <-not-equal)
 open import Data.Irr using (Irr)
@@ -93,12 +93,12 @@ instance
     oc₄ (i + index (ar Σ c) k) a (t k))
   oc₅ ⦃ oc◆{Σ} ⦄ i j a b (c , t) = ap (c ,_) (funext λ k →
     oc₅ (i + index (ar Σ c) k) (j + index (ar Σ c) k) a b (t k)
-    ⦃ inj≠ (+-inj' (index (ar Σ c) k) _ _) auto ⦄)
+    ⦃ inj≠ (+-injr (index (ar Σ c) k) _ _) auto ⦄)
   oc₆ ⦃ oc◆{Σ} ⦄ i j a b (c , t) = ap (c ,_) (funext λ k →
     oc₆ (i + index (ar Σ c) k) (j + index (ar Σ c) k) a  b (t k))
   oc₇ ⦃ oc◆{Σ} ⦄ i  j a b (c , t) = ap (c ,_) (funext λ k →
     oc₇ (i + index (ar Σ c) k) (j + index (ar Σ c) k) a b (t k)
-    ⦃ inj≠ (+-inj' (index (ar Σ c) k) _ _) auto ⦄)
+    ⦃ inj≠ (+-injr (index (ar Σ c) k) _ _) auto ⦄)
   oc₈ ⦃ oc◆{Σ} ⦄ i j a b (c , t) = ap (c ,_) (funext λ k →
     oc₈ (i + index (ar Σ c) k) (j + index (ar Σ c) k) a  b (t k))
   oc₉ ⦃ oc◆{Σ} ⦄ i j a b (c , t) = ap (c ,_) (funext λ k →
@@ -274,7 +274,7 @@ instance
     ax₅ i j a b (op(c , ts)) = ap (λ ts' → op(c , ts')) (funext λ k →
       ax₅ (i + index (ar Σ c) k)
           (j + index (ar Σ c) k) a b (ts k)
-          ⦃ inj≠ (+-inj' (index (ar Σ c) k) _ _) auto ⦄)
+          ⦃ inj≠ (+-injr (index (ar Σ c) k) _ _) auto ⦄)
     ax₆ :
       (i j : Nat)
       (a b : 𝔸)
@@ -297,7 +297,7 @@ instance
     ax₇ i j a b (op(c , ts)) = ap (λ ts' → op(c , ts')) (funext λ k →
       ax₇ (i + index (ar Σ c) k)
           (j + index (ar Σ c) k) a b (ts k)
-          ⦃ inj≠ (+-inj' (index (ar Σ c) k) _ _) auto ⦄)
+          ⦃ inj≠ (+-injr (index (ar Σ c) k) _ _) auto ⦄)
     ax₈ :
       (i j : Nat)
       (a b : 𝔸)
@@ -353,7 +353,7 @@ instance
   with (a , q) ← p (j - index (ar Σ c) k) ⦃ monus-adj _ _ _ auto ⦄ = (a , e')
   where
   H≡ : j - index (ar Σ c) k + index (ar Σ c) k ≡ j
-  H≡ = +-comm _ (index (ar Σ c) k) ∙ monus-inversel j (index (ar Σ c) k) (≤-trans (+-≤r _ _) auto)
+  H≡ = +-comm _ (index (ar Σ c) k) ∙ monus-+l-inverse (index (ar Σ c) k) j (≤-trans (+-≤r _ _) auto)
   e' : (j ~> a)(ts k) ≡ ts k
   e' =
     (j ~> a)(ts k)                                         ≡˘⟨ ap (λ j' → (j' ~> a)(ts k)) H≡ ⟩

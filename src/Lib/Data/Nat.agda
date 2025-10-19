@@ -4,7 +4,7 @@ open import 1Lab.Prelude
 open import Lib.Data.Vector
 
 open import Data.Fin using (Fin ; fin-view ; zero ; suc)
-open import Data.Nat.Properties using (+-inj ; +-commutative ; monus-swapr)
+open import Data.Nat.Properties using (+-commutative ; monus-swapr)
 
 module NatOrd where
   open import Data.Nat.Base public
@@ -15,9 +15,6 @@ module NatOrd where
 
   _≥_ = flip _≤_
   _>_ = flip _<_
-
-+-inj' : ∀ k x y → x + k ≡ y + k → x ≡ y
-+-inj' k x y p = +-inj k x y (+-commutative k x ∙ p ∙ +-commutative y k)
 
 open NatOrd
 
