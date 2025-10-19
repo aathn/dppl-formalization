@@ -33,7 +33,7 @@ instance
 
 data IsValue : Tm → Type where
 
-  vabs :
+  vlam :
     {t : Tm ^ 1}
     → -----------------
     IsValue (lam T ▸ t)
@@ -62,7 +62,7 @@ DetCtx : (Tm → Tm) → Type
 DetCtx = EvalCtx IsValue
 
 RndCtx : (Tm × ℝ × List 𝕀 → Tm × ℝ × List 𝕀) → Type
-RndCtx E = Σ _ λ E' → DetCtx E' × E ≡ ×-map₁ E'
+RndCtx E = Σ _ λ E' → DetCtx E' × E ≡ᵢ ×-map₁ E'
 
 record EvalAssumptions : Type where
   field
@@ -145,7 +145,10 @@ module Eval (Ax : EvalAssumptions) where
       → ------------------------------------------------------------------
       (weight ▸ t , w , s) →ʳ (unit , (if is-pos r then r * w else 0r) , s)
 
-    euniform : (uniform , w , p ∷ s) →ʳ (real (p .fst) , w , s)
+    euniform :
+      {t : Tm ^ 0}
+      → ---------------------------------------------------
+      (ouniform ▸ t , w , p ∷ s) →ʳ (real (p .fst) , w , s)
 
     esample :
       {t t' : Tm ^ 1}

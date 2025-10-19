@@ -32,7 +32,7 @@ module Progress (Ax : EvalAssumptions) where
     → --------------------------------
     IsValue t ⊎ Σ[ t' ∈ Tm ] t →det t'
 
-  progress-det (tlam _)        = inl vabs
+  progress-det (tlam _)        = inl vlam
   progress-det treal           = inl vreal
   progress-det (tapp Hty Hty₁) = inr $ case (progress-det Hty) of λ where
     (inr (t' , Hstep)) → _ , cong-stepᵈ (λ _ ()) Hstep

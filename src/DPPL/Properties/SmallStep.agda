@@ -23,7 +23,7 @@ open EvalVars
 -- IsValue is a proposition
 
 IsValue-is-prop : is-prop (IsValue t)
-IsValue-is-prop vabs vabs            = refl
+IsValue-is-prop vlam vlam            = refl
 IsValue-is-prop vreal vreal          = refl
 IsValue-is-prop (vtup vs) (vtup vs') =
   ap vtup (funext λ i → IsValue-is-prop (vs i) (vs' i))
@@ -105,11 +105,11 @@ module Step (Ax : EvalAssumptions) where
   →det⊆→rnd : t →det t' → (t , w , s) →rnd (t' , w , s)
 
   →det⊆→rnd (estep Hstep)     = estep (edet Hstep)
-  →det⊆→rnd (econg ctx Hstep) = econg (_ , ctx , refl) (→det⊆→rnd Hstep)
+  →det⊆→rnd (econg ctx Hstep) = econg (_ , ctx , reflᵢ) (→det⊆→rnd Hstep)
 
   private
     module C1 = CongStep _→ᵈ_ DetCtx id refl id
-    module C2 = CongStep _→ʳ_ RndCtx ×-map₁ refl (λ ctx → _ , ctx , refl)
+    module C2 = CongStep _→ʳ_ RndCtx ×-map₁ refl (λ ctx → _ , ctx , reflᵢ)
 
   cong-stepᵈ = C1.cong-step {unit} {unit}
 
@@ -133,7 +133,7 @@ module Step (Ax : EvalAssumptions) where
     go {j = j} (vinfer Hv) with zero ← fin-view j = Hv
 
   value-cannot-step-det : IsValue t → ¬ t →det t'
-  value-cannot-step-det Hv (estep Hstep) with vabs ← Hv | () ← Hstep
+  value-cannot-step-det Hv (estep Hstep) with vlam ← Hv | () ← Hstep
   value-cannot-step-det Hv (econg Hctx Hstep) =
     value-cannot-step-det (ctx-value-inv Hctx Hv) Hstep
 
@@ -143,6 +143,6 @@ module Step (Ax : EvalAssumptions) where
     → ------------------------
     ¬ t →rnd t'
 
-  value-cannot-step-rnd Hv (estep Hstep) with vabs ← Hv | edet () ← Hstep
-  value-cannot-step-rnd Hv (econg (_ , Hctx , HE) Hstep) = value-cannot-step-rnd
-    (ctx-value-inv Hctx (subst IsValue (ap fst (HE $ₚ _)) Hv)) Hstep
+  value-cannot-step-rnd Hv (estep Hstep) with vlam ← Hv | edet () ← Hstep
+  value-cannot-step-rnd Hv (econg (_ , Hctx , reflᵢ) Hstep) =
+    value-cannot-step-rnd (ctx-value-inv Hctx Hv) Hstep
