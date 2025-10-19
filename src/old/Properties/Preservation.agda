@@ -28,7 +28,7 @@ open import Properties.SmallStep R
 open import Properties.Util
 
 ctx-type-inv :
-  {E : Term → Term}
+  {E : Tm → Tm}
   (_ : DetCtx E)
   (_ : Γ ⊢ E t :[ e ] T)
   → -----------------------------------------
@@ -41,8 +41,8 @@ ctx-type-inv (ectx {o} {j = j} _) Htype =
               (updateAt-updates (ord {o = o} j) _) Htype′
   where
   go :
-    {o : TermOp}
-    {ts : Vector Term (length (TermAr o))}
+    {o : TmOp}
+    {ts : Vector Tm (length (TmAr o))}
     (j : Fin (len {o = o}))
     (_ : Γ ⊢ op (o , ts) :[ e ] T)
     → ----------------------------------------------------------
@@ -71,7 +71,7 @@ updateAt-type :
   {Γs : Vector TyEnv n}
   {es : Vector Eff n}
   {Ts : Vector Type n}
-  {ts : Vector Term n}
+  {ts : Vector Tm n}
   (j : Fin n)
   (_ : ∀ i → Γs i ⊢ ts i :[ es i ] Ts i)
   (_ : Γs j ⊢ t :[ es j ] Ts j)
@@ -82,8 +82,8 @@ updateAt-type {t = t} {ts = ts} j Htypes Htype i with (i ≐ j)
 ... | neq H≢ rewrite updateAt-minimal _ _ {const t} ts H≢ = Htypes i
 
 preservation-ctx :
-  {E : Term → Term}
-  {t₁ t₂ : Term}
+  {E : Tm → Tm}
+  {t₁ t₂ : Tm}
   (_ : DetCtx E)
   (_ : ∀ {e T} → [] ⊢ t₁ :[ e ] T → [] ⊢ t₂ :[ e ] T)
   (_ : [] ⊢ E t₁ :[ e ] T)
@@ -108,8 +108,8 @@ preservation-ctx
     in H₃
   where
   go : 
-    {o : TermOp}
-    {ts : Vector Term (length (TermAr o))}
+    {o : TmOp}
+    {ts : Vector Tm (length (TmAr o))}
     (j : Fin (len {o = o}))
     (_ : [] ⊢ op (o , ts) :[ e ] T)
     (_ : ∀ {e T} → [] ⊢ ts (ord {o = o} j) :[ e ] T → [] ⊢ t :[ e ] T)
@@ -146,7 +146,7 @@ module _ (Ass : EvalAssumptions) where
   record PresAssumptions : Set where
     field
       DiffPres :
-        {t₀ t₁ : Term}
+        {t₀ t₁ : Tm}
         {cs : Vector Coeff n}
         {ds : Vector Coeff m}
         (_ : ∀ i → cs i ≤′ P)
@@ -157,7 +157,7 @@ module _ (Ass : EvalAssumptions) where
         Γ ⊢ Diff (_ , v₀) (_ , v₁) :[ e ] treals n (const A) ⇒[ det ] treals m ds
 
       SolvePres :
-        {t₀ t₁ t₂ : Term}
+        {t₀ t₁ t₂ : Tm}
         {Ts : Vector Type 2}
         {cs : Vector Coeff n}
         (_ : Γ ⊢ t₀ :[ e ] ttup 2 Ts ⇒[ det ] treals n cs)

@@ -8,6 +8,9 @@ open import DPPL.Syntax R
 open import DPPL.Typing R
 
 open import Lib.Data.Vector
+open import Lib.LocallyNameless.Unfinite
+open import Lib.Syntax.Env
+open import Lib.Syntax.Substitution
 
 open import Data.Nat.Base using (Nat-is-set)
 
@@ -27,3 +30,14 @@ ttup-inv (ttup Htys) Heq i = subst (_ ⊢ _ :[ _ ]_)
 ttup-inv (tsub Hty H≤ (stup H<:)) reflᵢ i = tsub (ttup-inv Hty reflᵢ i) H≤ (H<: i)
 ttup-inv (tpromote {T = ttup _ _} Hty H≤ H⊆) reflᵢ i =
   tpromote (ttup-inv Hty reflᵢ i) H≤ H⊆
+
+
+substitution-pres-typing :
+  {x : 𝔸}
+  {t u : Tm}
+  {T₁ T₂ : Ty}
+  (_ : [ x ∶ T₂ ] & Γ' ⊢ t :[ e ] T₁)
+  (_ : ε ⊢ u :[ det ] T₂)
+  → ---------------------------------
+  ε & Γ' ⊢ (x => u) t :[ e ] T₁
+substitution-pres-typing {Γ' = Γ'} {x = x} {u = u} {T₂ = T₂} Htype Hu = {!!}
