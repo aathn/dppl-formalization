@@ -118,7 +118,10 @@ data _⊢_:[_]_ : TyEnv → Tm → Eff → Ty → Type where
     → ------------------------------
     Γ ⊢ prim ϕ ▸ t :[ e ] treal c
 
-  treal : Γ ⊢ real r :[ det ] treal A↓
+  treal :
+    {t : Tm ^ 0}
+    → -------------------------------
+    Γ ⊢ oreal r ▸ t :[ det ] treal A↓
 
   ttup :
     {Ts : Ty ^ n}
@@ -145,7 +148,10 @@ data _⊢_:[_]_ : TyEnv → Tm → Eff → Ty → Type where
     → -------------------------------
     Γ ⊢ if ▸ ts :[ e ] treals n cs
 
-  tuniform : Γ ⊢ uniform :[ rnd ] treal M↓
+  tuniform :
+    {t : Tm ^ 0}
+    → --------------------------------
+    Γ ⊢ ouniform ▸ t :[ rnd ] treal M↓
 
   tsample :
     {t : Tm ^ 1}

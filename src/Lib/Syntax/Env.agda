@@ -90,19 +90,20 @@ dup-append {l = l} {l'} Γ =
   Coeq-elim-prop {C = λ Γ → dup-step l l' → raw-append l Γ ≡ raw-append l' Γ}
     (λ _ → hlevel 1) (λ l1 Hdup → quot (step-++ᵣ {l1 = l1} Hdup)) Γ
 
-env-append : Env X → Env X → Env X
-env-append Γ Γ' =
-  Coeq-rec (λ l → raw-append l Γ') (λ (_ , _ , Hdup) → dup-append Γ' Hdup) Γ
+opaque
+  env-append : Env X → Env X → Env X
+  env-append Γ Γ' =
+    Coeq-rec (λ l → raw-append l Γ') (λ (_ , _ , Hdup) → dup-append Γ' Hdup) Γ
 
-infixl 5 _&_
-_&_ : Env X → Env X → Env X
-Γ & Γ' = env-append Γ' Γ
+  infixl 5 _&_
+  _&_ : Env X → Env X → Env X
+  Γ & Γ' = env-append Γ' Γ
 
-env-dom-++ : (Γ Γ' : Env X) → env-dom (Γ' & Γ) ≡ (env-dom Γ ∪ env-dom Γ')
-env-dom-++ =
-  Coeq-elim-prop (λ _ → hlevel 1) λ l  →
-  Coeq-elim-prop (λ _ → hlevel 1) λ l' →
-  raw-dom-++ l l'
+  env-dom-++ : (Γ Γ' : Env X) → env-dom (Γ' & Γ) ≡ (env-dom Γ ∪ env-dom Γ')
+  env-dom-++ =
+    Coeq-elim-prop (λ _ → hlevel 1) λ l  →
+    Coeq-elim-prop (λ _ → hlevel 1) λ l' →
+    raw-dom-++ l l'
 
 data raw-mem {X : Type ℓ} (a : 𝔸) (T : X) : RawEnv X → Type ℓ where
   here  : x ≡ᵢ (a , T) → a ∉ raw-dom l → raw-mem a T (x ∷ l)
@@ -143,7 +144,7 @@ private
   dup-memr (step-cong Hdup) (there Hmem) = there (dup-memr Hdup Hmem)
   dup-memr (step-dup H∈) (here reflᵢ H∉) = absurd (is-no-false H∉ H∈)
   dup-memr (step-dup H∈) (there Hmem) = Hmem
-  
+
   dup-meml : dup-step l l' → raw-mem a T l' → raw-mem a T l
   dup-meml {a = a} (step-cong Hdup) (here reflᵢ H∉) =
     here reflᵢ (subst (a ∉_) (sym $ dup-raw-dom Hdup) H∉)
