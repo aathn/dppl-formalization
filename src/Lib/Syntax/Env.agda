@@ -86,9 +86,9 @@ step-++ᵣ {l' = l'} {l1} (step-dup H∈) =
   step-dup $ subst (_ ∈ᶠˢ_) (sym $ raw-dom-++ l' l1) (unionl-∈ᶠˢ _ _ _ H∈)
 
 dup-append : (Γ : Env X) → dup-step l l' → raw-append l Γ ≡ raw-append l' Γ
-dup-append {l = l} {l'} Γ =
+dup-append {l = l} {l'} =
   Coeq-elim-prop {C = λ Γ → dup-step l l' → raw-append l Γ ≡ raw-append l' Γ}
-    (λ _ → hlevel 1) (λ l1 Hdup → quot (step-++ᵣ {l1 = l1} Hdup)) Γ
+    (λ _ → hlevel 1) (λ l1 Hdup → quot (step-++ᵣ {l1 = l1} Hdup))
 
 opaque
   env-append : Env X → Env X → Env X
@@ -105,63 +105,95 @@ opaque
     Coeq-elim-prop (λ _ → hlevel 1) λ l' →
     raw-dom-++ l l'
 
-data raw-mem {X : Type ℓ} (a : 𝔸) (T : X) : RawEnv X → Type ℓ where
-  here  : x ≡ᵢ (a , T) → a ∉ raw-dom l → raw-mem a T (x ∷ l)
-  there : raw-mem a T l → raw-mem a T (x ∷ l)
+data raw-sub {X : Type ℓ} : RawEnv X → RawEnv X → Type ℓ where
+  sub-nil : raw-sub [] []
+  sub-here
+    : {x y : 𝔸 × X} → x ≡ᵢ y → fst y ∉ raw-dom l'
+    → raw-sub l l' → raw-sub (x ∷ l) (y ∷ l') 
+  sub-there : raw-sub l l' → raw-sub l (x ∷ l') 
 
-raw-mem-∈ : raw-mem a T l → a ∈ raw-dom l
-raw-mem-∈ (here reflᵢ H∉) = hereₛ
-raw-mem-∈ (there H∈)      = thereₛ (raw-mem-∈ H∈)
+sub-nil' : raw-sub [] l
+sub-nil' {l = []}    = sub-nil
+sub-nil' {l = _ ∷ _} = sub-there sub-nil'
 
-∈-raw-mem : a ∈ raw-dom l → ∃[ T ∈ X ] raw-mem a T l
-∈-raw-mem {l = []}    H∈ = absurd (¬mem-[] H∈)
-∈-raw-mem {l = x ∷ l} H∈ = ∈ᶠˢ-split
-  (λ { reflᵢ → case holds? (fst x ∈ raw-dom l) of λ where
-       (yes H∈') → case ∈-raw-mem H∈' of λ _ H∈'' → inc (_ , there H∈'')
-       (no  H∉)  → inc (_ , here reflᵢ (false-is-no H∉))
-     })
-  (λ { p → case ∈-raw-mem p of λ _ H∈' → inc (_ , there H∈') })
-  H∈
+raw-sub→dom-⊆ : raw-sub l l' → raw-dom l ⊆ raw-dom l'
+raw-sub→dom-⊆ H⊆ = {!!}
+-- raw-mem-∈ (here reflᵢ H∉) = hereₛ
+-- raw-mem-∈ (there H∈)      = thereₛ (raw-mem-∈ H∈)
 
-raw-mem-is-prop : ⦃ _ : H-Level X 2 ⦄ {T : X} → is-prop (raw-mem a T l)
-raw-mem-is-prop (here reflᵢ H∉) (here _ H∉')  = ap₂ here prop! (is-yes-is-prop H∉ H∉')
-raw-mem-is-prop (here reflᵢ H∉) (there Hmem') = absurd (is-no-false H∉ (raw-mem-∈ Hmem'))
-raw-mem-is-prop (there Hmem) (here _ H∉')     = absurd (is-no-false H∉' (raw-mem-∈ Hmem))
-raw-mem-is-prop (there Hmem) (there Hmem')    = ap there (raw-mem-is-prop Hmem Hmem')
+raw-sub-is-prop : ⦃ _ : H-Level X 2 ⦄ {l l' : RawEnv X} → is-prop (raw-sub l l')
+raw-sub-is-prop sub-nil sub-nil                               = refl
+raw-sub-is-prop (sub-here reflᵢ H∉ H⊆) (sub-here p H∉' H⊆') i =
+  sub-here (q i) (is-yes-is-prop H∉ H∉' i) (raw-sub-is-prop H⊆ H⊆' i) where
+  q : reflᵢ ≡ p
+  q = prop!
+raw-sub-is-prop (sub-here reflᵢ H∉ H⊆) (sub-there H⊆') =
+  absurd (is-no-false H∉ (raw-sub→dom-⊆ H⊆' _ hereₛ))
+raw-sub-is-prop (sub-there H⊆) (sub-here reflᵢ H∉ H⊆') =
+  absurd (is-no-false H∉ (raw-sub→dom-⊆ H⊆ _ hereₛ))
+raw-sub-is-prop (sub-there H⊆) (sub-there H⊆') =
+  ap sub-there (raw-sub-is-prop H⊆ H⊆')
+
+-- ∈-raw-mem : a ∈ raw-dom l → ∃[ T ∈ X ] raw-mem a T l
+-- ∈-raw-mem {l = []}    H∈ = absurd (¬mem-[] H∈)
+-- ∈-raw-mem {l = x ∷ l} H∈ = ∈ᶠˢ-split
+--   (λ { reflᵢ → case holds? (fst x ∈ raw-dom l) of λ where
+--        (yes H∈') → case ∈-raw-mem H∈' of λ _ H∈'' → inc (_ , there H∈'')
+--        (no  H∉)  → inc (_ , here reflᵢ (false-is-no H∉))
+--      })
+--   (λ { p → case ∈-raw-mem p of λ _ H∈' → inc (_ , there H∈') })
+--   H∈
 
 instance
-  H-Level-raw-mem : ∀ ⦃ _ : H-Level X 2 ⦄ {T : X} {n} → H-Level (raw-mem a T l) (suc n)
-  H-Level-raw-mem = basic-instance 1 raw-mem-is-prop
+  H-Level-raw-sub
+    : ∀ ⦃ _ : H-Level X 2 ⦄ {l l' : RawEnv X} {n} → H-Level (raw-sub l l') (suc n)
+  H-Level-raw-sub = basic-instance 1 raw-sub-is-prop
 
 private
-  instance
-    Membership-RawEnv : {X : Type ℓ} → Membership (𝔸 × X) (RawEnv X) ℓ
-    Membership-RawEnv = record { _∈_ = λ (x , T) Γ → ⌞ raw-mem x T Γ ⌟ }
+  dup-subr : {l l1 l2 : RawEnv X} → dup-step l1 l2 → raw-sub l l1 → raw-sub l l2
+  dup-subr (step-cong Hdup) (sub-here reflᵢ H∉ H⊆) =
+    sub-here reflᵢ (subst (_ ∉_) (dup-raw-dom Hdup) H∉) (dup-subr Hdup H⊆)
+  dup-subr (step-cong Hdup) (sub-there H⊆) = sub-there (dup-subr Hdup H⊆)
+  dup-subr (step-dup H∈) (sub-here reflᵢ H∉ H⊆) = absurd (is-no-false H∉ H∈)
+  dup-subr (step-dup H∈) (sub-there H⊆) = H⊆
 
-  dup-memr : dup-step l l' → raw-mem a T l → raw-mem a T l'
-  dup-memr {a = a} (step-cong Hdup) (here reflᵢ H∉) =
-    here reflᵢ (subst (a ∉_) (dup-raw-dom Hdup) H∉)
-  dup-memr (step-cong Hdup) (there Hmem) = there (dup-memr Hdup Hmem)
-  dup-memr (step-dup H∈) (here reflᵢ H∉) = absurd (is-no-false H∉ H∈)
-  dup-memr (step-dup H∈) (there Hmem) = Hmem
+  dup-subr' : {l l1 l2 : RawEnv X} → dup-step l1 l2 → raw-sub l l2 → raw-sub l l1
+  dup-subr' (step-cong Hdup) (sub-here reflᵢ H∉ H⊆) =
+    sub-here reflᵢ {!!} (dup-subr' Hdup H⊆)
+  dup-subr' (step-cong Hdup) (sub-there H⊆) = sub-there (dup-subr' Hdup H⊆)
+  dup-subr' (step-dup _) H⊆ = sub-there H⊆
 
-  dup-meml : dup-step l l' → raw-mem a T l' → raw-mem a T l
-  dup-meml {a = a} (step-cong Hdup) (here reflᵢ H∉) =
-    here reflᵢ (subst (a ∉_) (sym $ dup-raw-dom Hdup) H∉)
-  dup-meml (step-cong Hdup) (there Hmem) = there (dup-meml Hdup Hmem)
-  dup-meml (step-dup _) Hmem = there Hmem
+  raw-sub' : {X : Type ℓ} ⦃ _ : H-Level X 2 ⦄ → RawEnv X → Env X → Prop ℓ
+  raw-sub' l = Coeq-rec (λ l' → el! (raw-sub l l')) λ (_ , _ , Hdup) →
+    n-ua (prop-ext! (dup-subr Hdup) (dup-subr' Hdup))
 
-env-mem : {X : Type ℓ} → ⦃ H-Level X 2 ⦄ → 𝔸 → X → Env X → Prop ℓ
-env-mem a T = Coeq-rec (λ l → el! (raw-mem a T l)) λ (_ , _ , Hdup) →
-  n-ua (prop-ext! (dup-memr Hdup) (dup-meml Hdup))
+  dup-subl : {l l1 l2 : RawEnv X} → dup-step l1 l2 → raw-sub l1 l → raw-sub l2 l
+  dup-subl Hdup (sub-there H⊆)            = sub-there (dup-subl Hdup H⊆)
+  dup-subl (step-dup _) (sub-here _ _ H⊆) = sub-there H⊆
+  dup-subl (step-cong Hdup) (sub-here reflᵢ H∉ H⊆) =
+    sub-here reflᵢ H∉ (dup-subl Hdup H⊆)
 
-instance
-  Membership-Env : {X : Type ℓ} → ⦃ H-Level X 2 ⦄ → Membership (𝔸 × X) (Env X) ℓ
-  Membership-Env = record { _∈_ = λ (x , T) Γ → ⌞ env-mem x T Γ ⌟ }
+  dup-subl' : {l l1 l2 : RawEnv X} → dup-step l1 l2 → raw-sub l2 l → raw-sub l1 l
+  dup-subl' = {!!}
 
-infixl 5 _∶_∈_
-_∶_∈_ : {X : Type ℓ} → ⦃ H-Level X 2 ⦄ → 𝔸 → X → Env X → Type ℓ
-a ∶ T ∈ Γ = ⌞ env-mem a T Γ ⌟
+  dup-foo : {X : Type ℓ} ⦃ _ : H-Level X 2 ⦄ {l l' : RawEnv X} (Γ : Env X) → dup-step l l' → raw-sub' l Γ ≡ raw-sub' l' Γ
+  dup-foo {l = l} {l'} =
+    Coeq-elim-prop {C = λ Γ → dup-step l l' → raw-sub' l Γ ≡ raw-sub' l' Γ}
+      (λ _ → hlevel 1) (λ l1 Hdup →
+        n-ua (prop-ext! (dup-subl Hdup) (dup-subl' Hdup)))
+
+env-sub : {X : Type ℓ} ⦃ _ : H-Level X 2 ⦄ → Env X → Env X → Prop ℓ
+env-sub Γ Γ' =
+  Coeq-rec (λ l → raw-sub' l Γ') (λ (_ , _ , Hdup) → {!!}) Γ
+  -- n-ua (prop-ext! (dup-memr Hdup) (dup-meml Hdup))) Γ
+
+-- instance
+--   Membership-Env : {X : Type ℓ} → ⦃ H-Level X 2 ⦄ → Membership (𝔸 × X) (Env X) ℓ
+--   Membership-Env = record { _∈_ = λ (x , T) Γ → ⌞ env-mem x T Γ ⌟ }
+
+-- infixl 5 _∶_∈_
+-- _∶_∈_ : {X : Type ℓ} → ⦃ H-Level X 2 ⦄ → 𝔸 → X → Env X → Type ℓ
+-- a ∶ T ∈ Γ = ⌞ env-mem a T Γ ⌟
 
 raw-nub : RawEnv X → RawEnv X
 raw-nub []      = []
@@ -207,20 +239,6 @@ env-nub-cons
   → a ∉ env-dom Γ → env-nub (Γ , a ∶ T) ≡ (a , T) ∷ env-nub Γ
 env-nub-cons = Coeq-elim-prop (λ _ → hlevel 1) raw-nub-cons
 
-data is-nubbed {X : Type ℓ} : RawEnv X → Type ℓ where
-  []  : is-nubbed []
-  _∷_ : fst x ∉ raw-dom l → is-nubbed l → is-nubbed (x ∷ l)
-
-raw-nub-is-nubbed : (l : RawEnv X) → is-nubbed (raw-nub l)
-raw-nub-is-nubbed [] = []
-raw-nub-is-nubbed (x ∷ l) with holds? (fst x ∈ raw-dom (raw-nub l))
-... | yes _ = raw-nub-is-nubbed l
-... | no H∉ = false-is-no H∉ ∷ raw-nub-is-nubbed l
-
-env-nub-is-nubbed : ⦃ _ : H-Level X 2 ⦄ (Γ : Env X) → is-nubbed (env-nub Γ)
-env-nub-is-nubbed Γ = subst (is-nubbed ∘ env-nub)
-  (sym $ env-nub-univ Γ) (raw-nub-is-nubbed (env-nub Γ))
-
 raw-map : (X → Y) → RawEnv X → RawEnv Y
 raw-map f = map (λ (x , T) → x , f T)
 
@@ -233,18 +251,19 @@ env-map : (X → Y) → Env X → Env Y
 env-map f =
   Coeq-rec (λ l → inc (raw-map f l)) λ (_ , _ , Hdup) → quot (step-raw-map Hdup)
 
-env-⊆-nil : ⦃ _ : H-Level X 2 ⦄ (Γ : Env X) → Γ ⊆ ε → Γ ≡ ε
-env-⊆-nil {X = X} =
-  Coeq-elim-prop {C = λ Γ → Γ ⊆ ε → Γ ≡ ε} (λ _ → hlevel 1) λ where
-    []      _  → refl
-    (x ∷ l) H⊆ →
-      case ∈-raw-mem (hereₛ {xs = raw-dom l}) of λ _ H∈ →
-      case H⊆ _ H∈ of λ ()
+-- env-⊆-nil : ⦃ _ : H-Level X 2 ⦄ (Γ : Env X) → Γ ⊆ ε → Γ ≡ ε
+-- env-⊆-nil {X = X} =
+--   Coeq-elim-prop {C = λ Γ → Γ ⊆ ε → Γ ≡ ε} (λ _ → hlevel 1) λ where
+--     foo bar → ?
+--     []      _  → refl
+--     (x ∷ l) H⊆ →
+--       case ∈-raw-mem (hereₛ {xs = raw-dom l}) of λ _ H∈ →
+--       case H⊆ _ H∈ of λ ()
 
 module EnvDenot
   {o ℓ} {C : Precategory o ℓ} (cart : Cartesian-category C)
   (X-denot : X → Precategory.Ob C) where
-  module C = Cartesian-category cart
+  private module C = Cartesian-category cart
   open C
 
   RawEnv-denot : RawEnv X → Ob
@@ -259,72 +278,70 @@ module EnvDenot
     ⟦⟧-Env : ⦃ H-Level X 2 ⦄ → ⟦⟧-notation (Env X)
     ⟦⟧-Env = brackets _ λ Γ → ⟦ env-nub Γ ⟧
 
-  raw-lookup : raw-mem a T l → Hom ⟦ l ⟧ (X-denot T)
-  raw-lookup {l = _ ∷ l} (here reflᵢ H∉) = π₂
-  raw-lookup {l = x ∷ _} (there H∈)      = raw-lookup H∈ C.∘ π₁
+  raw-proj : {l l' : RawEnv X} → raw-sub l l' → Hom ⟦ l' ⟧ ⟦ l ⟧
+  raw-proj sub-nil                 = C.id
+  raw-proj (sub-here reflᵢ _ Hsub) = ⟨ raw-proj Hsub C.∘ π₁ , π₂ ⟩
+  raw-proj (sub-there Hsub)        = raw-proj Hsub C.∘ π₁
 
-  env-lookup : ⦃ _ : H-Level X 2 ⦄ → a ∶ T ∈ Γ → Hom ⟦ Γ ⟧ (X-denot T)
-  env-lookup {a = a} {T} {Γ} H∈ = raw-lookup (subst (a ∶ T ∈_) (env-nub-univ Γ) H∈)
+--   raw-lookup : raw-mem a T l → Hom ⟦ l ⟧ (X-denot T)
+--   raw-lookup {l = _ ∷ l} (here reflᵢ H∉) = π₂
+--   raw-lookup {l = x ∷ _} (there H∈)      = raw-lookup H∈ C.∘ π₁
 
-  raw-weaken : {l l' : RawEnv X} → is-nubbed l → l ⊆ l' → Hom ⟦ l' ⟧ ⟦ l ⟧
-  raw-weaken [] _           = !
-  raw-weaken (H∉ ∷ Hnub) H⊆ =
-    ⟨ raw-weaken Hnub (λ x H∈ → H⊆ x (there H∈))
-    , raw-lookup (H⊆ _ (here reflᵢ H∉))
-    ⟩
+--   env-lookup : ⦃ _ : H-Level X 2 ⦄ → a ∶ T ∈ Γ → Hom ⟦ Γ ⟧ (X-denot T)
+--   env-lookup {a = a} {T} {Γ} H∈ = raw-lookup (subst (a ∶ T ∈_) (env-nub-univ Γ) H∈)
 
-  env-weaken : ⦃ _ : H-Level X 2 ⦄ {Γ Γ' : Env X} → Γ ⊆ Γ' → Hom ⟦ Γ' ⟧ ⟦ Γ ⟧
-  env-weaken {Γ} {Γ'} H⊆ = raw-weaken (env-nub-is-nubbed Γ)
-    (subst₂ _⊆_ (env-nub-univ Γ) (env-nub-univ Γ') H⊆)
+--   env-weaken : ⦃ _ : H-Level X 2 ⦄ {Γ Γ' : Env X} → Γ ⊆ Γ' → Hom ⟦ Γ' ⟧ ⟦ Γ ⟧
+--   env-weaken {Γ} {Γ'} H⊆ = raw-weaken (env-nub-is-nubbed Γ)
+--     (subst₂ _⊆_ (env-nub-univ Γ) (env-nub-univ Γ') H⊆)
 
--- dom-∈ : {Γ : Env X} {x : 𝔸} → x ∈ dom Γ → Σ[ T ∈ X ] (x , T) ∈ Γ
--- dom-∈ = {!!}
--- dom-∈ {Γ = x ∷ Γ} (∈∪₁ ∈[]) = _ , here refl
--- dom-∈ {Γ = x ∷ Γ} (∈∪₂ x∈Γ) with T , H∈ ← dom-∈ x∈Γ = T , there H∈
+-- -- dom-∈ : {Γ : Env X} {x : 𝔸} → x ∈ dom Γ → Σ[ T ∈ X ] (x , T) ∈ Γ
+-- -- dom-∈ = {!!}
+-- -- dom-∈ {Γ = x ∷ Γ} (∈∪₁ ∈[]) = _ , here refl
+-- -- dom-∈ {Γ = x ∷ Γ} (∈∪₂ x∈Γ) with T , H∈ ← dom-∈ x∈Γ = T , there H∈
 
--- ∈-dom : {x : 𝔸} → (x , T) ∈ˡ Γ → x ∈ dom Γ
--- ∈-dom {Γ = x ∷ Γ} (here refl) = ∈∪₁ ∈[]
--- ∈-dom {Γ = x ∷ Γ} (there H∈)  = ∈∪₂ (∈-dom H∈)
+-- -- ∈-dom : {x : 𝔸} → (x , T) ∈ˡ Γ → x ∈ dom Γ
+-- -- ∈-dom {Γ = x ∷ Γ} (here refl) = ∈∪₁ ∈[]
+-- -- ∈-dom {Γ = x ∷ Γ} (there H∈)  = ∈∪₂ (∈-dom H∈)
 
--- ∉-dom-⊆ :
---   {Δ Γ : Env X}
---   {x : 𝔸}
---   (_ : Δ ⊆ Γ)
---   → -------------------
---   x ∉ dom Γ → x ∉ dom Δ
--- ∉-dom-⊆ {Δ = []} H⊆ H∉ = ∉Ø
--- ∉-dom-⊆ {Δ = _ ∷ Δ} (_ ∷ʳ H⊆) ∉∪ = ∉-dom-⊆ H⊆ it
--- ∉-dom-⊆ {Δ = y ∷ Δ} (refl ∷ H⊆) (∉∪ {{p}}) = ∉∪ {{p = p}} {{∉-dom-⊆ H⊆ it}}
+-- -- ∉-dom-⊆ :
+-- --   {Δ Γ : Env X}
+-- --   {x : 𝔸}
+-- --   (_ : Δ ⊆ Γ)
+-- --   → -------------------
+-- --   x ∉ dom Γ → x ∉ dom Δ
+-- -- ∉-dom-⊆ {Δ = []} H⊆ H∉ = ∉Ø
+-- -- ∉-dom-⊆ {Δ = _ ∷ Δ} (_ ∷ʳ H⊆) ∉∪ = ∉-dom-⊆ H⊆ it
+-- -- ∉-dom-⊆ {Δ = y ∷ Δ} (refl ∷ H⊆) (∉∪ {{p}}) = ∉∪ {{p = p}} {{∉-dom-⊆ H⊆ it}}
 
--- ⊆-strengthen :
---   {Γ₂ Γ₁ Γ : Env X}
---   {x : 𝔸}
---   (_ : x ∉ dom Γ)
---   (_ : Γ ⊆ Γ₁ , x ∶ T & Γ₂)
---   → -----------------------
---   Γ ⊆ Γ₁ & Γ₂
--- ⊆-strengthen {Γ₂ = []} H∉ (.(_ , _) ∷ʳ H⊆) = H⊆
--- ⊆-strengthen {Γ₂ = []} {x = x} (∉∪ {{∉[]}}) (refl ∷ H⊆) with () ← ¬≠ x it
--- ⊆-strengthen {Γ₂ = x ∷ Γ₂} H∉ (.x ∷ʳ H⊆) = x ∷ʳ (⊆-strengthen H∉ H⊆)
--- ⊆-strengthen {Γ₂ = x ∷ Γ₂} ∉∪ (x₁ ∷ H⊆) = x₁ ∷ (⊆-strengthen it H⊆)
+-- -- ⊆-strengthen :
+-- --   {Γ₂ Γ₁ Γ : Env X}
+-- --   {x : 𝔸}
+-- --   (_ : x ∉ dom Γ)
+-- --   (_ : Γ ⊆ Γ₁ , x ∶ T & Γ₂)
+-- --   → -----------------------
+-- --   Γ ⊆ Γ₁ & Γ₂
+-- -- ⊆-strengthen {Γ₂ = []} H∉ (.(_ , _) ∷ʳ H⊆) = H⊆
+-- -- ⊆-strengthen {Γ₂ = []} {x = x} (∉∪ {{∉[]}}) (refl ∷ H⊆) with () ← ¬≠ x it
+-- -- ⊆-strengthen {Γ₂ = x ∷ Γ₂} H∉ (.x ∷ʳ H⊆) = x ∷ʳ (⊆-strengthen H∉ H⊆)
+-- -- ⊆-strengthen {Γ₂ = x ∷ Γ₂} ∉∪ (x₁ ∷ H⊆) = x₁ ∷ (⊆-strengthen it H⊆)
 
--- ⊆-split :
---   {Γ₂ Γ₁ Δ : Env X}
---   {x : 𝔸}
---   (_ : x ∉ dom Γ₁ ∪ dom Γ₂)
---   (_ : x ∈ dom Δ)
---   (_ : Δ ⊆ Γ₁ , x ∶ T & Γ₂)
---   → -------------------------------------------------------
---   ∃ λ Δ₁ → ∃ λ Δ₂ → Δ₁ ⊆ Γ₁ × Δ₂ ⊆ Γ₂ × Δ ≡ Δ₁ , x ∶ T & Δ₂
+-- -- ⊆-split :
+-- --   {Γ₂ Γ₁ Δ : Env X}
+-- --   {x : 𝔸}
+-- --   (_ : x ∉ dom Γ₁ ∪ dom Γ₂)
+-- --   (_ : x ∈ dom Δ)
+-- --   (_ : Δ ⊆ Γ₁ , x ∶ T & Γ₂)
+-- --   → -------------------------------------------------------
+-- --   ∃ λ Δ₁ → ∃ λ Δ₂ → Δ₁ ⊆ Γ₁ × Δ₂ ⊆ Γ₂ × Δ ≡ Δ₁ , x ∶ T & Δ₂
 
--- ⊆-split {Γ₂ = []} ∉∪ H∈ (.(_ , _) ∷ʳ Hsub) with _ , H∈′ ← dom-∈ H∈
---   with () ← ∉→¬∈ (∈-dom $ lookup Hsub H∈′)
--- ⊆-split {Γ₂ = []} ∉∪ H∈ (refl ∷ Hsub) = _ , _ , Hsub , [] , refl
--- ⊆-split {Γ₂ = x ∷ Γ₂} (∉∪ {{q = ∉∪}}) H∈ (.x ∷ʳ Hsub)
---   with  Δ₁ , Δ₂ , Hsub1 , Hsub2 , Heq ← ⊆-split ∉∪ H∈ Hsub =
---   Δ₁ , Δ₂ , Hsub1 , x ∷ʳ Hsub2 , Heq
--- ⊆-split {Γ₂ = x ∷ Γ₂} (∉∪ {{ q = ∉∪ }}) (∈∪₂ H∈) (refl ∷ Hsub)
---   with Δ₁ , Δ₂ , Hsub1 , Hsub2 , refl ← ⊆-split ∉∪ H∈ Hsub =
---   Δ₁ , x ∷ Δ₂ , Hsub1 , refl ∷ Hsub2 , refl
--- ⊆-split {Γ₂ = Γ₂ , x ∶ _} (∉∪ {{ q = ∉∪ {{ p = ∉[] }} }}) (∈∪₁ ∈[]) (refl ∷ Hsub)
---   with () ← ¬≠ x it
+-- -- ⊆-split {Γ₂ = []} ∉∪ H∈ (.(_ , _) ∷ʳ Hsub) with _ , H∈′ ← dom-∈ H∈
+-- --   with () ← ∉→¬∈ (∈-dom $ lookup Hsub H∈′)
+-- -- ⊆-split {Γ₂ = []} ∉∪ H∈ (refl ∷ Hsub) = _ , _ , Hsub , [] , refl
+-- -- ⊆-split {Γ₂ = x ∷ Γ₂} (∉∪ {{q = ∉∪}}) H∈ (.x ∷ʳ Hsub)
+-- --   with  Δ₁ , Δ₂ , Hsub1 , Hsub2 , Heq ← ⊆-split ∉∪ H∈ Hsub =
+-- --   Δ₁ , Δ₂ , Hsub1 , x ∷ʳ Hsub2 , Heq
+-- -- ⊆-split {Γ₂ = x ∷ Γ₂} (∉∪ {{ q = ∉∪ }}) (∈∪₂ H∈) (refl ∷ Hsub)
+-- --   with Δ₁ , Δ₂ , Hsub1 , Hsub2 , refl ← ⊆-split ∉∪ H∈ Hsub =
+-- --   Δ₁ , x ∷ Δ₂ , Hsub1 , refl ∷ Hsub2 , refl
+-- -- ⊆-split {Γ₂ = Γ₂ , x ∶ _} (∉∪ {{ q = ∉∪ {{ p = ∉[] }} }}) (∈∪₁ ∈[]) (refl ∷ Hsub)
+-- --   with () ← ¬≠ x it

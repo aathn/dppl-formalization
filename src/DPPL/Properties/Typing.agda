@@ -55,7 +55,7 @@ weaken-typing (tdiff Hty Hty₁ Hc) H⊆ =
 weaken-typing (tsolve Hty Hty₁ Hty₂ Hc) H⊆ =
   tsolve (weaken-typing Hty H⊆) (weaken-typing Hty₁ H⊆) (weaken-typing Hty₂ H⊆) Hc
 
-substitution-pres-typing :
+subst-pres-typing :
   {x : 𝔸}
   {t u : Tm}
   {T₁ T₂ : Ty}
@@ -63,30 +63,45 @@ substitution-pres-typing :
   (_ : ε ⊢ u :[ det ] T₂)
   → ---------------------------------
   ε & Γ' ⊢ (x => u) t :[ e ] T₁
-substitution-pres-typing {x = x} {u = u} {T₂ = T₂} Hty Hu = go ⦃ reflᵢ ⦄ Hty where
+subst-pres-typing {x = x} {u = u} {T₂ = T₂} Hty Hu = {!!} where
   go :
-    {Γ' Γ₀ : TyEnv}
+    {Γ' : TyEnv}
     {T₁ : Ty}
-    ⦃ _ : Γ₀ ≡ᵢ ([ x ∶ T₂ ] & Γ') ⦄
-    (_ : Γ₀ ⊢ t :[ e ] T₁)
-    → ----------------------------
-    ε & Γ' ⊢ (x => u) t :[ e ] T₁
-  go ⦃ reflᵢ ⦄ (tvar {a = a} H∈) with x ≡? a
-  ... | yes x≡a = {!!}
-  ... | no  x≠a = tvar {!!}
-  go (tlam (Иi As Hty)) = tlam $ Иi ([ x ] ∪ As) λ a → {!!}
-  go (tapp Hty Hty₁)           = tapp (go Hty) (go Hty₁)
-  go (tprim Hϕ Hty)            = tprim Hϕ (go Hty)
-  go treal                     = treal
-  go (ttup Htys)               = ttup (go ∘ Htys)
-  go (tproj i Hty)             = tproj i (go Hty)
-  go (tif Hty Hty₁ Hty₂ H≤)    = tif (go Hty) (go Hty₁) (go Hty₂) H≤
-  go tuniform                  = tuniform
-  go (tsample Hty)             = tsample (go Hty)
-  go (tweight Hty)             = tweight (go Hty)
-  go (tinfer Hty)              = tinfer (go Hty)
-  go (tdiff Hty Htype₁ Hc)     = tdiff (go Hty) (go Htype₁) Hc
-  go (tsolve Hty Hty₁ Hty₂ Hc) = tsolve (go Hty) (go Hty₁) (go Hty₂) Hc
-  go (tsub Hty H≤ H<:)         = tsub (go Hty) H≤ H<:
-  go (tpromote Hty H≤ H⊆)      =
-    tpromote (go ⦃ {!!} ⦄ Hty) {!!} {!!}
+    (_ : Γ' ⊢ t :[ e ] T₁)
+    (_ : x ∶ T₂ ∈ Γ')
+    → -----------------------
+    Γ' ⊢ (x => u) t :[ e ] T₁
+  go (tvar H∈') H∈ = {!!}
+  go (tlam (Иi As Hty)) H∈ = {!!}
+  go (tapp Hty Hty₁) H∈ = tapp (go Hty H∈) (go Hty₁ H∈)
+  go (tprim x Hty) H∈ = tprim x (go Hty H∈)
+  go treal H∈ = treal
+  go (ttup Htys) H∈ = ttup λ i → go (Htys i) H∈
+  go (tproj i Hty) H∈ = tproj i (go Hty H∈)
+  go (tif Hty Hty₁ Hty₂ H≤) H∈ = tif (go Hty H∈) (go Hty₁ H∈) (go Hty₂ H∈) H≤
+  go tuniform H∈ = tuniform
+  go (tsample Hty) H∈ = tsample (go Hty H∈)
+  go (tweight Hty) H∈ = tweight (go Hty H∈)
+  go (tinfer Hty) H∈ = tinfer (go Hty H∈)
+  go (tdiff Hty Hty₁ Hc) H∈ = tdiff (go Hty H∈) (go Hty₁ H∈) Hc
+  go (tsolve Hty Hty₁ Hty₂ Hc) H∈ = tsolve (go Hty H∈) (go Hty₁ H∈) (go Hty₂ H∈) Hc
+  go (tsub Hty x x₁) H∈ = tsub (go Hty H∈) x x₁
+  go (tpromote Hty x x₁) H∈ = {!!}
+  -- go (tvar {a = a} H∈) with x ≡? a
+  -- ... | yes x≡a = {!!}
+  -- ... | no  x≠a = tvar {!!}
+  -- go (tlam (Иi As Hty)) = tlam $ Иi ([ x ] ∪ As) λ a → {!!}
+  -- go (tapp Hty Hty₁)           = tapp (go Hty) (go Hty₁)
+  -- go (tprim Hϕ Hty)            = tprim Hϕ (go Hty)
+  -- go treal                     = treal
+  -- go (ttup Htys)               = ttup (go ∘ Htys)
+  -- go (tproj i Hty)             = tproj i (go Hty)
+  -- go (tif Hty Hty₁ Hty₂ H≤)    = tif (go Hty) (go Hty₁) (go Hty₂) H≤
+  -- go tuniform                  = tuniform
+  -- go (tsample Hty)             = tsample (go Hty)
+  -- go (tweight Hty)             = tweight (go Hty)
+  -- go (tinfer Hty)              = tinfer (go Hty)
+  -- go (tdiff Hty Htype₁ Hc)     = tdiff (go Hty) (go Htype₁) Hc
+  -- go (tsolve Hty Hty₁ Hty₂ Hc) = tsolve (go Hty) (go Hty₁) (go Hty₂) Hc
+  -- go (tsub Hty H≤ H<:)         = tsub (go Hty) H≤ H<:
+  -- go (tpromote Hty H≤ H⊆)      = {!!}
