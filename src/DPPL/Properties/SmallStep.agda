@@ -56,7 +56,7 @@ canonical-real :
   → -------------------
   Σ[ r ∈ ℝ ] t ≡ real r
 
-canonical-real treal _ _                     = _ , refl
+canonical-real treal _ _                     = _ , ap (oreal _ ▸_) (funext λ ())
 canonical-real (tsub Hty _ (sreal _)) Hval _ = canonical-real Hty Hval reflᵢ
 canonical-real (tpromote {T = treal _} Hty _ _) Hval _ =
   canonical-real Hty Hval reflᵢ

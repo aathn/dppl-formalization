@@ -38,10 +38,10 @@ module FinsetSyntax where
 ∷≠[] : ∀ {x : A} {xs} → ¬ x ∷ xs ≡ []
 ∷≠[] {A = A} p = subst (λ x → ∣ distinguish x ∣) p tt where
   distinguish : Finset A → Prop lzero
-  distinguish [] = el ⊥ (hlevel 1)
-  distinguish (x ∷ xs) = el ⊤ (hlevel 1)
-  distinguish (∷-dup x xs i) = el ⊤ (hlevel 1)
-  distinguish (∷-swap x y xs i) = el ⊤ (hlevel 1)
+  distinguish []                   = el! ⊥
+  distinguish (x ∷ xs)             = el! ⊤
+  distinguish (∷-dup x xs i)       = el! ⊤
+  distinguish (∷-swap x y xs i)    = el! ⊤
   distinguish (squash x y p q i j) =
     n-Type-is-hlevel 1
       (distinguish x) (distinguish y)

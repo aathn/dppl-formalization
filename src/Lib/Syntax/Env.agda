@@ -50,8 +50,20 @@ private variable
 pattern ε         = inc []
 pattern [_∶_] x T = inc ((x , T) ∷ [])
 
+env-rec
+  : ∀ {C : Type ℓ} ⦃ _ : H-Level C 2 ⦄
+  → (h : RawEnv X → C)
+  → (∀ {l l'} → dup-step l l' → h l ≡ h l') → Env X → C
+env-rec h Heq = Coeq-rec h λ (_ , _ , Hdup) → Heq Hdup
+
+env-case
+  : ∀ {C : Env X → Type ℓ} ⦃ _ : ∀ {x} → H-Level (C x) 1 ⦄
+  → (∀ l → C (inc l))
+  → ∀ Γ → C Γ
+env-case {C = C} = Coeq-elim-prop {C = C} (λ _ → hlevel 1)
+
 env-cons : (𝔸 × X) → Env X → Env X
-env-cons x = Coeq-rec (λ Γ → inc (x ∷ Γ)) λ (_ , _ , Hdup) → quot (step-cong Hdup)
+env-cons x = env-rec (λ Γ → inc (x ∷ Γ)) (quot ∘ step-cong)
 
 infixl 5 _,_∶_
 _,_∶_ : Env X → 𝔸 → X → Env X
@@ -62,20 +74,19 @@ dup-raw-dom (step-cong Hdup) = ap (_ ∷_) (dup-raw-dom Hdup)
 dup-raw-dom (step-dup  H∈)   = sym $ uncons _ _ H∈
 
 env-dom : Env X → Finset 𝔸
-env-dom = Coeq-rec raw-dom λ (_ , _ , Hdup) → dup-raw-dom Hdup
+env-dom = env-rec raw-dom dup-raw-dom
 
 env-cons-∈ : a ∈ env-dom Γ → (Γ , a ∶ T) ≡ Γ
 env-cons-∈ {Γ = Γ} =
-  Coeq-elim-prop {C = λ Γ → ∀ {a T} → a ∈ env-dom Γ → (Γ , a ∶ T) ≡ Γ}
-    (λ _ → hlevel 1) (λ _ H∈ → quot (step-dup H∈)) Γ
+  env-case {C = λ Γ → ∀ {a T} → a ∈ env-dom Γ → (Γ , a ∶ T) ≡ Γ}
+    (λ l H∈ → quot (step-dup H∈)) Γ
 
 step-++ₗ : {l1 : RawEnv X} → dup-step l l' → dup-step (l1 ++ l) (l1 ++ l')
 step-++ₗ {l1 = []}    Hdup = Hdup
 step-++ₗ {l1 = _ ∷ _} Hdup = step-cong (step-++ₗ Hdup)
 
 raw-append : RawEnv X → Env X → Env X
-raw-append l =
-  Coeq-rec (λ l' → inc (l ++ l')) λ (_ , _ , Hdup) → quot (step-++ₗ Hdup)
+raw-append l = env-rec (λ l' → inc (l ++ l')) (quot ∘ step-++ₗ)
 
 raw-dom-++ : (l l' : RawEnv X) → raw-dom (l ++ l') ≡ (raw-dom l ∪ raw-dom l')
 raw-dom-++ l l' =
@@ -88,13 +99,12 @@ step-++ᵣ {l' = l'} {l1} (step-dup H∈) =
 
 dup-append : (Γ : Env X) → dup-step l l' → raw-append l Γ ≡ raw-append l' Γ
 dup-append {l = l} {l'} =
-  Coeq-elim-prop {C = λ Γ → dup-step l l' → raw-append l Γ ≡ raw-append l' Γ}
-    (λ _ → hlevel 1) (λ l1 Hdup → quot (step-++ᵣ {l1 = l1} Hdup))
+  env-case {C = λ Γ → dup-step l l' → raw-append l Γ ≡ raw-append l' Γ}
+    (λ _ → quot ∘ step-++ᵣ)
 
-opaque
+abstract
   env-append : Env X → Env X → Env X
-  env-append Γ Γ' =
-    Coeq-rec (λ l → raw-append l Γ') (λ (_ , _ , Hdup) → dup-append Γ' Hdup) Γ
+  env-append Γ Γ' = env-rec (λ l → raw-append l Γ') (dup-append Γ') Γ
 
   infixl 5 _&_
   _&_ : Env X → Env X → Env X
@@ -102,8 +112,8 @@ opaque
 
   env-dom-++ : (Γ Γ' : Env X) → env-dom (Γ' & Γ) ≡ (env-dom Γ ∪ env-dom Γ')
   env-dom-++ =
-    Coeq-elim-prop (λ _ → hlevel 1) λ l  →
-    Coeq-elim-prop (λ _ → hlevel 1) λ l' →
+    env-case λ l  →
+    env-case λ l' →
     raw-dom-++ l l'
 
 raw-nub : RawEnv X → RawEnv X
@@ -125,10 +135,10 @@ dup-raw-nub (step-cong {x = x} Hdup) =
   ap (λ l → ifᵈ (holds? (fst x ∈ raw-dom l)) then l else x ∷ l) (dup-raw-nub Hdup)
 dup-raw-nub (step-dup  {x = x} {l} H∈) =
   ifᵈ-yes (holds? (fst x ∈ raw-dom (raw-nub l)))
-    (true-is-yes (subst (fst x ∈_) (sym $ raw-dom-nub l) H∈))
+    (true→is-yes (subst (fst x ∈_) (sym $ raw-dom-nub l) H∈))
 
 env-nub : ⦃ H-Level X 2 ⦄ → Env X → RawEnv X
-env-nub = Coeq-rec raw-nub λ (_ , _ , Hdup) → dup-raw-nub Hdup
+env-nub = env-rec raw-nub dup-raw-nub
 
 inc-raw-nub : (l : RawEnv X) → Path (Env X) (inc l) (inc (raw-nub l))
 inc-raw-nub [] = refl
@@ -137,7 +147,7 @@ inc-raw-nub (x ∷ l) with holds? (fst x ∈ raw-dom (raw-nub l))
 ... | no  _  = ap (env-cons x) (inc-raw-nub l)
 
 env-nub-univ : ⦃ _ : H-Level X 2 ⦄ (Γ : Env X) → Γ ≡ inc (env-nub Γ)
-env-nub-univ = Coeq-elim-prop (λ _ → hlevel 1) inc-raw-nub
+env-nub-univ = env-case inc-raw-nub
 
 data is-nubbed {X : Type ℓ} : RawEnv X → Type ℓ where
   []  : is-nubbed []
@@ -147,7 +157,7 @@ raw-nub-is-nubbed : (l : RawEnv X) → is-nubbed (raw-nub l)
 raw-nub-is-nubbed [] = []
 raw-nub-is-nubbed (x ∷ l) with holds? (fst x ∈ raw-dom (raw-nub l))
 ... | yes _ = raw-nub-is-nubbed l
-... | no H∉ = false-is-no H∉ ∷ raw-nub-is-nubbed l
+... | no H∉ = false→is-no H∉ ∷ raw-nub-is-nubbed l
 
 env-nub-is-nubbed : ⦃ _ : H-Level X 2 ⦄ (Γ : Env X) → is-nubbed (env-nub Γ)
 env-nub-is-nubbed Γ = subst (is-nubbed ∘ env-nub)
@@ -162,7 +172,7 @@ raw-nub-cons {a = a} l H∉ = ifᵈ-no (holds? (a ∈ raw-dom (raw-nub l)))
 env-nub-cons
   : ⦃ _ : H-Level X 2 ⦄ (Γ : Env X)
   → a ∉ env-dom Γ → env-nub (Γ , a ∶ T) ≡ (a , T) ∷ env-nub Γ
-env-nub-cons = Coeq-elim-prop (λ _ → hlevel 1) raw-nub-cons
+env-nub-cons = env-case raw-nub-cons
 
 raw-map : (X → Y) → RawEnv X → RawEnv Y
 raw-map f = map (λ (x , T) → x , f T)
@@ -173,8 +183,7 @@ step-raw-map (step-dup {x = x} H∈) = step-dup
   $ subst (fst x ∈_) (ap from-list (sym $ map-comp _ _ _)) H∈
 
 env-map : (X → Y) → Env X → Env Y
-env-map f =
-  Coeq-rec (λ l → inc (raw-map f l)) λ (_ , _ , Hdup) → quot (step-raw-map Hdup)
+env-map f = env-rec (λ l → inc (raw-map f l)) (quot ∘ step-raw-map)
 
 data raw-sub {X : Type ℓ} : RawEnv X → RawEnv X → Type ℓ where
   sub-nil : raw-sub [] l
@@ -213,17 +222,17 @@ raw-sub-is-prop (sub-cons reflᵢ H∉ H⊆) (sub-cons p H∉' H⊆') = λ i →
   q : reflᵢ ≡ p
   q = prop!
 raw-sub-is-prop (sub-cons reflᵢ H∉ H⊆) (sub-consʳ _ H⊆') =
-  absurd (is-no-false H∉ (raw-sub→dom-⊆ H⊆' _ hereₛ))
+  absurd (is-no→false H∉ (raw-sub→dom-⊆ H⊆' _ hereₛ))
 raw-sub-is-prop (sub-cons reflᵢ H∉ H⊆) (sub-consˡ H∈ H⊆') =
-  absurd (is-no-false H∉ (raw-sub→dom-⊆ H⊆ _ H∈))
+  absurd (is-no→false H∉ (raw-sub→dom-⊆ H⊆ _ H∈))
 raw-sub-is-prop (sub-consʳ H∉ H⊆) (sub-cons reflᵢ H∉' H⊆') =
-  absurd (is-no-false H∉' (raw-sub→dom-⊆ H⊆ _ hereₛ))
+  absurd (is-no→false H∉' (raw-sub→dom-⊆ H⊆ _ hereₛ))
 raw-sub-is-prop (sub-consʳ H∉ H⊆) (sub-consʳ H∉' H⊆') =
   ap₂ sub-consʳ (is-yes-is-prop H∉ H∉') (raw-sub-is-prop H⊆ H⊆')
-raw-sub-is-prop (sub-consʳ H∉ H⊆) (sub-consˡ H∈ H⊆') = absurd (is-no-false H∉ H∈)
+raw-sub-is-prop (sub-consʳ H∉ H⊆) (sub-consˡ H∈ H⊆') = absurd (is-no→false H∉ H∈)
 raw-sub-is-prop (sub-consˡ H∈ H⊆) (sub-cons reflᵢ H∉ H⊆') =
-  absurd (is-no-false H∉ (raw-sub→dom-⊆ H⊆' _ H∈))
-raw-sub-is-prop (sub-consˡ H∈ H⊆) (sub-consʳ H∉ H⊆')  = absurd (is-no-false H∉ H∈)
+  absurd (is-no→false H∉ (raw-sub→dom-⊆ H⊆' _ H∈))
+raw-sub-is-prop (sub-consˡ H∈ H⊆) (sub-consʳ H∉ H⊆')  = absurd (is-no→false H∉ H∈)
 raw-sub-is-prop (sub-consˡ H∈ H⊆) (sub-consˡ H∈' H⊆') =
   ap₂ sub-consˡ prop! (raw-sub-is-prop H⊆ H⊆')
 
@@ -244,7 +253,7 @@ private
     l→r (step-cong Hdup) (sub-consʳ H∉ H⊆) = sub-consʳ H∉ (l→r Hdup H⊆)
     l→r (step-cong Hdup) (sub-consˡ H∈ H⊆) = sub-consˡ H∈ (l→r (step-cong Hdup) H⊆)
     l→r (step-dup H∈) sub-nil             = sub-nil
-    l→r (step-dup H∈) (sub-cons p H∉ H⊆)  = absurd (is-no-false H∉ H∈)
+    l→r (step-dup H∈) (sub-cons p H∉ H⊆)  = absurd (is-no→false H∉ H∈)
     l→r (step-dup H∈) (sub-consʳ _ H⊆)    = H⊆
     l→r (step-dup H∈) (sub-consˡ H∈' H⊆)  = sub-consˡ H∈' (l→r (step-dup H∈) H⊆)
 
@@ -256,7 +265,7 @@ private
     r→l (step-cong Hdup) (sub-consˡ H∈ H⊆)   = sub-consˡ H∈ (r→l (step-cong Hdup) H⊆)
     r→l (step-dup H∈) sub-nil                = sub-nil
     r→l (step-dup H∈) (sub-cons reflᵢ H∉ H⊆) = sub-consʳ
-      (false-is-no λ H∈ → is-no-false H∉ (raw-sub→dom-⊆ H⊆ _ H∈))
+      (false→is-no λ H∈ → is-no→false H∉ (raw-sub→dom-⊆ H⊆ _ H∈))
       (sub-cons reflᵢ H∉ H⊆)
     r→l (step-dup H∈) (sub-consʳ H∉ H⊆)  = sub-consʳ H∉ (sub-consʳ H∉ H⊆)
     r→l (step-dup H∈) (sub-consˡ H∈' H⊆) = sub-consˡ H∈' (r→l (step-dup H∈) H⊆)
@@ -272,8 +281,8 @@ private
     l→r (step-cong Hdup) (sub-consˡ H∈ H⊆) =
       sub-consˡ (subst (_ ∈_) (dup-raw-dom Hdup) H∈) (l→r Hdup H⊆)
     l→r (step-dup H∈) (sub-cons reflᵢ H∉ H⊆) =
-      absurd (is-no-false H∉ (raw-sub→dom-⊆ H⊆ _ H∈))
-    l→r (step-dup H∈) (sub-consʳ H∉ H⊆) = absurd (is-no-false H∉ H∈)
+      absurd (is-no→false H∉ (raw-sub→dom-⊆ H⊆ _ H∈))
+    l→r (step-dup H∈) (sub-consʳ H∉ H⊆) = absurd (is-no→false H∉ H∈)
     l→r (step-dup H∈) (sub-consˡ _ H⊆)  = H⊆
 
     r→l : {l l1 l2 : RawEnv X} → dup-step l1 l2 → raw-sub l2 l → raw-sub l1 l
@@ -284,16 +293,16 @@ private
       sub-consˡ (subst (_ ∈_) (sym $ dup-raw-dom Hdup) H∈) (r→l Hdup H⊆)
     r→l (step-dup H∈) H⊆ = sub-consˡ H∈ H⊆
 
-raw-sub' : {X : Type ℓ} ⦃ _ : H-Level X 2 ⦄ → RawEnv X → Env X → Prop ℓ
-raw-sub' l =
-  Coeq-rec (λ l' → el! (raw-sub l l')) (λ (_ , _ , Hdup) → n-ua (dup-subr Hdup))
+abstract
+  raw-sub' : {X : Type ℓ} ⦃ _ : H-Level X 2 ⦄ → RawEnv X → Env X → Prop ℓ
+  raw-sub' l = env-rec (λ l' → el! (raw-sub l l')) (n-ua ∘ dup-subr)
 
-env-sub : {X : Type ℓ} ⦃ _ : H-Level X 2 ⦄ → Env X → Env X → Prop ℓ
-env-sub {X = X} Γ Γ' = Coeq-rec (λ l → raw-sub' l Γ')
-  (λ (l , l' , Hdup) →
-    Coeq-elim-prop {C = λ Γ → dup-step l l' → raw-sub' l Γ ≡ raw-sub' l' Γ}
-      (λ _ → hlevel 1) (λ _ Hdup → n-ua (dup-subl Hdup)) Γ' Hdup)
-  Γ
+  env-sub : {X : Type ℓ} ⦃ _ : H-Level X 2 ⦄ → Env X → Env X → Prop ℓ
+  env-sub {X = X} Γ Γ' =
+    env-rec (λ l → raw-sub' l Γ')
+      (env-case {C = λ Γ → dup-step _ _ → raw-sub' _ Γ ≡ raw-sub' _ Γ}
+        (λ _ Hdup → n-ua (dup-subl Hdup)) Γ')
+      Γ
 
 instance
   Inclusion-Env : {X : Type ℓ} ⦃ _ : H-Level X 2 ⦄ → Inclusion (Env X) ℓ
@@ -307,11 +316,56 @@ infixl 5 _∶_∈_
 _∶_∈_ : {X : Type ℓ} → ⦃ H-Level X 2 ⦄ → 𝔸 → X → Env X → Type ℓ
 a ∶ T ∈ Γ = (a , T) ∈ Γ
 
-env-⊆-nil : ⦃ _ : H-Level X 2 ⦄ (Γ : Env X) → Γ ⊆ ε → Γ ≡ ε
-env-⊆-nil =
-  Coeq-elim-prop {C = λ Γ → Γ ⊆ ε → Γ ≡ ε} (λ _ → hlevel 1) λ where
-    [] _                      → refl
-    (_ ∷ _) (sub-consˡ H∈ H⊆) → absurd (¬mem-[] (raw-sub→dom-⊆ H⊆ _ H∈))
+abstract
+  env-sub-nil : ⦃ _ : H-Level X 2 ⦄ (Γ : Env X) → Γ ⊆ ε → Γ ≡ ε
+  env-sub-nil =
+    env-case {C = λ Γ → Γ ⊆ ε → Γ ≡ ε} λ where
+      [] _                      → refl
+      (_ ∷ _) (sub-consˡ H∈ H⊆) → absurd (¬mem-[] (raw-sub→dom-⊆ H⊆ _ H∈))
+
+  raw-sub-trans : {l1 l2 l3 : RawEnv X} → raw-sub l1 l2 → raw-sub l2 l3 → raw-sub l1 l3
+  raw-sub-trans sub-nil H⊆'                                     = sub-nil
+  raw-sub-trans (sub-cons reflᵢ H∉ H⊆) (sub-cons reflᵢ H∉' H⊆') =
+    sub-cons reflᵢ H∉' (raw-sub-trans H⊆ H⊆')
+  raw-sub-trans (sub-cons reflᵢ H∉ H⊆) (sub-consʳ H∉' H⊆') = sub-consʳ
+    (false→is-no λ H∈ → is-no→false H∉ (raw-sub→dom-⊆ H⊆ _ H∈))
+    (raw-sub-trans (sub-cons reflᵢ H∉ H⊆) H⊆')
+  raw-sub-trans (sub-cons reflᵢ H∉ H⊆) (sub-consˡ H∈ H⊆')  = absurd (is-no→false H∉ H∈)
+  raw-sub-trans (sub-consʳ H∉ H⊆) (sub-cons reflᵢ H∉' H⊆') =
+    sub-consʳ H∉ (raw-sub-trans H⊆ H⊆')
+  raw-sub-trans (sub-consʳ H∉ H⊆) (sub-consʳ H∉' H⊆') =
+    sub-consʳ H∉ (raw-sub-trans (sub-consʳ H∉ H⊆) H⊆')
+  raw-sub-trans (sub-consʳ H∉ H⊆) (sub-consˡ H∈ H⊆') = raw-sub-trans H⊆ H⊆'
+  raw-sub-trans (sub-consˡ H∈ H⊆) H⊆' = sub-consˡ H∈ (raw-sub-trans H⊆ H⊆')
+
+  env-sub-trans : ⦃ _ : H-Level X 2 ⦄ {Γ1 Γ2 Γ3 : Env X} → Γ1 ⊆ Γ2 → Γ2 ⊆ Γ3 → Γ1 ⊆ Γ3
+  env-sub-trans {X = X} {Γ1 = Γ1} {Γ2} {Γ3} = trans Γ1 Γ2 Γ3 where
+    trans : (Γ1 Γ2 Γ3 : Env X) → Γ1 ⊆ Γ2 → Γ2 ⊆ Γ3 → Γ1 ⊆ Γ3
+    trans = env-case λ _ → env-case λ _ → env-case λ _ → raw-sub-trans
+
+  env-sub-cons
+    : ⦃ _ : H-Level X 2 ⦄ {Γ Γ' : Env X} {x y : 𝔸 × X}
+    → x ≡ᵢ y → fst y ∉ env-dom Γ' → Γ ⊆ Γ' → env-cons x Γ ⊆ env-cons y Γ'
+  env-sub-cons {X = X} {Γ = Γ} {Γ'} {x} {y} = pres Γ Γ' where
+    pres
+      : (Γ Γ' : Env X)
+      → x ≡ᵢ y → fst y ∉ env-dom Γ' → Γ ⊆ Γ' → env-cons x Γ ⊆ env-cons y Γ'
+    pres = env-case λ _ → env-case λ _ → sub-cons
+
+  raw-mem-++r : fst x ∈ raw-dom l' → raw-sub (x ∷ []) (l ++ l') → raw-sub (x ∷ []) l'
+  raw-mem-++r {l = []} H∈ H⊆ = H⊆
+  raw-mem-++r {l = y ∷ l} H∈ (sub-cons reflᵢ H∉ H⊆) =
+    absurd $ᵢ is-no→false H∉ $
+      subst (_ ∈ᶠˢ_) (sym $ raw-dom-++ l _) (unionr-∈ᶠˢ _ (raw-dom l) _ H∈)
+  raw-mem-++r {l = y ∷ l} H∈ (sub-consʳ H∉ H⊆)  = raw-mem-++r H∈ H⊆
+  raw-mem-++r {l = y ∷ l} H∈ (sub-consˡ H∈' H⊆) = sub-consˡ H∈' sub-nil
+
+  env-mem-++r
+    : ⦃ _ : H-Level X 2 ⦄ {Γ Γ' : Env X} {x : 𝔸 × X}
+    → fst x ∈ env-dom Γ' → x ∈ (Γ' & Γ) → x ∈ Γ'
+  env-mem-++r {X = X} {Γ} {Γ'} {x} = mem Γ Γ' where
+    mem : (Γ Γ' : Env X) → fst x ∈ env-dom Γ' → x ∈ (Γ' & Γ) → x ∈ Γ'
+    mem = env-case λ _ → env-case λ _ → raw-mem-++r
 
 module EnvDenot
   {o ℓ} {C : Precategory o ℓ} (cart : Cartesian-category C)
@@ -335,11 +389,12 @@ module EnvDenot
   raw-proj _ sub-nil                         = !
   raw-proj (_ ∷ Hnub) (sub-cons reflᵢ H∉ H⊆) = ⟨ raw-proj Hnub H⊆ C.∘ π₁ , π₂ ⟩
   raw-proj Hnub (sub-consʳ H∉ H⊆)            = raw-proj Hnub H⊆ C.∘ π₁
-  raw-proj (H∉ ∷ Hnub) (sub-consˡ H∈ H⊆)     = absurd (is-no-false H∉ H∈)
+  raw-proj (H∉ ∷ Hnub) (sub-consˡ H∈ H⊆)     = absurd (is-no→false H∉ H∈)
 
-  env-proj : ⦃ _ : H-Level X 2 ⦄ {Γ Γ' : Env X} → Γ ⊆ Γ' → Hom ⟦ Γ' ⟧ ⟦ Γ ⟧
-  env-proj {Γ} {Γ'} H⊆ = raw-proj (env-nub-is-nubbed Γ)
-    (subst₂ _⊆_ (env-nub-univ Γ) (env-nub-univ Γ') H⊆)
+  abstract
+    env-proj : ⦃ _ : H-Level X 2 ⦄ {Γ Γ' : Env X} → Γ ⊆ Γ' → Hom ⟦ Γ' ⟧ ⟦ Γ ⟧
+    env-proj {Γ} {Γ'} H⊆ = raw-proj (env-nub-is-nubbed Γ)
+      (subst₂ _⊆_ (env-nub-univ Γ) (env-nub-univ Γ') H⊆)
 
 -- dom-∈ : {Γ : Env X} {x : 𝔸} → x ∈ dom Γ → Σ[ T ∈ X ] (x , T) ∈ Γ
 -- dom-∈ = {!!}

@@ -18,9 +18,11 @@ open import Lib.Data.Fin
 open import Lib.Syntax.EvalCtx
 open import Lib.Syntax.Env
 
+open import Data.Finset.Base
+
 open SyntaxVars
-open EvalVars
 open ListSyntax
+open EvalVars
 open NatOrd
 
 module Progress (Ax : EvalAssumptions) where
@@ -32,9 +34,10 @@ module Progress (Ax : EvalAssumptions) where
     → --------------------------------
     IsValue t ⊎ Σ[ t' ∈ Tm ] t →det t'
 
-  progress-det (tlam _)        = inl vlam
-  progress-det treal           = inl vreal
-  progress-det (tapp Hty Hty₁) = inr $ case (progress-det Hty) of λ where
+  progress-det (tlam _)                = inl vlam
+  progress-det treal                   = inl vreal
+  progress-det (tvar (sub-consˡ H∈ _)) = absurd (¬mem-[] H∈)
+  progress-det (tapp Hty Hty₁)         = inr $ case (progress-det Hty) of λ where
     (inr (t' , Hstep)) → _ , cong-stepᵈ (λ _ ()) Hstep
     (inl Hv) → case (progress-det Hty₁) of λ where
       (inr (t' , Hstep)) → _ , cong-stepᵈ (λ { ₀ (s≤s 0≤x) → Hv }) Hstep

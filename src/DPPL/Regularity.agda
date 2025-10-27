@@ -119,12 +119,12 @@ abstract
   ↓ : Reg → Reg↓≤.Ob
   ↓ a .hom r = Dec→Bool (holds? (r ≤ a))
   ↓ a .pres-≤ y≤x = implies→≤ λ p →
-    is-yes-so (true-is-yes (≤-trans y≤x (is-yes-true (so-is-yes p))))
+    is-yes→so (true→is-yes (≤-trans y≤x (is-yes→true (so→is-yes p))))
 
   ↓-mono : Monotone Reg-poset Reg↓-poset
   ↓-mono .hom = ↓
   ↓-mono .pres-≤ x≤y a = implies→≤ λ p →
-    is-yes-so (true-is-yes (≤-trans (is-yes-true (so-is-yes p)) x≤y))
+    is-yes→so (true→is-yes (≤-trans (is-yes→true (so→is-yes p)) x≤y))
 
   instance
     DecOrd-Reg↓ : ∀ {a} {b} → Dec (a Reg↓≤.≤ b)

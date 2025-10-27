@@ -163,7 +163,7 @@ private
   ax₅ _ _ _ _ (inl _)         | no _ | yes _ = refl
   ax₅ i j _ b (inl k) ⦃ i≠j ⦄ | yes j≡k =
     sym $ ap (opn j b) (ifᵈ-≠ i≠k) ∙ ifᵈ-≡ j≡k
-    where i≠k = λ H≡ → is-no-false i≠j (H≡ ∙ sym j≡k)
+    where i≠k = λ H≡ → is-no→false i≠j (H≡ ∙ sym j≡k)
   ax₅ _ _ _ _ (inr _) = refl
 
   ax₆ :
@@ -180,7 +180,7 @@ private
   ax₆ _ _ _ _ (inr _)         | no _ | yes _ = refl
   ax₆ _ j a b (inr c) ⦃ a≠b ⦄ | yes b≡c =
     sym $ ap (cls j b) (ifᵈ-≠ a≠c) ∙ ifᵈ-≡ b≡c
-    where a≠c = λ H≡ → is-no-false a≠b (H≡ ∙ sym b≡c)
+    where a≠c = λ H≡ → is-no→false a≠b (H≡ ∙ sym b≡c)
 
   ax₇ :
     (i j : Nat)
@@ -192,10 +192,10 @@ private
     opn i a (cls j b x) ≡ cls j b (opn i a x)
   ax₇ i _ _ _ (inl k)             with i ≡? k
   ax₇ _ _ _ _ (inl _)             | no _  = refl
-  ax₇ _ _ a b (inl _) ⦃ q = b≡a ⦄ | yes _ = sym $ ifᵈ-≠ (is-no-false b≡a ∘ sym)
+  ax₇ _ _ a b (inl _) ⦃ q = b≡a ⦄ | yes _ = sym $ ifᵈ-≠ (is-no→false b≡a ∘ sym)
   ax₇ _ _ _ b (inr c)             with b ≡? c
   ax₇ _ _ _ _ (inr _)             | no _  = refl
-  ax₇ i j _ _ (inr _) ⦃ i≠j ⦄     | yes _ = ifᵈ-≠ (is-no-false i≠j)
+  ax₇ i j _ _ (inr _) ⦃ i≠j ⦄     | yes _ = ifᵈ-≠ (is-no→false i≠j)
 
   ax₈ :
     (i j : Nat)
