@@ -6,6 +6,7 @@ open import DPPL.Syntax R
 open import DPPL.Typing R
 
 open import Lib.Prelude
+open import Lib.Data.Dec
 open import Lib.Data.Vector
 open import Lib.Data.Finset
 open import Lib.LocallyNameless.Unfinite
@@ -64,10 +65,11 @@ subst-pres-typing :
   (_ : [ x ∶ T₂ ] & Γ' ⊢ t :[ e ] T₁)
   (_ : ε ⊢ u :[ det ] T₂)
   → ---------------------------------
-  ε & Γ' ⊢ (x => u) t :[ e ] T₁
+  Γ' ⊢ (x => u) t :[ e ] T₁
 subst-pres-typing {x = x} (tvar {a = a} H∈) Hu with x ≡? a
-... | yes x≡a = {!!} -- with H∈' ← env-mem-++r (hereₛ' (Id≃path.from (sym x≡a))) H∈ = {!!}
-... | no  x≠a = tvar {!!}
+... | yes x≡a with reflᵢ ← env-mem-inv (env-mem-++r (subst (_∈ᶠˢ _) x≡a hereₛ) H∈) =
+  weaken-typing Hu env-sub-nil
+... | no x≠a = tvar (env-mem-++l (∉∷ (false→is-no (x≠a ∘ sym)) tt) H∈)
 subst-pres-typing {x = x} (tlam (Иi As Hty)) Hu = tlam $ Иi ([ x ] ∪ As) λ a →
   {!!}
 subst-pres-typing (tapp Hty Hty₁) Hu =

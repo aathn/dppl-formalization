@@ -317,8 +317,19 @@ _∶_∈_ : {X : Type ℓ} → ⦃ H-Level X 2 ⦄ → 𝔸 → X → Env X → 
 a ∶ T ∈ Γ = (a , T) ∈ Γ
 
 abstract
-  env-sub-nil : ⦃ _ : H-Level X 2 ⦄ (Γ : Env X) → Γ ⊆ ε → Γ ≡ ε
-  env-sub-nil =
+  env-sub-nil : ⦃ _ : H-Level X 2 ⦄ {Γ : Env X} → ε ⊆ Γ
+  env-sub-nil {Γ = Γ} = env-case {C = ε ⊆_} (λ _ → sub-nil) Γ
+
+  env-sub-cons
+    : ⦃ _ : H-Level X 2 ⦄ {Γ Γ' : Env X} {x y : 𝔸 × X}
+    → x ≡ᵢ y → fst y ∉ env-dom Γ' → Γ ⊆ Γ' → env-cons x Γ ⊆ env-cons y Γ'
+  env-sub-cons {X = X} {Γ = Γ} {Γ'} {x} {y} = pres Γ Γ' where
+    pres
+      : ∀ Γ Γ' → x ≡ᵢ y → fst y ∉ env-dom Γ' → Γ ⊆ Γ' → env-cons x Γ ⊆ env-cons y Γ'
+    pres = env-case λ _ → env-case λ _ → sub-cons
+
+  env-sub-nil' : ⦃ _ : H-Level X 2 ⦄ (Γ : Env X) → Γ ⊆ ε → Γ ≡ ε
+  env-sub-nil' =
     env-case {C = λ Γ → Γ ⊆ ε → Γ ≡ ε} λ where
       [] _                      → refl
       (_ ∷ _) (sub-consˡ H∈ H⊆) → absurd (¬mem-[] (raw-sub→dom-⊆ H⊆ _ H∈))
@@ -343,20 +354,10 @@ abstract
     trans : (Γ1 Γ2 Γ3 : Env X) → Γ1 ⊆ Γ2 → Γ2 ⊆ Γ3 → Γ1 ⊆ Γ3
     trans = env-case λ _ → env-case λ _ → env-case λ _ → raw-sub-trans
 
-  env-sub-cons
-    : ⦃ _ : H-Level X 2 ⦄ {Γ Γ' : Env X} {x y : 𝔸 × X}
-    → x ≡ᵢ y → fst y ∉ env-dom Γ' → Γ ⊆ Γ' → env-cons x Γ ⊆ env-cons y Γ'
-  env-sub-cons {X = X} {Γ = Γ} {Γ'} {x} {y} = pres Γ Γ' where
-    pres
-      : (Γ Γ' : Env X)
-      → x ≡ᵢ y → fst y ∉ env-dom Γ' → Γ ⊆ Γ' → env-cons x Γ ⊆ env-cons y Γ'
-    pres = env-case λ _ → env-case λ _ → sub-cons
-
   raw-mem-++r : fst x ∈ raw-dom l' → raw-sub (x ∷ []) (l ++ l') → raw-sub (x ∷ []) l'
   raw-mem-++r {l = []} H∈ H⊆ = H⊆
   raw-mem-++r {l = y ∷ l} H∈ (sub-cons reflᵢ H∉ H⊆) =
-    absurd $ᵢ is-no→false H∉ $
-      subst (_ ∈ᶠˢ_) (sym $ raw-dom-++ l _) (unionr-∈ᶠˢ _ (raw-dom l) _ H∈)
+    absurd (is-no→false (∉∪₂ (raw-dom l) (subst (_ ∉_) (raw-dom-++ l _) H∉)) H∈)
   raw-mem-++r {l = y ∷ l} H∈ (sub-consʳ H∉ H⊆)  = raw-mem-++r H∈ H⊆
   raw-mem-++r {l = y ∷ l} H∈ (sub-consˡ H∈' H⊆) = sub-consˡ H∈' sub-nil
 
@@ -364,8 +365,32 @@ abstract
     : ⦃ _ : H-Level X 2 ⦄ {Γ Γ' : Env X} {x : 𝔸 × X}
     → fst x ∈ env-dom Γ' → x ∈ (Γ' & Γ) → x ∈ Γ'
   env-mem-++r {X = X} {Γ} {Γ'} {x} = mem Γ Γ' where
-    mem : (Γ Γ' : Env X) → fst x ∈ env-dom Γ' → x ∈ (Γ' & Γ) → x ∈ Γ'
+    mem : ∀ Γ Γ' → fst x ∈ env-dom Γ' → x ∈ (Γ' & Γ) → x ∈ Γ'
     mem = env-case λ _ → env-case λ _ → raw-mem-++r
+
+  raw-mem-++l : fst x ∉ raw-dom l' → raw-sub (x ∷ []) (l ++ l') → raw-sub (x ∷ []) l
+  raw-mem-++l {l = []} H∉ H⊆ = absurd (is-no→false H∉ (raw-sub→dom-⊆ H⊆ _ hereₛ))
+  raw-mem-++l {l = x ∷ l} H∉ (sub-cons reflᵢ H∉' H⊆) =
+    sub-cons reflᵢ (∉∪₁ (subst (_ ∉_) (raw-dom-++ l _) H∉')) sub-nil
+  raw-mem-++l {l = x ∷ l} H∉ (sub-consʳ H∉' H⊆) = sub-consʳ tt (raw-mem-++l H∉ H⊆)
+  raw-mem-++l {l = x ∷ l} H∉ (sub-consˡ H∈ H⊆)  = sub-consˡ H∈ sub-nil
+
+  env-mem-++l
+    : ⦃ _ : H-Level X 2 ⦄ {Γ Γ' : Env X} {x : 𝔸 × X}
+    → fst x ∉ env-dom Γ' → x ∈ (Γ' & Γ) → x ∈ Γ
+  env-mem-++l {X = X} {Γ} {Γ'} {x} = mem Γ Γ' where
+    mem : ∀ Γ Γ' → fst x ∉ env-dom Γ' → x ∈ (Γ' & Γ) → x ∈ Γ
+    mem = env-case λ _ → env-case λ _ → raw-mem-++l
+
+  raw-mem-inv : {x y : 𝔸 × X} → raw-sub (x ∷ []) (y ∷ []) → x ≡ᵢ y
+  raw-mem-inv (sub-cons p _ _)  = p
+  raw-mem-inv (sub-consʳ H∉ H⊆) = absurd (¬mem-[] (raw-sub→dom-⊆ H⊆ _ hereₛ))
+  raw-mem-inv (sub-consˡ H∈ _)  = absurd (¬mem-[] H∈)
+
+  env-mem-inv
+    : ⦃ _ : H-Level X 2 ⦄ {x y : 𝔸 × X} → env-cons x ε ⊆ env-cons y ε → x ≡ᵢ y
+  env-mem-inv = raw-mem-inv
+
 
 module EnvDenot
   {o ℓ} {C : Precategory o ℓ} (cart : Cartesian-category C)

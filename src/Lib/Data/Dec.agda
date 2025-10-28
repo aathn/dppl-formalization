@@ -90,7 +90,7 @@ module _ {ℓ : Level} {A B : Type ℓ} ⦃ _ : Discrete A ⦄ ⦃ _ : Discrete 
   ap≠ {f} p = ¬≡→≠ λ q → ≠→¬≡ p (ap f q)
 
 module _
-  {ℓ ℓ' ℓ'' : Level} {A : Type ℓ} {ℙA : Type ℓ'}  ⦃ _ : Discrete A ⦄
+  {ℓ ℓ' ℓ'' : Level} {A : Type ℓ} {ℙA : Type ℓ'}
   ⦃ m : Membership A ℙA ℓ'' ⦄ ⦃ _ : {x : A} {y : ℙA} → Dec (x ∈ y) ⦄ where
 
   _∉_ : A → ℙA → Type
