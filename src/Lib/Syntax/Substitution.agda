@@ -41,8 +41,8 @@ module _ {Σ : Sig} where
     : ∀ {x y n u} t
     → x ≠ y
     → 0 ≻ u
-    → -----------------------------------------
-      (x => u)((n ~> y)t) ≡ (n ~> y)((x => u)t)
+    → ---------------------------------------
+    (x => u)((n ~> y)t) ≡ (n ~> y)((x => u)t)
   subst-open-comm {x} {y} {n} (bvar x₁) Hneq Hlc with n ≡? x₁
   ... | no _  = refl
   ... | yes p = ifᵈ-no _ Hneq
@@ -55,8 +55,8 @@ module _ {Σ : Sig} where
   subst-intro
     : ∀ {x n u} t
     → x ∉ fv t
-    → -------------------------------
-      (n ≈> u)t ≡ (x => u)((n ~> x)t)
+    → -----------------------------
+    (n ≈> u)t ≡ (x => u)((n ~> x)t)
   subst-intro {x} {n} (bvar x₁) H∉ with n ≡? x₁
   ... | no _  = refl
   ... | yes p = sym $ ifᵈ-≡ {a = x} refl
@@ -69,8 +69,8 @@ module _ {Σ : Sig} where
   subst-fresh
     : ∀ {x} u t
     → x ∉ fv t
-    → --------------
-      (x => u) t ≡ t
+    → ------------
+    (x => u) t ≡ t
   subst-fresh u (bvar x) H∉ = refl
   subst-fresh u (fvar y) H∉ = ifᵈ-no _ (∉∷₁ H∉)
   subst-fresh u (op (o , ts)) H∉ =

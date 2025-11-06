@@ -12,8 +12,8 @@ open import Order.Diagram.Join using (Join)
 open import Order.Instances.Nat using (Nat-poset; Nat-joins; Nat-bottom)
 open import Order.Semilattice.Join using (is-join-semilattice)
 open import Data.Dec.Base using (Discrete)
-open import Data.Fin using (Fin ; fzero ; fsuc ; fin-view ; suc ; zero)
-open import Data.List using (List ; _++_)
+open import Data.Fin.Base using (Fin ; fzero ; fsuc ; fin-view ; suc ; zero)
+open import Data.List.Base using (List ; _++_)
 open import Data.List.Membership using (++-memberₗ ; ++-memberᵣ ; member-++-view)
 open import Data.Nat.Base using (max)
 open import Data.Nat.Order using (¬sucx≤x)
@@ -27,7 +27,7 @@ private variable
 
 module FinsetSyntax where
   infix 1 [_]
-  infixr 6 _∪_
+  infixr 8 _∪_
 
   pattern Ø = []
   pattern [_] a = a ∷ []
@@ -87,7 +87,7 @@ open FinsetSyntax
 
 from-list-++
   : ∀ {ℓ} {X : Type ℓ} (l1 l2 : List X)
-  → from-list (l1 ++ l2) ≡ (from-list l1 ∪ from-list l2)
+  → from-list (l1 ++ l2) ≡ from-list l1 ∪ from-list l2
 from-list-++ l1 l2 = finset-ext
   (λ x H∈ →
     case ∈ᶠˢ-from-list H∈ of λ H∈++ →

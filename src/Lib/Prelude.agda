@@ -11,7 +11,7 @@ open import Lib.Data.Vector public using (Vector ; Array ; module VectorSyntax)
 
 open import Data.Bool.Base public using (if_then_else_)
 open import Data.Dec.Base public using (Dec ; yes ; no ; _≡?_ ; Discrete ; is-yes ; ifᵈ_then_else_)
-open import Data.Fin.Base public using (Fin ; fin ; fzero ; fsuc ; fin-view ; zero ; suc)
+open import Data.Fin.Base public using (Fin ; fin ; fzero ; fsuc ; fin-view ; zero ; suc ; Fin-cases)
 open import Data.Finset.Base public using (Finset ; Membership-Finset ; Dec-∈ᶠˢ)
 open import Data.Irr public using (make-irr)
 open import Data.List.Base public using (List)
