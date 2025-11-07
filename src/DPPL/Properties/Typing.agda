@@ -114,7 +114,7 @@ subst-pres-typing :
   → --------------------------
   Γ ⊢ (x => u) t :[ e ] T₁
 subst-pres-typing {x = x} reflᵢ Hu (tvar {a = a} H∈) with x ≡? a
-... | yes x≡a with reflᵢ ← env-mem-inv (env-mem-++r (subst (_∈ᶠˢ _) x≡a hereₛ') H∈) =
+... | yes x≡a with reflᵢ ← env-mem-inv (env-mem-++r (subst (_∈ᶠˢ _) x≡a hereₛ) H∈) =
   weaken-typing Hu env-sub-nil
 ... | no x≠a = tvar (env-mem-++l (∉∷ (false→is-no (x≠a ∘ sym)) tt) H∈)
 subst-pres-typing {Γ = Γ} {x = x} {u = u} {T₂ = T₂} reflᵢ Hu
@@ -148,8 +148,13 @@ subst-pres-typing HΓ Hu (tsolve Hty Hty₁ Hty₂ Hc) = tsolve
 subst-pres-typing HΓ Hu (tsub Hty H≤ H<:) = tsub (subst-pres-typing HΓ Hu Hty) H≤ H<:
 subst-pres-typing {Γ = Γ} {x = x} reflᵢ Hu
   (tpromote {Γ = Γ'} Hty H≤ H⊆) with holds? (x ∈ env-dom Γ')
-... | yes H∈ = {!!}
-... | no  H∉ = tpromote
+... | yes H∈
+  with Γ'' , H⊆' , Heq , H∉ ← env-sub-split H∈ H⊆
+  rewrite Id≃path.from Heq = tpromote
+    (subst-pres-typing reflᵢ Hu Hty)
+    (λ H∈ → H≤ (env-sub-trans H∈ (env-sub-&r H∉ env-sub-refl)))
+    H⊆'
+... | no H∉ = tpromote
   (subst (_ ⊢_:[ _ ] _) (sym $ subst-fresh _ _ (∉-dom-fv Hty (false→is-no H∉))) Hty)
   H≤
   (env-sub-strengthen (false→is-no H∉) H⊆)
