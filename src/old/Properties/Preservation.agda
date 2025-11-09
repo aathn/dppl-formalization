@@ -32,13 +32,13 @@ ctx-type-inv :
   (_ : DetCtx E)
   (_ : Γ ⊢ E t :[ e ] T)
   → -----------------------------------------
-  ∑ (e′ , T′) ∶ Eff × Type , Γ ⊢ t :[ e′ ] T′
+  ∑ (e' , T') ∶ Eff × Type , Γ ⊢ t :[ e' ] T'
 
 ctx-type-inv (ectx {o} {j = j} _) Htype =
-  let (e , T) , Htype′ = go j Htype
+  let (e , T) , Htype' = go j Htype
   in  _ ,
         subst (λ t → _ ⊢ t :[ e ] T)
-              (updateAt-updates (ord {o = o} j) _) Htype′
+              (updateAt-updates (ord {o = o} j) _) Htype'
   where
   go :
     {o : TmOp}
@@ -46,7 +46,7 @@ ctx-type-inv (ectx {o} {j = j} _) Htype =
     (j : Fin (len {o = o}))
     (_ : Γ ⊢ op (o , ts) :[ e ] T)
     → ----------------------------------------------------------
-    ∑ (e′ , T′) ∶ Eff × Type , Γ ⊢ ts (ord {o = o} j) :[ e′ ] T′
+    ∑ (e' , T') ∶ Eff × Type , Γ ⊢ ts (ord {o = o} j) :[ e' ] T'
 
   go ₀ (tapp Htype Htype₁) = _ , Htype
   go ₁ (tapp Htype Htype₁) = _ , Htype₁
@@ -149,7 +149,7 @@ module _ (Ass : EvalAssumptions) where
         {t₀ t₁ : Tm}
         {cs : Vector Coeff n}
         {ds : Vector Coeff m}
-        (_ : ∀ i → cs i ≤′ P)
+        (_ : ∀ i → cs i ≤' P)
         (_ : Γ ⊢ t₀ :[ e ] treals n cs ⇒[ det ] treals m ds)
         (_ : Γ ⊢ t₁ :[ e ] treals n cs)
         (v₀ : IsValue t₀) (v₁ : IsValue t₁)
@@ -188,9 +188,9 @@ module _ (Ass : EvalAssumptions) where
 
     preservation-det-step :
       (_ : [] ⊢ t :[ e ] T)
-      (_ : t →ᵈ t′)
+      (_ : t →ᵈ t')
       → -------------------
-      [] ⊢ t′ :[ e ] T
+      [] ⊢ t' :[ e ] T
 
     preservation-det-step (tapp {ts = ts} Htype Htype₁) (eapp {t = t} Heq Hv)
       rewrite Heq with Иi As Hcof ← tabs-inv Htype refl
@@ -217,23 +217,23 @@ module _ (Ass : EvalAssumptions) where
 
     preservation-det : 
       (_ : [] ⊢ t :[ e ] T)
-      (_ : t →det t′)
+      (_ : t →det t')
       → -------------------
-      [] ⊢ t′ :[ e ] T
+      [] ⊢ t' :[ e ] T
 
     preservation-det Htype (estep Hstep) = preservation-det-step Htype Hstep
     preservation-det Htype (econg Hctx Hstep) =
-      let _ , Htype′ = ctx-type-inv Hctx Htype in
+      let _ , Htype' = ctx-type-inv Hctx Htype in
       preservation-ctx Hctx (λ Ht₁ → preservation-det Ht₁ Hstep) Htype
 
 
     preservation-rnd-step :
-      {w w′ : ℝ}
-      {s s′ : List 𝕀}
+      {w w' : ℝ}
+      {s s' : List 𝕀}
       (_ : [] ⊢ t :[ e ] T)
-      (_ : (t , w , s) →ʳ (t′ , w′ , s′))
+      (_ : (t , w , s) →ʳ (t' , w' , s'))
       → ---------------------------------
-      [] ⊢ t′ :[ e ] T
+      [] ⊢ t' :[ e ] T
     preservation-rnd-step Htype (edet Hstep) = preservation-det-step Htype Hstep
     preservation-rnd-step (tassume Htype) (eassumedist Heq) rewrite Heq
       with tassume-inv Htype refl
@@ -251,14 +251,14 @@ module _ (Ass : EvalAssumptions) where
       tpromote (preservation-rnd-step Htype Hstep) Heq
 
     preservation-rnd :
-      {w w′ : ℝ}
-      {s s′ : List 𝕀}
+      {w w' : ℝ}
+      {s s' : List 𝕀}
       (_ : [] ⊢ t :[ e ] T)
-      (_ : (t , w , s) →rnd (t′ , w′ , s′))
+      (_ : (t , w , s) →rnd (t' , w' , s'))
       → -----------------------------------
-      [] ⊢ t′ :[ e ] T
+      [] ⊢ t' :[ e ] T
 
     preservation-rnd Htype (estep Hstep) = preservation-rnd-step Htype Hstep
     preservation-rnd Htype (econg (E , Hctx , refl) Hstep) =
-      let _ , Htype′ = ctx-type-inv Hctx Htype in
+      let _ , Htype' = ctx-type-inv Hctx Htype in
       preservation-ctx Hctx (λ Ht₁ → preservation-rnd Ht₁ Hstep) Htype

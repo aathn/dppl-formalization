@@ -36,7 +36,7 @@ module Progress (Ax : EvalAssumptions) where
 
   progress-det (tlam _)                = inl vlam
   progress-det treal                   = inl vreal
-  progress-det (tvar (sub-consˡ H∈ _)) = absurd (¬mem-[] H∈)
+  progress-det (tvar H∈)               = absurd (¬mem-[] (env-sub→dom-⊆ H∈ _ hereₛ))
   progress-det (tapp Hty Hty₁)         = inr $ case (progress-det Hty) of λ where
     (inr (t' , Hstep)) → _ , cong-stepᵈ (λ _ ()) Hstep
     (inl Hv) → case (progress-det Hty₁) of λ where
@@ -81,7 +81,7 @@ module Progress (Ax : EvalAssumptions) where
           _ , cong-stepᵈ (λ { ₀ (s≤s 0≤x) → Hv ; ₁ (s≤s (s≤s 0≤x)) → Hv₁ }) Hstep
         (inl Hv₂) → _ , estep (esolve Hv Hv₁ Hv₂)
   progress-det (tsub {e = det} Hty _ _) = progress-det Hty
-  progress-det (tpromote {Γ} Hty _ H⊆) rewrite Id≃path.from (env-⊆-nil Γ H⊆) =
+  progress-det (tpromote {Γ} Hty _ H⊆) rewrite Id≃path.from (env-sub-nil-inv Γ H⊆) =
     progress-det Hty
 
 
@@ -148,5 +148,5 @@ module Progress (Ax : EvalAssumptions) where
   progress-rnd (tsub {e = det} Hty _ _) with progress-det Hty
   ... | inr (_ , Hstep) = inr $ _ , →det⊆→rnd Hstep
   ... | inl Hv          = inl Hv
-  progress-rnd (tpromote {Γ} Hty _ H⊆) rewrite Id≃path.from (env-⊆-nil Γ H⊆) =
+  progress-rnd (tpromote {Γ} Hty _ H⊆) rewrite Id≃path.from (env-sub-nil-inv Γ H⊆) =
     progress-rnd Hty
