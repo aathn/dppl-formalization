@@ -48,7 +48,39 @@ ttup-inv (tpromote {T = ttup _ _} Hty H≤ H⊆) reflᵢ i =
   (_ : x ∉ env-dom Γ)
   → ------------------
   x ∉ fv t
-∉-dom-fv = {!!}
+∉-dom-fv (tsub Hty _ _) H∉      = ∉-dom-fv Hty H∉
+∉-dom-fv (tpromote Hty _ H⊆) H∉ =
+  ∉-dom-fv Hty (false→is-no λ H∈ → is-no→false H∉ (env-sub→dom-⊆ H⊆ _ H∈))
+∉-dom-fv (tvar H∈) H∉ = ∉∷
+  (false→is-no λ p → is-no→false H∉ (env-sub→dom-⊆ H∈ _ (hereₛ' (Id≃path.from p))))
+  tt
+∉-dom-fv {Γ = Γ} {x = x} (tlam {t = t} (Иi As Hty)) H∉ =
+  let y , H∉y = fresh{𝔸} ([ x ] ∪ As)
+      H∉' = ∉-dom-fv {x = x} (Hty y ⦃ ∉∷₂ H∉y ⦄)
+        $ subst (_ ∉_) (sym $ env-dom-cons Γ) (∉∷ (sym≠ _ _ (∉∷₁ H∉y)) H∉)
+  in ∉∪ (open-notin (t ₀) H∉') tt
+∉-dom-fv (tapp {ts = ts} Hty Hty₁) H∉ = ∉⋃' (fv ∘ ts)
+  $ Fin-cases (∉-dom-fv Hty H∉)
+  $ Fin-cases (∉-dom-fv Hty₁ H∉) λ ()
+∉-dom-fv (tprim {t = t} Hϕ Hty) H∉ = ∉⋃' (fv ∘ t) $ Fin-cases (∉-dom-fv Hty H∉) λ ()
+∉-dom-fv treal H∉                  = tt
+∉-dom-fv (ttup {ts = ts} Htys) H∉  = ∉⋃' (fv ∘ ts) λ i → ∉-dom-fv (Htys i) H∉
+∉-dom-fv (tproj {t = t} i Hty) H∉  = ∉⋃' (fv ∘ t) $ Fin-cases (∉-dom-fv Hty H∉) λ ()
+∉-dom-fv (tif {ts = ts} Hty Hty₁ Hty₂ H≤) H∉ = ∉⋃' (fv ∘ ts)
+  $ Fin-cases (∉-dom-fv Hty H∉)
+  $ Fin-cases (∉-dom-fv Hty₁ H∉)
+  $ Fin-cases (∉-dom-fv Hty₂ H∉) λ ()
+∉-dom-fv tuniform H∉ = tt
+∉-dom-fv (tsample {t = t} Hty) H∉ = ∉⋃' (fv ∘ t) $ Fin-cases (∉-dom-fv Hty H∉) λ ()
+∉-dom-fv (tweight {t = t} Hty) H∉ = ∉⋃' (fv ∘ t) $ Fin-cases (∉-dom-fv Hty H∉) λ ()
+∉-dom-fv (tinfer {t = t} Hty) H∉  = ∉⋃' (fv ∘ t) $ Fin-cases (∉-dom-fv Hty H∉) λ ()
+∉-dom-fv (tdiff {ts = ts} Hty Hty₁ Hc) H∉ = ∉⋃' (fv ∘ ts)
+  $ Fin-cases (∉-dom-fv Hty H∉)
+  $ Fin-cases (∉-dom-fv Hty₁ H∉) λ ()
+∉-dom-fv (tsolve {ts = ts} Hty Hty₁ Hty₂ Hc) H∉ = ∉⋃' (fv ∘ ts)
+  $ Fin-cases (∉-dom-fv Hty H∉)
+  $ Fin-cases (∉-dom-fv Hty₁ H∉)
+  $ Fin-cases (∉-dom-fv Hty₂ H∉) λ ()
 
 well-typed→lc : Γ ⊢ t :[ e ] T → lc-at 0 t
 well-typed→lc (tsub Hty _ _)             = well-typed→lc Hty

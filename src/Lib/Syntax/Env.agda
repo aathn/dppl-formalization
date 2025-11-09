@@ -364,6 +364,9 @@ _,_∶_ : Env X → 𝔸 → X → Env X
 env-dom : Env X → Finset 𝔸
 env-dom = env-rec raw-dom dup-raw-dom
 
+env-dom-cons : ∀ Γ → env-dom (Γ , a ∶ T) ≡ [ a ] ∪ env-dom Γ
+env-dom-cons {a = a} {T = T} = env-case (λ _ → refl)
+
 env-cons-∈ : a ∈ env-dom Γ → (Γ , a ∶ T) ≡ Γ
 env-cons-∈ {Γ = Γ} =
   env-case {C = λ Γ → ∀ {a T} → a ∈ env-dom Γ → (Γ , a ∶ T) ≡ Γ}
@@ -462,9 +465,16 @@ opaque
   env-sub-&r
     : ⦃ _ : H-Level X 2 ⦄ {Γ Γ' : Env X} {a : 𝔸} {T : X}
     → a ∉ env-dom Γ → Γ ⊆ Γ' → Γ ⊆ ([ a ∶ T ] & Γ')
-  env-sub-&r {X = X} {Γ = Γ} {Γ'} {a} {T} = sub-&r Γ Γ' where
-    sub-&r : ∀ Γ Γ' → a ∉ env-dom Γ → Γ ⊆ Γ' → Γ ⊆ ([ a ∶ T ] & Γ')
-    sub-&r = env-case λ _ → env-case λ _ → raw-sub-&r
+  env-sub-&r {Γ = Γ} {Γ'} {a} {T} = sub Γ Γ' where
+    sub : ∀ Γ Γ' → a ∉ env-dom Γ → Γ ⊆ Γ' → Γ ⊆ ([ a ∶ T ] & Γ')
+    sub = env-case λ _ → env-case λ _ → raw-sub-&r
+
+  env-sub→dom-⊆
+    : ⦃ _ : H-Level X 2 ⦄ {Γ Γ' : Env X}
+    → Γ ⊆ Γ' → env-dom Γ ⊆ env-dom Γ'
+  env-sub→dom-⊆ {X = X} {Γ = Γ} {Γ'} = sub Γ Γ' where
+    sub : (Γ Γ' : Env X) → Γ ⊆ Γ' → env-dom Γ ⊆ env-dom Γ'
+    sub = env-case λ _ → env-case λ _ → raw-sub→dom-⊆
 
   env-sub-refl : ⦃ _ : H-Level X 2 ⦄ {Γ : Env X} → Γ ⊆ Γ
   env-sub-refl {X = X} {Γ = Γ} = refl_ Γ where
