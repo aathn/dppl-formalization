@@ -399,6 +399,9 @@ opaque
     env-case λ _ →
     refl
 
+  env-&-cons : (Γ : Env X) → Γ , a ∶ T ≡ Γ & [ a ∶ T ]
+  env-&-cons = env-case λ _ → refl
+
 env-nub : ⦃ H-Level X 2 ⦄ → Env X → RawEnv X
 env-nub = env-rec raw-nub dup-raw-nub
 

@@ -68,8 +68,8 @@ data _<:_ : Ty → Ty → Type where
     tdist T <: tdist T'
 
 
--- _<:ᴱ_ : TyEnv → TyEnv → Type
--- Γ <:ᴱ Γ' = ∀ {a T} → a ∶ T ∈ Γ → Σ[ T' ∈ Ty ] (a ∶ T' ∈ Γ') × (T <: T')
+_<:ᵉ_ : TyEnv → TyEnv → Type
+Γ' <:ᵉ Γ = ∀ a T → a ∶ T ∈ Γ → Σ[ T' ∈ Ty ] (a ∶ T' ∈ Γ') × (T' <: T)
 
 _≤ᵉ_ : TyEnv → Coeff → Type
 Γ ≤ᵉ c = ∀ {a T} → a ∶ T ∈ Γ → T ≤ᵗ c
