@@ -1,3 +1,4 @@
+{-# OPTIONS --allow-unsolved-metas #-}
 open import Lib.Algebra.Reals
 
 module DPPL.Properties.Typing (R : Reals₀) where
@@ -196,22 +197,34 @@ ttup-inv (tsub Hty H≤ (stup H<:)) reflᵢ i = tsub (ttup-inv Hty reflᵢ i) H�
 ttup-inv (tpromote {T = ttup _ _} Hty H≤ H⊆) reflᵢ i =
   tpromote (ttup-inv Hty reflᵢ i) H≤ H⊆
 
-tabs-inv :
+tlam-inv :
   {T₀ T₁ T₂ : Ty}
   {t : Tm ^ 1}
   (_ : Γ ⊢ lam T₀ ▸ t :[ e ] T)
   (_ : T ≡ᵢ T₁ ⇒[ c , e' ] T₂)
   → ---------------------------------------------
   И[ a ∈ 𝔸 ] Γ , a ∶ T₁ ⊢ conc (t ₀) a :[ e' ] T₂
-tabs-inv (tlam Hlam) reflᵢ                          = Hlam
-tabs-inv {Γ} (tsub Hty H≤ (sarr H<:₁ H<:₂ Hc He)) reflᵢ =
-  let Иi As Hlam = tabs-inv Hty reflᵢ
+tlam-inv (tlam Hlam) reflᵢ                              = Hlam
+tlam-inv {Γ} (tsub Hty H≤ (sarr H<:₁ H<:₂ Hc He)) reflᵢ =
+  let Иi As Hlam = tlam-inv Hty reflᵢ
   in  Иi As λ a →
     tsub-env (tsub (Hlam a) He H<:₂) (senv-cons {Γ} senv-refl H<:₁)
-tabs-inv {Γ} (tpromote {T = _ ⇒[ _ , _ ] _} Hty H≤ H⊆) reflᵢ =
-  let Иi As Hlam = tabs-inv Hty reflᵢ
+tlam-inv {Γ} (tpromote {T = _ ⇒[ _ , _ ] _} Hty H≤ H⊆) reflᵢ =
+  let Иi As Hlam = tlam-inv Hty reflᵢ
   in  Иi (As ∪ env-dom Γ) λ a ⦃ H∉ ⦄ →
     weaken-typing (Hlam a ⦃ ∉∪₁ H∉ ⦄) (env-sub-cons reflᵢ (∉∪₂ As H∉) H⊆)
+
+tinfer-inv :
+  {v : Tm ^ 1}
+  (_ : Γ ⊢ infer ▸ v :[ e ] T)
+  → T ≡ᵢ tdist T'
+  → -----------------------------------
+  Γ ⊢ v ₀ :[ e ] tunit ⇒[ M↓ , rnd ] T'
+tinfer-inv (tinfer Hty) reflᵢ              = Hty
+tinfer-inv (tsub Hty H≤ (sdist H<:)) reflᵢ =
+  tsub (tinfer-inv Hty reflᵢ) H≤ (sarr tsub-refl H<: Reg↓≤.≤-refl Eff≤.≤-refl)
+tinfer-inv (tpromote {T = tdist _} Hty H≤ H⊆) reflᵢ =
+  weaken-typing (tinfer-inv Hty reflᵢ) H⊆
 
 subst-pres-typing :
   {x : 𝔸}

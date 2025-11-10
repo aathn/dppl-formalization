@@ -393,6 +393,9 @@ opaque
     env-case λ l' →
     raw-dom-++ l l'
 
+  env-&-idl : (Γ : Env X) → Γ & ε ≡ Γ
+  env-&-idl = env-case λ _ → refl
+
   env-cons-& : (Γ₁ Γ₂ : Env X) → env-cons x (Γ₁ & Γ₂) ≡ Γ₁ & env-cons x Γ₂
   env-cons-& =
     env-case λ _ →

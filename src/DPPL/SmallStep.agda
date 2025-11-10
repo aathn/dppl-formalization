@@ -74,9 +74,9 @@ record EvalAssumptions : Type where
 
 module EvalVars where
   variable
-    w : ℝ
-    p : 𝕀
-    s : List 𝕀
+    w w' : ℝ
+    p p' : 𝕀
+    s s' : List 𝕀
 
 open EvalVars
 
