@@ -169,9 +169,9 @@ module Eval (Ax : EvalAssumptions) where
   -- Multi-step relations
 
   data _→det*_ : Tm → Tm → Type where
-    nil  : ∀ {s t} → s →det* t
+    nil  : ∀ {t} → t →det* t
     step : ∀ {s t u} → s →det t → t →det* u → s →det* u
 
   data _→rnd*_ : (Tm × ℝ × List 𝕀) → (Tm × ℝ × List 𝕀) → Type where
-    nil  : ∀ {s t} → s →rnd* t
+    nil  : ∀ {t} → t →rnd* t
     step : ∀ {s t u} → s →rnd t → t →rnd* u → s →rnd* u
