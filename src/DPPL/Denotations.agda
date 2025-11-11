@@ -31,11 +31,13 @@ open import Data.Dec.Base
 open import Data.Fin.Base hiding (_≤_)
 open import Data.Power hiding (_∪_)
 open import Order.Base
+open import Order.Lattice
 import Cat.Reasoning as CR
 
 open SyntaxVars
 
 open Reg↓≤ using (_≤_ ; ≤-refl ; ≤-trans)
+private module RL = is-lattice Reg↓-lattice
 
 is-const : ℙ (ℝ ^ m → ℝ ^ n)
 is-const {n = n} f = elΩ (Σ[ x ∈ ℝ ^ n ] f ≡ λ _ → x)
@@ -44,9 +46,7 @@ is-const {n = n} f = elΩ (Σ[ x ∈ ℝ ^ n ] f ≡ λ _ → x)
 π'[ i ] = make ⊙ π[ i ]
 
 π'1 : {f : ℝ ^ m → ℝ ^ 1} → π'[ fzero ] ⊙ f ≡ f
-π'1 {f = f} = ext go where
-  go : ∀ x i → π'[ fzero ] (f x) i ≡ f x i
-  go x i with zero ← fin-view i = refl
+π'1 {f = f} = ext λ _ → Fin-cases refl λ ()
 
 record DenotAssumptions : Type₁ where
   field
@@ -92,10 +92,10 @@ module Denotations (Ax : DenotAssumptions) where
   open CR._≅_
 
   ⟨∣⟩-reg-≤ : c ≤ c' → ⟨ c ∣ c' ⟩-reg {m} {n} ≡ ⟨ c ⟩-reg
-  ⟨∣⟩-reg-≤ {c = c} {c'} H≤ = ifᵈ-yes (holds? (c ≤ c')) (true-is-yes H≤)
+  ⟨∣⟩-reg-≤ {c = c} {c'} H≤ = ifᵈ-yes (holds? (c ≤ c')) (true→is-yes H≤)
 
   ⟨∣⟩-reg-≰ : ¬ c ≤ c' → ⟨ c ∣ c' ⟩-reg {m} {n} ≡ is-const
-  ⟨∣⟩-reg-≰ {c = c} {c'} H≰ = ifᵈ-no (holds? (c ≤ c')) (false-is-no H≰)
+  ⟨∣⟩-reg-≰ {c = c} {c'} H≰ = ifᵈ-no (holds? (c ≤ c')) (false→is-no H≰)
 
   id-reg' : c ≤ c' → (λ x → x) ∈ ⟨ c ∣ c' ⟩-reg {m}
   id-reg' H≤ = subst ((λ x → x) ∈_) (sym $ ⟨∣⟩-reg-≤ H≤) id-reg
@@ -133,7 +133,7 @@ module Denotations (Ax : DenotAssumptions) where
     ℛ .idl g = refl ,ₚ prop!
     ℛ .assoc f g h = refl ,ₚ prop!
 
-  module ℛ = Precategory ℛ
+  module ℛ = CR ℛ
 
   ℛ-terminal : Terminal ℛ
   ℛ-terminal = record
@@ -164,7 +164,7 @@ module Denotations (Ax : DenotAssumptions) where
       ℛ⊤.top
   μ⟨ c ⟩ .F₁ {_ , z} {_ , y} (f , Hf) with holds? (y ≤ c) | holds? (z ≤ c)
   ... | yes _ | yes _ = f , Hf
-  ... | yes _ | no _  = (λ _ → f (make 0r)) , const-reg' (f (make 0r))
+  ... | yes _ | no _  = ℛ-const (f (make 0r))
   ... | no _  | _     = ℛ⊤.!
   μ⟨ c ⟩ .F-id {_ , z} with holds? (z ≤ c)
   ... | yes _ = refl
@@ -182,6 +182,9 @@ module Denotations (Ax : DenotAssumptions) where
   ... | no  _ =
     case f-const of λ x Hf' → funext (λ _ → Hf' $ₚ _ ∙ sym (Hf' $ₚ _)) ,ₚ prop!
 
+  -- μ-conc : is-concrete ℛ-conc μ⟨ c ⟩
+  -- μ-conc = ?
+
   μ-unit : Id => μ⟨ c ⟩
   μ-unit {c} .η (m , x) with holds? (x ≤ c)
   ... | yes _ = ℛ.id
@@ -195,24 +198,46 @@ module Denotations (Ax : DenotAssumptions) where
 
   μ-≤ : c' ≤ c → μ⟨ c ⟩ => μ⟨ c' ⟩
   μ-≤ {c'} {c} H≤ .η (m , x) with holds? (x ≤ c)
-  ... | yes _  = μ-unit .η (m , x)
-  ... | no x≰c =
-    subst (ℛ.Hom ℛ⊤.top)
-      (sym $ ifᵈ-no (holds? (x ≤ c')) (false-is-no λ x≤c' → x≰c (≤-trans x≤c' H≤)))
-      ℛ⊤.!
-  μ-≤ {c'} {c} H≤ .is-natural (m , z) (n , y) (f , Hf) = {!!}
-  -- with holds? (z ≤ c) | holds? (y ≤ c)
-  -- ... | _ | no y≰c = {!!} -- ℛ⊤.!-unique₂ _ _
-  -- ... | no _ | yes _ = {!!}
-  -- ... | yes _ | yes _ = μ-unit .is-natural _ _ (f , Hf)
+  ... | yes _ = μ-unit .η (m , x)
+  ... | no x≰c with holds? (x ≤ c')
+  ... | yes x≤c' = absurd (x≰c (≤-trans x≤c' H≤))
+  ... | no _     = ℛ⊤.!
+  μ-≤ {c'} {c} H≤ .is-natural (m , z) (n , y) (f , Hf)
+    with holds? (z ≤ c) | holds? (y ≤ c)
+  ... | yes _    | yes _ = μ-unit .is-natural _ _ (f , Hf)
+  ... | no z≰c   | yes _ with holds? (z ≤ c') | holds? (y ≤ c')
+  ... | yes z≤c' | _     = absurd (z≰c (≤-trans z≤c' H≤))
+  ... | _        | no _  = ℛ⊤.!-unique₂ _ _
+  ... | no _     | yes _ = ℛ.idl _ ∙ ℛ.intror (ℛ⊤.!-unique _)
+  μ-≤ {c'} {c} H≤ .is-natural _ (n , y) _ | _ | no y≰c with holds? (y ≤ c')
+  ... | yes y≤c' = absurd (y≰c (≤-trans y≤c' H≤))
+  ... | no _     = ℛ⊤.!-unique₂ _ _
 
   μ⟨A⟩-Id : μ⟨ A↓ ⟩ ≅ⁿ Id
-  μ⟨A⟩-Id = {!!}
+  μ⟨A⟩-Id = to-natural-iso ni where
+    ni : make-natural-iso μ⟨ A↓ ⟩ Id
+    ni .make-natural-iso.eta (m , c) with holds? (c ≤ A↓)
+    ... | yes _   = ℛ.id
+    ... | no  c≰A = absurd (c≰A (subst (c ≤_) A↓-is-top RL.!))
+    ni .make-natural-iso.inv (m , c) with holds? (c ≤ A↓)
+    ... | yes _   = ℛ.id
+    ... | no  c≰A = absurd (c≰A (subst (c ≤_) A↓-is-top RL.!))
+    ni .make-natural-iso.eta∘inv (m , c) with holds? (c ≤ A↓)
+    ... | yes _   = ℛ.idl _
+    ... | no  c≰A = absurd (c≰A (subst (c ≤_) A↓-is-top RL.!))
+    ni .make-natural-iso.inv∘eta (m , c) with holds? (c ≤ A↓)
+    ... | yes _   = ℛ.idl _
+    ... | no  c≰A = absurd (c≰A (subst (c ≤_) A↓-is-top RL.!))
+    ni .make-natural-iso.natural (m , c) (n , c') f
+      with holds? (c ≤ A↓) | holds? (c' ≤ A↓)
+    ... | no c≰A | _       = absurd (c≰A (subst (c ≤_) A↓-is-top RL.!))
+    ... | _      | no c'≰A = absurd (c'≰A (subst (c' ≤_) A↓-is-top RL.!))
+    ... | yes _  | yes _   = ℛ.id-comm
 
   𝔇 : Precategory _ _
   𝔇 = ConcPSh lzero ℛ-conc
 
-  module 𝔇 = Precategory 𝔇
+  module 𝔇 = CR 𝔇
 
   𝔇-cartesian : Cartesian-category 𝔇
   𝔇-cartesian = ConcPSh-cartesian ℛ-conc
@@ -234,11 +259,12 @@ module Denotations (Ax : DenotAssumptions) where
     F'-concrete
       : (A : ⌞ PSh lzero ℛ ⌟) → is-concrete ℛ-conc A
       → is-concrete ℛ-conc (F' .F₀ A)
-    F'-concrete A conc {U = n , c'} H≡ with holds? (c' ≤ c) | holds? (A↓ ≤ c)
-    ... | yes _ | yes _ = conc H≡
-    ... | yes _ | no  _ = conc (funext λ z → {!!})
-    ... | no ¬a | yes _ = conc (funext λ z → {!!})
-    ... | no ¬a | no  _ = conc (funext λ z → {!!})
+    F'-concrete A conc {U = n , c'} H≡ = {!!}
+    -- with holds? (c' ≤ c) | holds? (A↓ ≤ c)
+    -- ... | yes _ | yes _ = conc H≡
+    -- ... | yes _ | no  _ = conc (funext λ z → {!!})
+    -- ... | no ¬a | yes _ = conc (funext λ z → {!!})
+    -- ... | no ¬a | no  _ = conc (funext λ z → {!!})
 
     F : Functor 𝔇 𝔇
     F .F₀ (A , conc) = F' .F₀ A , F'-concrete A conc
@@ -249,85 +275,86 @@ module Denotations (Ax : DenotAssumptions) where
   □-counit : □⟨ c ⟩ => Id
   □-counit = {!!}
 
-  -- □-≤ : c ≤ c' → □⟨ c ⟩ => □⟨ c' ⟩
-  -- □-≤ H≤ .η X = X ▸ opⁿ (μ-≤ H≤)
-  -- □-≤ {c} {c'} H≤ .is-natural _ _ f = Nat-path λ _ → sym $ f .is-natural _ _ _
+  □-≤ : c ≤ c' → □⟨ c ⟩ => □⟨ c' ⟩
+  □-≤ H≤ .η X = full-hom (X .fst ▸ opⁿ (μ-≤ H≤))
+  □-≤ {c} {c'} H≤ .is-natural _ _ f =
+    Subcat-hom-path $ Nat-path λ _ → sym $ f .hom .is-natural _ _ _
 
-  □⟨A⟩-Id : □⟨ A↓ ⟩ ≅ⁿ Id
-  □⟨A⟩-Id = {!!}
+  -- □⟨A⟩-Id : □⟨ A↓ ⟩ ≅ⁿ Id
+  -- □⟨A⟩-Id = {!!}
 
-  𝔇ℝ[_] : ℛ.Ob → 𝔇.Ob
-  𝔇ℝ[_] = Conc-よ₀ ℛ-conc
+  -- 𝔇ℝ[_] : ℛ.Ob → 𝔇.Ob
+  -- 𝔇ℝ[_] = Conc-よ₀ ℛ-conc
 
-  𝔇ℝ'[_] : Coeff ^ n → 𝔇.Ob
-  𝔇ℝ'[ cs ] = 𝔇-ip.ΠF λ i → 𝔇ℝ[ 1 , cs i ]
+  -- 𝔇ℝ'[_] : Coeff ^ n → 𝔇.Ob
+  -- 𝔇ℝ'[ cs ] = 𝔇-ip.ΠF λ i → 𝔇ℝ[ 1 , cs i ]
 
-  ⟨⟩-sec→section : {cs : Coeff ^ n} → ∫ₚ (⟨ cs ⟩-sec {m} c) → 𝔇ℝ'[ cs ] ʻ (m , c)
-  ⟨⟩-sec→section {n = zero} (f , Hf)                  = lift tt
-  ⟨⟩-sec→section {n = suc zero} {c = c} {cs} (f , Hf) = f , case Hf of λ Hf' →
-    subst (_∈ ⟨ c ∣ cs fzero ⟩-reg) π'1 (Hf' fzero)
-  ⟨⟩-sec→section {n = suc (suc n)} (f , Hf) =
-    {!!} , {!!} -- (λ x → π'[ fzero ] f) , {!!}
+  -- ⟨⟩-sec→section : {cs : Coeff ^ n} → ∫ₚ (⟨ cs ⟩-sec {m} c) → 𝔇ℝ'[ cs ] ʻ (m , c)
+  -- ⟨⟩-sec→section {n = zero} (f , Hf)                  = lift tt
+  -- ⟨⟩-sec→section {n = suc zero} {c = c} {cs} (f , Hf) = f , case Hf of λ Hf' →
+  --   subst (_∈ ⟨ c ∣ cs fzero ⟩-reg) π'1 (Hf' fzero)
+  -- ⟨⟩-sec→section {n = suc (suc n)} (f , Hf) =
+  --   {!!} , {!!} -- (λ x → π'[ fzero ] f) , {!!}
 
-  ⟨∥⟩-reg-morphism
-    : {cs : Coeff ^ m} {cs' : Coeff ^ n} (f : ℝ ^ m → ℝ ^ n)
-    → f ∈ ⟨ cs ∥ cs' ⟩-reg → Hom 𝔇ℝ'[ cs ] 𝔇ℝ'[ cs' ]
-  ⟨∥⟩-reg-morphism {n = n} f Hf = {!!}
-  -- full-hom record
-  --   { η = λ U g → {!!} -- f ⊙ g
-  --   ; is-natural = λ _ _ _ → {!!} }
+  -- ⟨∥⟩-reg-morphism
+  --   : {cs : Coeff ^ m} {cs' : Coeff ^ n} (f : ℝ ^ m → ℝ ^ n)
+  --   → f ∈ ⟨ cs ∥ cs' ⟩-reg → Hom 𝔇ℝ'[ cs ] 𝔇ℝ'[ cs' ]
+  -- ⟨∥⟩-reg-morphism {n = n} f Hf = {!!}
+  -- -- full-hom record
+  -- --   { η = λ U g → {!!} -- f ⊙ g
+  -- --   ; is-natural = λ _ _ _ → {!!} }
 
-  Ty-denot : Ty → 𝔇.Ob
-  Ty-denot (treal c)            = 𝔇ℝ[ 1 , c ]
-  Ty-denot (T₁ ⇒[ c , det ] T₂) = □⟨ c ⟩ .F₀ (Ty-denot T₁ ⇒ Ty-denot T₂)
-  Ty-denot (ttup n Ts)          = 𝔇-ip.ΠF λ i → Ty-denot (Ts i)
-  -- Distributions are interpreted trivially for the time being.
-  Ty-denot (tdist _)          = top
-  Ty-denot (_ ⇒[ _ , rnd ] _) = top
+  -- Ty-denot : Ty → 𝔇.Ob
+  -- Ty-denot (treal c)            = 𝔇ℝ[ 1 , c ]
+  -- Ty-denot (T₁ ⇒[ c , det ] T₂) = □⟨ c ⟩ .F₀ (Ty-denot T₁ ⇒ Ty-denot T₂)
+  -- Ty-denot (ttup n Ts)          = 𝔇-ip.ΠF λ i → Ty-denot (Ts i)
+  -- -- Distributions are interpreted trivially for the time being.
+  -- Ty-denot (tdist _)          = top
+  -- Ty-denot (_ ⇒[ _ , rnd ] _) = top
 
-  instance
-    ⟦⟧-Ty : ⟦⟧-notation Ty
-    ⟦⟧-Ty = brackets _ Ty-denot
+  -- instance
+  --   ⟦⟧-Ty : ⟦⟧-notation Ty
+  --   ⟦⟧-Ty = brackets _ Ty-denot
 
-  open EnvDenot 𝔇-cartesian Ty-denot
-  open TypingVars
-  open FinsetSyntax
+  -- open EnvDenot 𝔇-cartesian Ty-denot
+  -- open TypingVars
+  -- open FinsetSyntax
 
-  Sub-denot : T <: T' → Hom ⟦ T ⟧ ⟦ T' ⟧
-  Sub-denot (sreal H≤)             = full-hom (よ₁ ℛ (ℛ-id≤ H≤))
-  Sub-denot (stup {Ts' = Ts'} H<:) =
-    𝔇-ip.tuple _ λ i → Sub-denot (H<: i) ∘ 𝔇-ip.π _ i
-  Sub-denot (sarr {c = c} {e = det} {det} H<: H<:' H≤c H≤e) = {!!}
-    -- □-≤ H≤c .η _ ∘ □⟨ c ⟩ .F₁ ([-,-]₁ _ _ 𝔇-closed (Sub-denot H<:') (Sub-denot H<:))
-  Sub-denot (sarr {e' = rnd} H<: H<:' H≤c H≤e) = !
-  Sub-denot (sdist H<:)                        = !
+  -- Sub-denot : T <: T' → Hom ⟦ T ⟧ ⟦ T' ⟧
+  -- Sub-denot (sreal H≤)             = full-hom (よ₁ ℛ (ℛ-id≤ H≤))
+  -- Sub-denot (stup {Ts' = Ts'} H<:) =
+  --   𝔇-ip.tuple _ λ i → Sub-denot (H<: i) ∘ 𝔇-ip.π _ i
+  -- Sub-denot (sarr {c = c} {e = det} {det} H<: H<:' H≤c H≤e) = {!!}
+  --   -- □-≤ H≤c .η _ ∘ □⟨ c ⟩ .F₁ ([-,-]₁ _ _ 𝔇-closed (Sub-denot H<:') (Sub-denot H<:))
+  -- Sub-denot (sarr {e' = rnd} H<: H<:' H≤c H≤e) = !
+  -- Sub-denot (sdist H<:)                        = !
 
-  -- -- env-≤-□ : Γ ≤ c → ⟦ Γ ⟧ ≅ⁿ □⟨ c ⟩ .F₀ ⟦ Γ ⟧
-  -- -- env-≤-□ = ?
+  -- -- -- env-≤-□ : Γ ≤ c → ⟦ Γ ⟧ ≅ⁿ □⟨ c ⟩ .F₀ ⟦ Γ ⟧
+  -- -- -- env-≤-□ = ?
 
-  -- -- ∩ᵗ-is-□ : ⟦ c ∩ᵗ T ⟧ ≡ □⟨ c ⟩ .F₀ ⟦ T ⟧
-  -- -- ∩ᵗ-is-□ = {!!}
+  -- -- -- ∩ᵗ-is-□ : ⟦ c ∩ᵗ T ⟧ ≡ □⟨ c ⟩ .F₀ ⟦ T ⟧
+  -- -- -- ∩ᵗ-is-□ = {!!}
 
-  Tm-denot : Γ ⊢ t :[ det ] T → Hom ⟦ Γ ⟧ ⟦ T ⟧
-  Tm-denot (tsub {e = det} Hty _ H<:) = Sub-denot H<: ∘ Tm-denot Hty
-  Tm-denot (tpromote {Γ = Γ} {Γ' = Γ'} Hty H≤ H⊆) =
-    {!!} ∘ env-weaken {Γ} {Γ'} H⊆
-  Tm-denot {Γ} (tvar H∈) = env-lookup {Γ = Γ} H∈
-  Tm-denot (tlam {e = rnd} Hlam) = !
-  Tm-denot {Γ} (tlam {T = T} {e = det} {T'} (Иi As Hty))
-    with (a , H∉) ← fresh{𝔸} (As ∪ env-dom Γ) = □⟨A⟩-Id .from .η _ ∘ ƛ {⟦ T ⟧} body
-    where
-      body = subst (λ Γ → Hom ⟦ Γ ⟧ ⟦ T' ⟧) (env-nub-cons Γ (∉∪₂ As H∉))
-        (Tm-denot (Hty a ⦃ ∉∪₁ H∉ ⦄))
-  Tm-denot (tapp {T = T} {T' = T'} Hty Hty₁) =
-    ev {⟦ T ⟧} ∘ ⟨ □-counit {A↓} .η (⟦ T ⟧ ⇒ ⟦ T' ⟧) ∘ Tm-denot Hty , Tm-denot Hty₁ ⟩
-  Tm-denot (tprim {ϕ = ϕ} Hϕ Hty) =
-    ⟨∥⟩-reg-morphism (Prim-denot ϕ) (Prim-reg Hϕ) ∘ Tm-denot Hty
-  Tm-denot (treal {r = r}) =
-    full-hom (よ₁ ℛ (ℛ-const (make r))) ∘ よ⋆-is-terminal ℛ-conc _ .centre ∘ !
-  Tm-denot (ttup Htys) = 𝔇-ip.tuple _ λ i → Tm-denot (Htys i)
-  Tm-denot (tproj i Hty) = 𝔇-ip.π _ i ∘ Tm-denot Hty
-  Tm-denot (tif Hty Hty₁ Hty₂ H≤) = {!!}
-  Tm-denot (tinfer Hty) = !
-  Tm-denot (tdiff Hty Hty₁ Hc) = {!!}
-  Tm-denot (tsolve Hty Hty₁ Hty₂ Hc) = {!!}
+  -- Tm-denot : Γ ⊢ t :[ det ] T → Hom ⟦ Γ ⟧ ⟦ T ⟧
+  -- Tm-denot (tsub {e = det} Hty _ H<:) = Sub-denot H<: ∘ Tm-denot Hty
+  -- Tm-denot (tpromote {Γ = Γ} {Γ' = Γ'} Hty H≤ H⊆) =
+  --   {!!} ∘ env-proj {Γ} {Γ'} H⊆
+  -- Tm-denot {Γ} (tvar H∈) = π₂ {top} ∘ env-proj {Γ' = Γ} H∈
+  -- Tm-denot (tlam {e = rnd} Hlam) = !
+  -- Tm-denot {Γ} (tlam {T = T} {e = det} {T'} (Иi As Hty))
+  --   with (a , H∉) ← fresh{𝔸} (As ∪ env-dom Γ) = □⟨A⟩-Id .from .η _ ∘ ƛ {⟦ T ⟧} body
+  --   where
+  --     body = subst (λ Γ → Hom ⟦ Γ ⟧ ⟦ T' ⟧) (env-nub-cons Γ (∉∪₂ As H∉))
+  --       (Tm-denot (Hty a ⦃ ∉∪₁ H∉ ⦄))
+  -- Tm-denot (tapp {T = T} {T' = T'} Hty Hty₁) =
+  --   ev {⟦ T ⟧} ∘ ⟨ □-counit {A↓} .η (⟦ T ⟧ ⇒ ⟦ T' ⟧) ∘ Tm-denot Hty , Tm-denot Hty₁ ⟩
+  -- Tm-denot (tprim {ϕ = ϕ} Hϕ Hty) =
+  --   ⟨∥⟩-reg-morphism (Prim-denot ϕ) (Prim-reg Hϕ) ∘ Tm-denot Hty
+  -- Tm-denot (treal {r = r}) =
+  --   full-hom (よ₁ ℛ (ℛ-const (make r))) ∘ よ⋆-is-terminal ℛ-conc _ .centre ∘ !
+  -- Tm-denot (ttup Htys) = 𝔇-ip.tuple _ λ i → Tm-denot (Htys i)
+  -- Tm-denot (tproj i Hty) = 𝔇-ip.π _ i ∘ Tm-denot Hty
+  -- Tm-denot (tif Hty Hty₁ Hty₂ H≤) = {!!}
+  -- Tm-denot (tinfer Hty) = !
+  -- Tm-denot (tdiff Hty Hty₁ Hc) = {!!}
+  -- Tm-denot (tsolve Hty Hty₁ Hty₂ Hc) = {!!}
