@@ -13,6 +13,7 @@ open import Cat.Diagram.Limit.Product
 open import Cat.Diagram.Product
 open import Cat.Diagram.Terminal
 open import Cat.Functor.Base
+open import Cat.Functor.Compose
 open import Cat.Functor.Hom.Yoneda
 open import Cat.Functor.Properties
 open import Cat.Functor.Subcategory
@@ -20,8 +21,10 @@ open import Cat.Instances.Presheaf.Limits
 open import Cat.Instances.Presheaf.Exponentials
 open import Cat.Instances.Shape.Two
 import Cat.Functor.Hom as Hom
+import Cat.Reasoning as Cr
+import Cat.Functor.Reasoning as Fr
 
-open _=>_
+open _=>_ hiding (op)
 open Functor
 open Subcat-hom
 
@@ -68,7 +71,12 @@ ConcPSh κ {C = C} Conc = Restrict {C = PSh κ C} (is-concrete Conc)
 module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
   open Conc-category Conc
   open Hom C
-  module CPSh {κ} = Precategory (ConcPSh κ Conc)
+  open Cr._≅_
+  open Cr.Inverses
+
+  private
+    module C = Cr C
+    module CPSh {κ} = Precategory (ConcPSh κ Conc)
 
   -- is-conc-section : ∀ {κ U} (A : CPSh.Ob {κ}) → (ob∣ U ∣ → A ʻ ⋆) → Type (ℓ ⊔ κ)
   -- is-conc-section {U = U} (A , _) f = Σ[ au ∈ A ʻ U ] f ≡ conc-section Conc A U au
@@ -91,6 +99,28 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
   -- Representable presheaves are concrete
   Conc-よ₀ : (U : ⌞ C ⌟) → CPSh.Ob
   Conc-よ₀ U = よ₀ U , ⋆-hom-faithful
+
+  module _ {o' ℓ'} {D : Precategory o' ℓ'} (ConcD : Conc-category D) where
+    private module CD = Conc-category ConcD
+
+    conc-dir-image
+      : ∀ {κ} (F : Functor D C)
+      → (F .F₀ CD.⋆ C.≅ ⋆) → (∀ {U} → is-surjective (F .F₁ {CD.⋆} {U}))
+      → Functor (ConcPSh κ Conc) (ConcPSh κ ConcD)
+    conc-dir-image {κ} F α F-onto-points =
+      sub-functor (G F∘ Forget-subcat) λ (A , conc) → G-concrete A conc
+      where
+        G : Functor (PSh κ C) (PSh κ D)
+        G = precompose (op F)
+
+        G-concrete : ∀ A → is-concrete Conc A → is-concrete ConcD (G .F₀ A)
+        G-concrete A conc {U} {x} {y} H≡ = conc $ funext λ f →
+          let module A = Fr A in
+          case F-onto-points (f C.∘ α .to) of λ g p →
+            A ⟪ f ⟫ x                           ≡⟨ A.expand (C.insertr (α .inverses .invl)) $ₚ x ⟩
+            A ⟪ α .from ⟫ (A ⟪ f C.∘ α .to ⟫ x) ≡⟨ ap (A ⟪ _ ⟫_) (sym A.⟨ p ⟩ $ₚ x ∙ H≡ $ₚ g ∙ A.⟨ p ⟩ $ₚ y) ⟩
+            A ⟪ α .from ⟫ (A ⟪ f C.∘ α .to ⟫ y) ≡⟨ A.collapse (C.cancelr (α .inverses .invl)) $ₚ y ⟩
+            A ⟪ f ⟫ y                           ∎
 
   よ⋆-is-terminal : is-terminal (ConcPSh ℓ Conc) (Conc-よ₀ ⋆)
   よ⋆-is-terminal X .centre = full-hom record

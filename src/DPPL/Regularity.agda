@@ -126,12 +126,18 @@ abstract
   ↓-mono .pres-≤ x≤y a = implies→≤ λ p →
     is-yes→so (true→is-yes (≤-trans (is-yes→true (so→is-yes p)) x≤y))
 
-  instance
-    DecOrd-Reg↓ : ∀ {a} {b} → Dec (a Reg↓≤.≤ b)
-    DecOrd-Reg↓ = Listing→Π-dec
+  DecOrd-Reg↓' : ∀ a b → Dec (a Reg↓≤.≤ b)
+  DecOrd-Reg↓' _ _ = Listing→Π-dec
 
   A↓-is-top : top ≡ ↓ A
   A↓-is-top = ext λ _ → refl
+
+instance
+  DecOrd-Reg↓ : ∀ {a b} → Dec (a Reg↓≤.≤ b)
+  DecOrd-Reg↓ {a} {b} = DecOrd-Reg↓' a b
+
+A! : ∀ {a} → a Reg↓≤.≤ ↓ A
+A! {a} = subst (a Reg↓≤.≤_) A↓-is-top !
 
 A↓ P↓ C↓ PC↓ M↓ Ø↓ : Reg↓
 A↓  = ↓ A

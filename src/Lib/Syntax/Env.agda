@@ -511,6 +511,12 @@ opaque
     mem : ∀ Γ Γ' → fst x ∉ env-dom Γ' → x ∈ (Γ' & Γ) → x ∈ Γ
     mem = env-case λ _ → env-case λ _ → raw-mem-++l
 
+  env-mem-nub
+    : ⦃ _ : H-Level X 2 ⦄ {Γ : Env X} {x : 𝔸 × X}
+    → raw-sub (x ∷ []) (env-nub Γ)
+    → x ∈ Γ
+  env-mem-nub {Γ = Γ} H∈ = subst (_ ∈_) (sym (env-nub-univ Γ)) H∈
+
   env-sub-strengthen :
     ⦃ _ : H-Level X 2 ⦄
     {Γ Γ' : Env X}

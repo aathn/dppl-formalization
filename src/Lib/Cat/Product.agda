@@ -1,17 +1,34 @@
 module Lib.Cat.Product where
 
 open import Cat.Prelude
+open import Cat.Cartesian
+open import Cat.Diagram.Product
+open import Cat.Diagram.Product.Finite
+open import Cat.Diagram.Product.Indexed
+open import Cat.Functor.Base
 open import Cat.Functor.Naturality
 open import Cat.Functor.Naturality.Reflection
 open import Cat.Instances.Product
+open import Data.Fin.Base
 import Cat.Reasoning as Cr
 
 open _=>_
 open Functor
+open Cr._≅_
+open Cr.Inverses
 
 private variable
   o h : Level
   B B' C C' D D' : Precategory o h
+
+_,Iso_
+  : {A A' : ⌞ C ⌟} {B B' : ⌞ D ⌟} → Cr._≅_ C A A' → Cr._≅_ D B B'
+  → Cr._≅_ (C ×ᶜ D) (A , B) (A' , B')
+(iA ,Iso iB) .to       = iA .to , iB .to
+(iA ,Iso iB) .from     = iA .from , iB .from
+(iA ,Iso iB) .inverses = λ where
+  .invl → iA .invl ,ₚ iB .invl
+  .invr → iA .invr ,ₚ iB .invr
 
 _nt,_
   : {F G : Functor B C} {H K : Functor B D}
@@ -32,3 +49,17 @@ F×-interchange = trivial-isoⁿ!
 ×ᶜ-op .F₁ f = f
 ×ᶜ-op .F-id = refl
 ×ᶜ-op .F-∘ _ _ = refl
+
+module ProdIso {o ℓ} {C : Precategory o ℓ} (Cart : Cartesian-category C) where
+  private module C = Cr C
+  open Cartesian-category Cart
+  module ip {n} (F : Fin n → C.Ob) =
+    Indexed-product (Cartesian→standard-finite-products terminal products F)
+
+  _⊗Iso_ : {A A' B B' : C.Ob} → A C.≅ A' → B C.≅ B' → (A ⊗₀ B) C.≅ (A' ⊗₀ B')
+  iA ⊗Iso iB = F-map-iso ×-functor (iA ,Iso iB)
+
+  ΠIso : ∀ {n} {F1 F2 : Fin n → C.Ob} → (∀ i → F1 i ≅ F2 i) → ip.ΠF F1 ≅ ip.ΠF F2
+  ΠIso {zero} H≅        = id-iso
+  ΠIso {suc zero} H≅    = H≅ fzero
+  ΠIso {suc (suc n)} H≅ = H≅ fzero ⊗Iso ΠIso (H≅ ⊙ fsuc)
