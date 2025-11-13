@@ -2,12 +2,15 @@ module Lib.Data.Vector where
 
 open import 1Lab.Prelude
 
-open import Data.Fin.Base using (Fin ; fzero ; fsuc ; fin-view ; zero ; suc ; split-+)
-open import Data.Sum.Base using (inl ; inr)
+open import Lib.Data.Fin
 
+open import Data.Fin.Base
+  using (Fin ; fzero ; fsuc ; fin-view ; zero ; suc ; split-+ ; fshift ; inject)
 open import Data.Fin.Base public using (_[_≔_] ; delete)
 open import Data.Fin.Properties
   using (insert-delete ; insert-lookup ; avoid-insert ; skip-avoid ; delete-insert)
+open import Data.Nat.Properties using (+-≤l)
+open import Data.Sum.Base using (inl ; inr)
 
 Vector : {l : Level} → Type l → Nat → Type l
 Vector A n = Fin n → A
@@ -52,10 +55,13 @@ foldr : (A → B → B) → B → A ^ n → B
 foldr {n = zero} f z xs = z
 foldr {n = suc n} f z xs = f (head xs) (foldr f z (tail xs))
 
-_++_ : A ^ n → A ^ m → A ^ (n + m)
+_++_ : A ^ m → A ^ n → A ^ (m + n)
 (xs ++ ys) i with split-+ i
 ... | inl j = xs j
 ... | inr k = ys k
+
+split : ∀ m → A ^ (m + n) → A ^ m × A ^ n
+split {n = n} m as = as ∘ inject (+-≤l _ _) , as ∘ fshift m
 
 updateAt : A ^ n → Fin n → A → A ^ n
 updateAt {n = suc n} xs i x = delete xs i [ i ≔ x ]
@@ -89,6 +95,24 @@ updateAt-updateAt
   → updateAt (updateAt ρ i b) i a j ≡ updateAt ρ i a j
 updateAt-updateAt {n = suc n} ρ i a b j =
   ap (λ xs → (xs [ i ≔ a ]) j) (funext $ delete-insert _ i b)
+
+++-split : ∀ m (x : A ^ (m + n)) → uncurry _++_ (split m x) ≡ x
+++-split m x = ext go where
+  go : ∀ i → uncurry _++_ (split m x) i ≡ x i
+  go i with split-+ {m} i in Heq
+  ... | inl j = ap x (split-+-inl Heq)
+  ... | inr j = ap x (split-+-inr Heq)
+
+split-++ : ∀ (xy : A ^ m × A ^ n) → split m (uncurry _++_ xy) ≡ xy
+split-++ {m = m} {n} xy = ext Hx ,ₚ ext Hy where
+  Hx : Pathᵉ Extensional-Π (split m (uncurry _++_ xy) .fst) (xy .fst)
+  Hx i rewrite Id≃path.from (split-+-inject {n = n} i) = refl
+  Hy : Pathᵉ Extensional-Π (split m (uncurry _++_ xy) .snd) (xy .snd)
+  Hy i rewrite Id≃path.from (split-+-fshift m i) = refl
+
+vec-prod-sum : (A ^ m × A ^ n) ≡ A ^ (m + n)
+vec-prod-sum {m = m} = ua $ Iso→Equiv
+  $ uncurry _++_ , iso (split m) (++-split m) split-++
 
 ----------------------------------------------------------------------
 -- Arrays

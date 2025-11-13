@@ -162,11 +162,12 @@ module Denotations (Ax : DenotAssumptions) where
     }
 
   module ℛ⊤ = Terminal ℛ-terminal
+  open ℛ⊤ using () renaming (top to ⋆)
 
   ℛ-id≤ : c ≤ c' → ℛ.Hom (m , c) (m , c')
   ℛ-id≤ H≤ = (λ x → x) , id-reg' H≤
 
-  ℛ-const : ℝ ^ m → ℛ.Hom ℛ⊤.top (m , c)
+  ℛ-const : ℝ ^ m → ℛ.Hom ⋆ (m , c)
   ℛ-const x = (λ _ → x) , const-reg' x
 
   ℛ-conc : Conc-category ℛ
@@ -179,7 +180,7 @@ module Denotations (Ax : DenotAssumptions) where
     ifᵈ holds? (d ≤ c) then
       m , d
     else
-      ℛ⊤.top
+      ⋆
   μ⟨ c ⟩ .F₁ {_ , z} {_ , y} (f , Hf) with holds? (y ≤ c) | holds? (z ≤ c)
   ... | yes _ | yes _ = f , Hf
   ... | yes _ | no _  = ℛ-const (f (make 0r))
@@ -312,10 +313,10 @@ module Denotations (Ax : DenotAssumptions) where
          | yes _ ← holds? (c' ≤ A↓) | _ ← ≤→is-yes {c'} A! =
       ℛ.id-comm
 
-  μ-pres-top : μ⟨ c ⟩ .F₀ ℛ⊤.top ≡ ℛ⊤.top
+  μ-pres-top : μ⟨ c ⟩ .F₀ ⋆ ≡ ⋆
   μ-pres-top {c = c} = ifᵈ-yes (holds? (bot ≤ c)) (≤→is-yes ¡)
 
-  μ-onto-points : ∀ {U} → is-surjective (μ⟨ c ⟩ .F₁ {ℛ⊤.top} {U})
+  μ-onto-points : ∀ {U} → is-surjective (μ⟨ c ⟩ .F₁ {⋆} {U})
   μ-onto-points {c = c} {n , c'} (f , Hf) with holds? (c' ≤ c)
   ... | no  _ = inc (ℛ-const (make 0r) , ℛ⊤.!-unique _)
   ... | yes _ with yes _ ← holds? (bot ≤ c)  | _ ← ≤→is-yes (¡ {c})
@@ -461,12 +462,37 @@ module Denotations (Ax : DenotAssumptions) where
   𝔇ℝ'[_] : Coeff ^ n → 𝔇.Ob
   𝔇ℝ'[ cs ] = 𝔇-ip.ΠF λ i → 𝔇ℝ[ 1 , cs i ]
 
-  -- -- ⟨⟩-sec→section : {cs : Coeff ^ n} → ∫ₚ (⟨ cs ⟩-sec {m} c) → 𝔇ℝ'[ cs ] ʻ (m , c)
-  -- -- ⟨⟩-sec→section {n = zero} (f , Hf)                  = lift tt
-  -- -- ⟨⟩-sec→section {n = suc zero} {c = c} {cs} (f , Hf) = f , case Hf of λ Hf' →
-  -- --   subst (_∈ ⟨ c ∣ cs fzero ⟩-reg) π'1 (Hf' fzero)
-  -- -- ⟨⟩-sec→section {n = suc (suc n)} (f , Hf) =
-  -- --   {!!} , {!!} -- (λ x → π'[ fzero ] f) , {!!}
+  top-underlying : top ʻ ⋆ ≡ ℝ ^ 0
+  top-underlying = ua $ Iso→Equiv
+    $ (λ _ ()) , iso (λ _ → lift tt) (λ _ → ext λ ()) (λ _ → refl)
+
+  𝔇ℝ-underlying : 𝔇ℝ[ n , c ] ʻ ⋆ ≡ ℝ ^ n
+  𝔇ℝ-underlying = ua $ Iso→Equiv
+    $ (λ (f , _) → f (make 0r))
+    , iso (λ x → ℛ-const x)
+      (λ _ → refl)
+      (λ f → ℛ-hom-path (ext λ _ x → ap (λ y → f .fst y x) (ext λ ())))
+
+  𝔇ℝ'-underlying : {cs : Coeff ^ n} → 𝔇ℝ'[ cs ] ʻ ⋆ ≡ ℝ ^ n
+  𝔇ℝ'-underlying {n = zero}             = top-underlying
+  𝔇ℝ'-underlying {n = suc zero}         = 𝔇ℝ-underlying
+  𝔇ℝ'-underlying {n = suc (suc n)} {cs} =
+    ap₂ _×_ 𝔇ℝ-underlying 𝔇ℝ'-underlying ∙ vec-prod-sum
+
+  ⟨⟩-sec≃𝔇ℝ'-section
+    : {cs : Coeff ^ n}
+    → ∫ₚ (⟨ cs ⟩-sec {m} c) ≃ ∫ₚ (is-conc-section ℛ-conc {U = m , c} 𝔇ℝ'[ cs ])
+  ⟨⟩-sec≃𝔇ℝ'-section = {!!}
+  -- ⟨⟩-sec→section {n = zero} (f , Hf)                  = lift tt
+  -- ⟨⟩-sec→section {n = suc zero} {c = c} {cs} (f , Hf) =
+  --   π'[ fzero ] ⊙ f , case Hf of λ Hf' → Hf' fzero
+  -- ⟨⟩-sec→section {n = suc (suc n)} (f , Hf) =
+  --   (π'[ fzero ] ⊙ f , case Hf of λ Hf' → Hf' fzero) ,
+  --   ⟨⟩-sec→section {n = suc n}
+  --     ((λ x → f x ⊙ fsuc) , case Hf of λ Hf' → inc (Hf' ⊙ fsuc))
+
+  -- section→⟨⟩-sec : {cs : Coeff ^ n} → 𝔇ℝ'[ cs ] ʻ (m , c) → ∫ₚ (⟨ cs ⟩-sec {m} c)
+  -- section→⟨⟩-sec {n = n} H = {!!}
 
   -- -- ⟨∥⟩-reg-morphism
   -- --   : {cs : Coeff ^ m} {cs' : Coeff ^ n} (f : ℝ ^ m → ℝ ^ n)
