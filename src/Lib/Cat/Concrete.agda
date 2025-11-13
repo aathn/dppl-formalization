@@ -78,23 +78,83 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
     module C = Cr C
     module CPSh {κ} = Precategory (ConcPSh κ Conc)
 
-  -- is-conc-section : ∀ {κ U} (A : CPSh.Ob {κ}) → (ob∣ U ∣ → A ʻ ⋆) → Type (ℓ ⊔ κ)
-  -- is-conc-section {U = U} (A , _) f = Σ[ au ∈ A ʻ U ] f ≡ conc-section Conc A U au
+  is-conc-section : ∀ {κ U} (A : CPSh.Ob {κ}) → (ob∣ U ∣ → A ʻ ⋆) → Type (ℓ ⊔ κ)
+  is-conc-section {U = U} (A , _) f = Σ[ au ∈ A ʻ U ] f ≡ conc-section Conc A au
 
-  -- -- Morphisms of concrete presheaves are given by functions of underlying sets
-  -- -- which preserve membership in is-conc-section.
-  -- conc-morphism-of-function
-  --   : ∀ {A B : CPSh.Ob {ℓ}} (f : A ʻ ⋆ → B ʻ ⋆)
-  --   → (∀ {U} (g : ob∣ U ∣ → A ʻ ⋆) → is-conc-section A g → is-conc-section B (f ⊙ g))
-  --   → CPSh.Hom A B
-  -- conc-morphism-of-function {A = A , Aconc} {B , Bconc} f Hf = full-hom record
-  --   { η = λ U au → Hf (conc-section Conc A U au) (au , refl) .fst
-  --   ; is-natural = λ _ _ g → ext λ au → Bconc $ ext λ x →
-  --     let foo = Hf (conc-section Conc A _ au) (au , refl) .snd
-  --     in
-  --     {!!}
-  --     -- sym (foo $ₚ g) ∙ {!!}
-  --   }
+  is-conc-hom : ∀ {κ} (A B : CPSh.Ob {κ}) → (A ʻ ⋆ → B ʻ ⋆) → Type (o ⊔ ℓ ⊔ κ)
+  is-conc-hom A B f =
+    ∀ {U} (g : ob∣ U ∣ → A ʻ ⋆) → is-conc-section A g → is-conc-section B (f ⊙ g)
+
+  -- Morphisms of concrete presheaves are given by functions of underlying sets
+  -- which preserve membership in is-conc-section.
+  record Conc-hom {κ} (A B : CPSh.Ob {κ}) : Type (o ⊔ ℓ ⊔ κ) where
+    constructor conc-hom
+    field
+      to     : A ʻ ⋆ → B ʻ ⋆
+      is-hom : is-conc-hom A B to
+
+  open Conc-hom
+
+  is-conc-hom-prop
+    : ∀ {κ} (A B : CPSh.Ob {κ}) (f : A ʻ ⋆ → B ʻ ⋆) → is-prop (is-conc-hom A B f)
+  is-conc-hom-prop A (B , Bconc) f x y = ext λ g au p →
+    let _ , Hx = x g (au , p)
+        _ , Hy = y g (au , p)
+    in
+    (Bconc (sym Hx ∙ Hy)) ,ₚ prop!
+
+  Conc-hom-path
+    : ∀ {κ} {A B : CPSh.Ob {κ}} {f g : Conc-hom A B} → f .to ≡ g .to → f ≡ g
+  Conc-hom-path p i .to                         = p i
+  Conc-hom-path {A = A} {B} {f} {g} p i .is-hom =
+    is-prop→pathp (λ i → is-conc-hom-prop A B (p i)) (f .is-hom) (g .is-hom) i
+
+  instance
+    Extensional-conc-hom
+      : ∀ {ℓr κ} {A B : CPSh.Ob {κ}} ⦃ sa : Extensional (A ʻ ⋆ → B ʻ ⋆) ℓr ⦄
+      → Extensional (Conc-hom A B) _
+    Extensional-conc-hom ⦃ sa ⦄ = injection→extensional! Conc-hom-path sa
+
+    Funlike-conc-hom
+      : ∀ {κ} {A B : CPSh.Ob {κ}} → Funlike (Conc-hom A B) (A ʻ ⋆) (λ _ → B ʻ ⋆)
+    Funlike-conc-hom = record { _·_ = λ f x → apply (f .to) x }
+
+    H-Level-Conc-hom : ∀ {κ} {A B : CPSh.Ob {κ}} {n} → H-Level (Conc-hom A B) (2 + n)
+    H-Level-Conc-hom {A = A} {B} = basic-instance 2 $ Iso→is-hlevel 2 eqv $
+      Σ-is-hlevel 2 (hlevel 2) λ x →
+      is-hlevel-suc 1 (is-conc-hom-prop A B x)
+      where unquoteDecl eqv = declare-record-iso eqv (quote Conc-hom)
+
+  Conc-hom→Hom : ∀ {κ} {A B : CPSh.Ob {κ}} → Conc-hom A B → CPSh.Hom A B
+  Conc-hom→Hom {A = A , Aconc} {B , Bconc} (conc-hom f Hf) = full-hom λ where
+    .η U au           → Hf (conc-section Conc A au) (au , refl) .fst
+    .is-natural _ _ g → ext λ au →
+      let bu , p   = Hf (conc-section Conc A au) (au , refl)
+          bu' , p' = Hf (conc-section Conc A (A ⟪ g ⟫ au)) (_ , refl)
+      in
+      Bconc $ ext λ h →
+        B ⟪ h ⟫ bu'          ≡˘⟨ ap f (A .F-∘ _ _ $ₚ au) ∙ p' $ₚ _ ⟩
+        f (A ⟪ g C.∘ h ⟫ au) ≡⟨ p $ₚ _ ∙ B .F-∘ _ _ $ₚ bu ⟩
+        B ⟪ h ⟫ (B ⟪ g ⟫ bu) ∎
+
+  Hom→Conc-hom : ∀ {κ} {A B : CPSh.Ob {κ}} → CPSh.Hom A B → Conc-hom A B
+  Hom→Conc-hom {A = A , AConc} {B , Bconc} f =
+    conc-hom (f .hom .η ⋆) λ {U} g (au , p) →
+    f .hom .η U au ,
+    (f .hom .η ⋆ ⊙ g                      ≡⟨ ap (f .hom .η ⋆ ⊙_) p ⟩
+     f .hom .η ⋆ ⊙ conc-section Conc A au ≡⟨ ext (λ x → f .hom .is-natural _ _ x $ₚ au) ⟩
+     conc-section Conc B (f .hom .η U au) ∎)
+
+  Conc-hom≃Hom : ∀ {κ} {A B : CPSh.Ob {κ}} → Conc-hom A B ≃ CPSh.Hom A B
+  Conc-hom≃Hom {A = A , Aconc} {B , Bconc} = Iso→Equiv $ Conc-hom→Hom ,
+    iso Hom→Conc-hom
+      (λ f → ext λ _ _ → refl)
+      (λ f → ext λ x →
+        let y , p = f .is-hom (conc-section Conc A x) (_ , refl) in
+        y                  ≡˘⟨ B .F-id $ₚ y ⟩
+        B ⟪ C.id ⟫ y       ≡˘⟨ p $ₚ C.id ⟩
+        f · (A ⟪ C.id ⟫ x) ≡⟨ ap (f ·_) (A .F-id $ₚ x) ⟩
+        f · x              ∎)
 
   -- Representable presheaves are concrete
   Conc-よ₀ : (U : ⌞ C ⌟) → CPSh.Ob
