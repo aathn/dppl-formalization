@@ -44,7 +44,7 @@ import Cat.Functor.Reasoning as Fr
 open SyntaxVars
 
 open Reg↓≤ using (_≤_ ; ≤-refl ; ≤-trans)
-open is-lattice Reg↓-lattice hiding (! ; top)
+open is-lattice Reg↓-lattice hiding (! ; top ; _∪_)
 
 private
   ≤→is-yes : c ≤ c' → is-yes (holds? (c ≤ c'))
@@ -336,15 +336,6 @@ module Denotations (Ax : DenotAssumptions) where
   ν-counit .η X              = ℛ-id≤ ∩≤r
   ν-counit .is-natural _ _ f = ℛ-hom-path refl
 
-  ν-pres-top : ν⟨ c ⟩ .F₀ ℛ⊤.top ≡ ℛ⊤.top
-  ν-pres-top {c = c} = refl ,ₚ ∩-comm ∙ order→∩ ¡
-
-  ν-onto-points : ∀ {U} → is-surjective (ν⟨ c ⟩ .F₁ {ℛ⊤.top} {U})
-  ν-onto-points {c = c} {n , c'} f =
-    inc ( ν-counit .η _ ℛ.∘ f ℛ.∘ path→iso {C = ℛ} ν-pres-top .from
-        , ℛ-hom-path (funext λ z → ap (f .fst) (transport-refl _ ∙ transport-refl z))
-        )
-
   μ-dominates-ν : ν⟨ c ⟩ F∘ μ⟨ c ⟩ ≅ⁿ μ⟨ c ⟩
   μ-dominates-ν {c} = to-natural-iso ni where
     ni : make-natural-iso (ν⟨ c ⟩ F∘ μ⟨ c ⟩) μ⟨ c ⟩
@@ -407,65 +398,68 @@ module Denotations (Ax : DenotAssumptions) where
   □⟨_⟩ : Coeff → Functor 𝔇 𝔇
   □⟨ c ⟩ = conc-dir-image ℛ-conc ℛ-conc μ⟨ c ⟩ (path→iso μ-pres-top) μ-onto-points
 
-  -- □-counit : □⟨ c ⟩ => Id
-  -- □-counit = sub-nat λ where
-  --   .η X              → nat-idr-op-to (X .fst ▸ opⁿ μ-unit)
-  --   .is-natural _ _ f → Nat-path λ _ → sym $ f .hom .is-natural _ _ _
+  □-counit : □⟨ c ⟩ => Id
+  □-counit = sub-nat λ where
+    .η X              → nat-idr-op-to (X .fst ▸ opⁿ μ-unit)
+    .is-natural _ _ f → Nat-path λ _ → sym $ f .hom .is-natural _ _ _
 
-  -- □-comult : □⟨ c ⟩ F∘ □⟨ c' ⟩ ≅ⁿ □⟨ c ∩ c' ⟩
-  -- □-comult .to = sub-nat λ where
-  --   .η X              → nat-assoc-from (X .fst ▸ op-compose-from (opⁿ (μ-mult .from)))
-  --   .is-natural _ _ f → Nat-path λ _ → sym $ f .hom .is-natural _ _ _
-  -- □-comult .from = sub-nat λ where
-  --   .η X              → nat-assoc-to (X .fst ▸ op-compose-into (opⁿ (μ-mult .to)))
-  --   .is-natural _ _ f → Nat-path λ _ → sym $ f .hom .is-natural _ _ _
-  -- □-comult .inverses = λ where
-  --   .invl → ext λ F _ _ → Fr.annihilate (F .fst) (μ-mult .inverses .invl ηₚ _) $ₚ _
-  --   .invr → ext λ F _ _ → Fr.annihilate (F .fst) (μ-mult .inverses .invr ηₚ _) $ₚ _
+  □-comult : □⟨ c ⟩ F∘ □⟨ c' ⟩ ≅ⁿ □⟨ c ∩ c' ⟩
+  □-comult .to = sub-nat λ where
+    .η X              → nat-assoc-from (X .fst ▸ op-compose-from (opⁿ (μ-mult .from)))
+    .is-natural _ _ f → Nat-path λ _ → sym $ f .hom .is-natural _ _ _
+  □-comult .from = sub-nat λ where
+    .η X              → nat-assoc-to (X .fst ▸ op-compose-into (opⁿ (μ-mult .to)))
+    .is-natural _ _ f → Nat-path λ _ → sym $ f .hom .is-natural _ _ _
+  □-comult .inverses = λ where
+    .invl → ext λ F _ _ → Fr.annihilate (F .fst) (μ-mult .inverses .invl ηₚ _) $ₚ _
+    .invr → ext λ F _ _ → Fr.annihilate (F .fst) (μ-mult .inverses .invr ηₚ _) $ₚ _
 
-  -- □-≤ : c ≤ c' → □⟨ c ⟩ => □⟨ c' ⟩
-  -- □-≤ {c} {c'} H≤ = sub-nat λ where
-  --   .η X              → X .fst ▸ opⁿ (μ-≤ H≤)
-  --   .is-natural _ _ f → Nat-path λ _ → sym $ f .hom .is-natural _ _ _
+  □-≤ : c ≤ c' → □⟨ c ⟩ => □⟨ c' ⟩
+  □-≤ {c} {c'} H≤ = sub-nat λ where
+    .η X              → X .fst ▸ opⁿ (μ-≤ H≤)
+    .is-natural _ _ f → Nat-path λ _ → sym $ f .hom .is-natural _ _ _
 
-  -- □⟨A⟩-Id : □⟨ A↓ ⟩ ≅ⁿ Id
-  -- □⟨A⟩-Id .to = sub-nat λ where
-  --   .η X              → nat-idr-op-to (X .fst ▸ opⁿ (μ⟨A⟩-Id .from))
-  --   .is-natural _ _ f → Nat-path λ _ → sym $ f .hom .is-natural _ _ _
-  -- □⟨A⟩-Id .from = sub-nat λ where
-  --   .η X              → nat-idr-op-from (X .fst ▸ opⁿ (μ⟨A⟩-Id .to))
-  --   .is-natural _ _ f → Nat-path λ _ → sym $ f .hom .is-natural _ _ _
-  -- □⟨A⟩-Id .inverses = λ where
-  --   .invl → ext λ F _ _ → Fr.annihilate (F .fst) (μ⟨A⟩-Id .inverses .invl ηₚ _) $ₚ _
-  --   .invr → ext λ F _ _ → Fr.annihilate (F .fst) (μ⟨A⟩-Id .inverses .invr ηₚ _) $ₚ _
+  □⟨A⟩-Id : □⟨ A↓ ⟩ ≅ⁿ Id
+  □⟨A⟩-Id .to = sub-nat λ where
+    .η X              → nat-idr-op-to (X .fst ▸ opⁿ (μ⟨A⟩-Id .from))
+    .is-natural _ _ f → Nat-path λ _ → sym $ f .hom .is-natural _ _ _
+  □⟨A⟩-Id .from = sub-nat λ where
+    .η X              → nat-idr-op-from (X .fst ▸ opⁿ (μ⟨A⟩-Id .to))
+    .is-natural _ _ f → Nat-path λ _ → sym $ f .hom .is-natural _ _ _
+  □⟨A⟩-Id .inverses = λ where
+    .invl → ext λ F _ _ → Fr.annihilate (F .fst) (μ⟨A⟩-Id .inverses .invl ηₚ _) $ₚ _
+    .invr → ext λ F _ _ → Fr.annihilate (F .fst) (μ⟨A⟩-Id .inverses .invr ηₚ _) $ₚ _
 
-  ◇⟨_⟩ : Coeff → Functor 𝔇 𝔇
-  ◇⟨ c ⟩ = conc-dir-image ℛ-conc ℛ-conc ν⟨ c ⟩ (path→iso ν-pres-top) ν-onto-points
+  □-pres-top : □⟨ c ⟩ .F₀ top ≅ top
+  □-pres-top = iso→sub-iso (to-natural-iso ni) where
+    ni : make-natural-iso _ _
+    ni .make-natural-iso.eta _ u       = u
+    ni .make-natural-iso.inv _ u       = u
+    ni .make-natural-iso.eta∘inv _     = refl
+    ni .make-natural-iso.inv∘eta _     = refl
+    ni .make-natural-iso.natural _ _ _ = refl
 
-  ◇⊣□ : ◇⟨ c ⟩ ⊣ □⟨ c ⟩
-  ◇⊣□ {c} = {!!} where
-    foo : precompose (op μ⟨ c ⟩) {D = Sets lzero} ⊣ precompose (op ν⟨ c ⟩)
-    foo = precomposite-adjunction (opposite-adjunction μ⊣ν)
+  □-pres-prod : ∀ X Y → □⟨ c ⟩ .F₀ (X ⊗₀ Y) ≅ (□⟨ c ⟩ .F₀ X ⊗₀ □⟨ c ⟩ .F₀ Y)
+  □-pres-prod X Y = iso→sub-iso (to-natural-iso ni) where
+    ni : make-natural-iso _ _
+    ni .make-natural-iso.eta _ u       = u
+    ni .make-natural-iso.inv _ u       = u
+    ni .make-natural-iso.eta∘inv _     = refl
+    ni .make-natural-iso.inv∘eta _     = refl
+    ni .make-natural-iso.natural _ _ _ = refl
 
+  □-pres-ip
+    : ∀ (F : Fin n → 𝔇.Ob) → □⟨ c ⟩ .F₀ (𝔇-ip.ΠF F) ≅ 𝔇-ip.ΠF λ i → □⟨ c ⟩ .F₀ (F i)
+  □-pres-ip {n = zero} F                = □-pres-top
+  □-pres-ip {n = suc zero} F            = id-iso
+  □-pres-ip {n = suc (suc n)} {c = c} F = □-pres-prod (F fzero) (𝔇-ip.ΠF (F ⊙ fsuc))
+    ∙Iso (id-iso {□⟨ c ⟩ .F₀ (F fzero)} ⊗Iso □-pres-ip (F ⊙ fsuc))
 
-  -- □-pres-top : □⟨ c ⟩ .F₀ top ≅ top
-  -- □-pres-top = {!!}
+  𝔇ℝ[_] : ℛ.Ob → 𝔇.Ob
+  𝔇ℝ[_] = Conc-よ₀ ℛ-conc
 
-  -- □-pres-prod : ∀ X Y → □⟨ c ⟩ .F₀ (X ⊗₀ Y) ≅ (□⟨ c ⟩ .F₀ X ⊗₀ □⟨ c ⟩ .F₀ Y)
-  -- □-pres-prod = {!!}
-
-  -- □-pres-ip
-  --   : ∀ (F : Fin n → 𝔇.Ob) → □⟨ c ⟩ .F₀ (𝔇-ip.ΠF F) ≅ 𝔇-ip.ΠF λ i → □⟨ c ⟩ .F₀ (F i)
-  -- □-pres-ip {n = zero} F                = □-pres-top
-  -- □-pres-ip {n = suc zero} F            = id-iso
-  -- □-pres-ip {n = suc (suc n)} {c = c} F = □-pres-prod (F fzero) (𝔇-ip.ΠF (F ⊙ fsuc))
-  --   ∙Iso (id-iso {□⟨ c ⟩ .F₀ (F fzero)} ⊗Iso □-pres-ip (F ⊙ fsuc))
-
-  -- 𝔇ℝ[_] : ℛ.Ob → 𝔇.Ob
-  -- 𝔇ℝ[_] = Conc-よ₀ ℛ-conc
-
-  -- 𝔇ℝ'[_] : Coeff ^ n → 𝔇.Ob
-  -- 𝔇ℝ'[ cs ] = 𝔇-ip.ΠF λ i → 𝔇ℝ[ 1 , cs i ]
+  𝔇ℝ'[_] : Coeff ^ n → 𝔇.Ob
+  𝔇ℝ'[ cs ] = 𝔇-ip.ΠF λ i → 𝔇ℝ[ 1 , cs i ]
 
   -- -- ⟨⟩-sec→section : {cs : Coeff ^ n} → ∫ₚ (⟨ cs ⟩-sec {m} c) → 𝔇ℝ'[ cs ] ʻ (m , c)
   -- -- ⟨⟩-sec→section {n = zero} (f , Hf)                  = lift tt
@@ -482,77 +476,77 @@ module Denotations (Ax : DenotAssumptions) where
   -- -- --   { η = λ U g → {!!} -- f ⊙ g
   -- -- --   ; is-natural = λ _ _ _ → {!!} }
 
-  -- Ty-denot : Ty → 𝔇.Ob
-  -- Ty-denot (treal c)            = 𝔇ℝ[ 1 , c ]
-  -- Ty-denot (T₁ ⇒[ c , det ] T₂) = □⟨ c ⟩ .F₀ (Ty-denot T₁ ⇒ Ty-denot T₂)
-  -- Ty-denot (ttup n Ts)          = 𝔇-ip.ΠF λ i → Ty-denot (Ts i)
-  -- -- Distributions are interpreted trivially for the time being.
-  -- Ty-denot (tdist _)          = top
-  -- Ty-denot (_ ⇒[ _ , rnd ] _) = top
+  Ty-denot : Ty → 𝔇.Ob
+  Ty-denot (treal c)            = 𝔇ℝ[ 1 , c ]
+  Ty-denot (T₁ ⇒[ c , det ] T₂) = □⟨ c ⟩ .F₀ (Ty-denot T₁ ⇒ Ty-denot T₂)
+  Ty-denot (ttup n Ts)          = 𝔇-ip.ΠF λ i → Ty-denot (Ts i)
+  -- Distributions are interpreted trivially for the time being.
+  Ty-denot (tdist _)          = top
+  Ty-denot (_ ⇒[ _ , rnd ] _) = top
 
-  -- instance
-  --   ⟦⟧-Ty : ⟦⟧-notation Ty
-  --   ⟦⟧-Ty = brackets _ Ty-denot
+  instance
+    ⟦⟧-Ty : ⟦⟧-notation Ty
+    ⟦⟧-Ty = brackets _ Ty-denot
 
-  -- open EnvDenot 𝔇-cartesian Ty-denot
-  -- open TypingVars
-  -- open FinsetSyntax
+  open EnvDenot 𝔇-cartesian Ty-denot
+  open TypingVars
+  open FinsetSyntax
 
-  -- Sub-denot : T <: T' → Hom ⟦ T ⟧ ⟦ T' ⟧
-  -- Sub-denot (sreal H≤)             = full-hom (よ₁ ℛ (ℛ-id≤ H≤))
-  -- Sub-denot (stup {Ts' = Ts'} H<:) =
-  --   𝔇-ip.tuple _ λ i → Sub-denot (H<: i) ∘ 𝔇-ip.π _ i
-  -- Sub-denot (sarr {c = c} {e = det} {det} {T₁' = T₁'} {T₂' = T₂'} H<: H<:' H≤c H≤e) =
-  --   □-≤ H≤c .η (⟦ T₁' ⟧ ⇒ ⟦ T₂' ⟧) ∘
-  --   □⟨ c ⟩ .F₁ ([-,-]₁ _ _ 𝔇-closed (Sub-denot H<:') (Sub-denot H<:))
-  -- Sub-denot (sarr {e' = rnd} H<: H<:' H≤c H≤e) = !
-  -- Sub-denot (sdist H<:)                        = !
+  Sub-denot : T <: T' → Hom ⟦ T ⟧ ⟦ T' ⟧
+  Sub-denot (sreal H≤)             = full-hom (よ₁ ℛ (ℛ-id≤ H≤))
+  Sub-denot (stup {Ts' = Ts'} H<:) =
+    𝔇-ip.tuple _ λ i → Sub-denot (H<: i) ∘ 𝔇-ip.π _ i
+  Sub-denot (sarr {c = c} {e = det} {det} {T₁' = T₁'} {T₂' = T₂'} H<: H<:' H≤c H≤e) =
+    □-≤ H≤c .η (⟦ T₁' ⟧ ⇒ ⟦ T₂' ⟧) ∘
+    □⟨ c ⟩ .F₁ ([-,-]₁ _ _ 𝔇-closed (Sub-denot H<:') (Sub-denot H<:))
+  Sub-denot (sarr {e' = rnd} H<: H<:' H≤c H≤e) = !
+  Sub-denot (sdist H<:)                        = !
 
-  -- ∩ᵗ-is-□ : ∀ T → □⟨ c ⟩ .F₀ ⟦ T ⟧ ≅ ⟦ c ∩ᵗ T ⟧
-  -- ∩ᵗ-is-□ (treal c')          = iso→sub-iso (adjunct-hom-iso-into μ⊣ν _)
-  -- ∩ᵗ-is-□ (T ⇒[ _ , det ] T₁) = isoⁿ→iso □-comult (Ty-denot T ⇒ Ty-denot T₁)
-  -- ∩ᵗ-is-□ (ttup n Ts)         =
-  --   □-pres-ip (λ i → Ty-denot (Ts i)) ∙Iso ΠIso (λ i → ∩ᵗ-is-□ (Ts i))
-  -- ∩ᵗ-is-□ (tdist _)           = □-pres-top
-  -- ∩ᵗ-is-□ (_ ⇒[ _ , rnd ] _)  = □-pres-top
+  ∩ᵗ-is-□ : ∀ T → □⟨ c ⟩ .F₀ ⟦ T ⟧ ≅ ⟦ c ∩ᵗ T ⟧
+  ∩ᵗ-is-□ (treal c')          = iso→sub-iso (adjunct-hom-iso-into μ⊣ν _)
+  ∩ᵗ-is-□ (T ⇒[ _ , det ] T₁) = isoⁿ→iso □-comult (Ty-denot T ⇒ Ty-denot T₁)
+  ∩ᵗ-is-□ (ttup n Ts)         =
+    □-pres-ip (λ i → Ty-denot (Ts i)) ∙Iso ΠIso (λ i → ∩ᵗ-is-□ (Ts i))
+  ∩ᵗ-is-□ (tdist _)           = □-pres-top
+  ∩ᵗ-is-□ (_ ⇒[ _ , rnd ] _)  = □-pres-top
 
-  -- raw-env-≤-□
-  --   : {l : RawEnv Ty} → is-nubbed l → (∀ {x} → raw-sub (x ∷ []) l → x .snd ≤ᵗ c)
-  --   → □⟨ c ⟩ .F₀ ⟦ l ⟧ ≅ ⟦ l ⟧
-  -- raw-env-≤-□ [] H≤                                    = □-pres-top
-  -- raw-env-≤-□ {c = c} {l = (a , T) ∷ l} (H∉ ∷ Hnub) H≤ =
-  --   let p : c ∩ᵗ T ≡ T
-  --       p = ≤ᵗ→∩ᵗ (H≤ (sub-cons reflᵢ H∉ sub-nil))
-  --       Hl : □⟨ c ⟩ .F₀ (RawEnv-denot l) ≅ RawEnv-denot l
-  --       Hl = raw-env-≤-□ Hnub λ H∈ → H≤ (sub-consr tt H∈)
-  --       HT : □⟨ c ⟩ .F₀ (Ty-denot T) ≅ Ty-denot T
-  --       HT = ∩ᵗ-is-□ T ∙Iso path→iso (ap Ty-denot p)
-  --   in
-  --   □-pres-prod (RawEnv-denot l) (Ty-denot T) ∙Iso (Hl ⊗Iso HT)
+  raw-env-≤-□
+    : {l : RawEnv Ty} → is-nubbed l → (∀ {x} → raw-sub (x ∷ []) l → x .snd ≤ᵗ c)
+    → □⟨ c ⟩ .F₀ ⟦ l ⟧ ≅ ⟦ l ⟧
+  raw-env-≤-□ [] H≤                                    = □-pres-top
+  raw-env-≤-□ {c = c} {l = (a , T) ∷ l} (H∉ ∷ Hnub) H≤ =
+    let p : c ∩ᵗ T ≡ T
+        p = ≤ᵗ→∩ᵗ (H≤ (sub-cons reflᵢ H∉ sub-nil))
+        Hl : □⟨ c ⟩ .F₀ (RawEnv-denot l) ≅ RawEnv-denot l
+        Hl = raw-env-≤-□ Hnub λ H∈ → H≤ (sub-consr tt H∈)
+        HT : □⟨ c ⟩ .F₀ (Ty-denot T) ≅ Ty-denot T
+        HT = ∩ᵗ-is-□ T ∙Iso path→iso (ap Ty-denot p)
+    in
+    □-pres-prod (RawEnv-denot l) (Ty-denot T) ∙Iso (Hl ⊗Iso HT)
 
-  -- env-≤-□ : Γ ≤ᵉ c → □⟨ c ⟩ .F₀ ⟦ Γ ⟧ ≅ ⟦ Γ ⟧
-  -- env-≤-□ {Γ = Γ} H≤ = raw-env-≤-□ (env-nub-is-nubbed Γ) (H≤ ⊙ env-mem-nub)
+  env-≤-□ : Γ ≤ᵉ c → □⟨ c ⟩ .F₀ ⟦ Γ ⟧ ≅ ⟦ Γ ⟧
+  env-≤-□ {Γ = Γ} H≤ = raw-env-≤-□ (env-nub-is-nubbed Γ) (H≤ ⊙ env-mem-nub)
 
-  -- Tm-denot : Γ ⊢ t :[ det ] T → Hom ⟦ Γ ⟧ ⟦ T ⟧
-  -- Tm-denot (tsub {e = det} Hty _ H<:) = Sub-denot H<: ∘ Tm-denot Hty
-  -- Tm-denot (tpromote {Γ = Γ} {Γ' = Γ'} Hty H≤ H⊆) =
-  --   {!!} ∘ env-proj {Γ} {Γ'} H⊆
-  -- Tm-denot {Γ} (tvar H∈) = π₂ {top} ∘ env-proj {Γ' = Γ} H∈
-  -- Tm-denot (tlam {e = rnd} Hlam) = !
-  -- Tm-denot {Γ} (tlam {T = T} {e = det} {T'} (Иi As Hty))
-  --   with (a , H∉) ← fresh{𝔸} (As ∪ env-dom Γ) = □⟨A⟩-Id .from .η _ ∘ ƛ {⟦ T ⟧} body
-  --   where
-  --     body = subst (λ Γ → Hom ⟦ Γ ⟧ ⟦ T' ⟧) (env-nub-cons Γ (∉∪₂ As H∉))
-  --       (Tm-denot (Hty a ⦃ ∉∪₁ H∉ ⦄))
-  -- Tm-denot (tapp {T = T} {T' = T'} Hty Hty₁) =
-  --   ev {⟦ T ⟧} ∘ ⟨ □-counit {A↓} .η (⟦ T ⟧ ⇒ ⟦ T' ⟧) ∘ Tm-denot Hty , Tm-denot Hty₁ ⟩
-  -- Tm-denot (tprim {ϕ = ϕ} Hϕ Hty) =
-  --   ⟨∥⟩-reg-morphism (Prim-denot ϕ) (Prim-reg Hϕ) ∘ Tm-denot Hty
-  -- Tm-denot (treal {r = r}) =
-  --   full-hom (よ₁ ℛ (ℛ-const (make r))) ∘ よ⋆-is-terminal ℛ-conc _ .centre ∘ !
-  -- Tm-denot (ttup Htys) = 𝔇-ip.tuple _ λ i → Tm-denot (Htys i)
-  -- Tm-denot (tproj i Hty) = 𝔇-ip.π _ i ∘ Tm-denot Hty
-  -- Tm-denot (tif Hty Hty₁ Hty₂ H≤) = {!!}
-  -- Tm-denot (tinfer Hty) = !
-  -- Tm-denot (tdiff Hty Hty₁ Hc) = {!!}
-  -- Tm-denot (tsolve Hty Hty₁ Hty₂ Hc) = {!!}
+  Tm-denot : Γ ⊢ t :[ det ] T → Hom ⟦ Γ ⟧ ⟦ T ⟧
+  Tm-denot (tsub {e = det} Hty _ H<:) = Sub-denot H<: ∘ Tm-denot Hty
+  Tm-denot (tpromote {Γ = Γ} {T = T} {c} {Γ'} Hty H≤ H⊆) =
+    ∩ᵗ-is-□ T .to ∘ □⟨ c ⟩ .F₁ (Tm-denot Hty) ∘ env-≤-□ H≤ .from ∘ env-proj {Γ} {Γ'} H⊆
+  Tm-denot {Γ} (tvar H∈) = π₂ {top} ∘ env-proj {Γ' = Γ} H∈
+  Tm-denot (tlam {e = rnd} Hlam) = !
+  Tm-denot {Γ} (tlam {T = T} {e = det} {T'} (Иi As Hty))
+    with (a , H∉) ← fresh{𝔸} (As ∪ env-dom Γ) =
+    □⟨A⟩-Id .from .η _ ∘ ƛ {Ty-denot T} body where
+    body = subst (λ Γ → Hom ⟦ Γ ⟧ (Ty-denot T')) (env-nub-cons Γ (∉∪₂ As H∉))
+      (Tm-denot (Hty a ⦃ ∉∪₁ H∉ ⦄))
+  Tm-denot (tapp {T = T} {T' = T'} Hty Hty₁) = ev {Ty-denot T}
+    ∘ ⟨ □-counit {A↓} .η (Ty-denot T ⇒ Ty-denot T') ∘ Tm-denot Hty , Tm-denot Hty₁ ⟩
+  Tm-denot (tprim {ϕ = ϕ} Hϕ Hty) = {!!}
+    -- ⟨∥⟩-reg-morphism (Prim-denot ϕ) (Prim-reg Hϕ) ∘ Tm-denot Hty
+  Tm-denot (treal {r = r}) =
+    full-hom (よ₁ ℛ (ℛ-const (make r))) ∘ よ⋆-is-terminal ℛ-conc _ .centre ∘ !
+  Tm-denot (ttup Htys) = 𝔇-ip.tuple _ λ i → Tm-denot (Htys i)
+  Tm-denot (tproj i Hty) = 𝔇-ip.π _ i ∘ Tm-denot Hty
+  Tm-denot (tif Hty Hty₁ Hty₂ H≤) = {!!}
+  Tm-denot (tinfer Hty) = !
+  Tm-denot (tdiff Hty Hty₁ Hc) = {!!}
+  Tm-denot (tsolve Hty Hty₁ Hty₂ Hc) = {!!}
