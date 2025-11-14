@@ -15,6 +15,7 @@ open import Data.Sum.Base using (inl ; inr)
 Vector : {l : Level} → Type l → Nat → Type l
 Vector A n = Fin n → A
 
+infixl 30 _^_
 _^_ = Vector
 
 private variable
@@ -96,6 +97,13 @@ updateAt-updateAt
 updateAt-updateAt {n = suc n} ρ i a b j =
   ap (λ xs → (xs [ i ≔ a ]) j) (funext $ delete-insert _ i b)
 
+++-head-tail : ∀ {m} (x : A ^ suc m) → make (head x) ++ tail x ≡ x
+++-head-tail {m = m} x = ext go where
+  go : ∀ i → (make (head x) ++ tail x) i ≡ x i
+  go i with fin-view i
+  ... | zero  = refl
+  ... | suc _ = refl
+
 ++-split : ∀ m (x : A ^ (m + n)) → uncurry _++_ (split m x) ≡ x
 ++-split m x = ext go where
   go : ∀ i → uncurry _++_ (split m x) i ≡ x i
@@ -105,13 +113,13 @@ updateAt-updateAt {n = suc n} ρ i a b j =
 
 split-++ : ∀ (xy : A ^ m × A ^ n) → split m (uncurry _++_ xy) ≡ xy
 split-++ {m = m} {n} xy = ext Hx ,ₚ ext Hy where
-  Hx : Pathᵉ Extensional-Π (split m (uncurry _++_ xy) .fst) (xy .fst)
+  Hx : Extensional-Π .Pathᵉ (split m (uncurry _++_ xy) .fst) (xy .fst)
   Hx i rewrite Id≃path.from (split-+-inject {n = n} i) = refl
-  Hy : Pathᵉ Extensional-Π (split m (uncurry _++_ xy) .snd) (xy .snd)
+  Hy : Extensional-Π .Pathᵉ (split m (uncurry _++_ xy) .snd) (xy .snd)
   Hy i rewrite Id≃path.from (split-+-fshift m i) = refl
 
-vec-prod-sum : (A ^ m × A ^ n) ≡ A ^ (m + n)
-vec-prod-sum {m = m} = ua $ Iso→Equiv
+vec-prod-sum : (A ^ m × A ^ n) ≃ A ^ (m + n)
+vec-prod-sum {m = m} = Iso→Equiv
   $ uncurry _++_ , iso (split m) (++-split m) split-++
 
 ----------------------------------------------------------------------

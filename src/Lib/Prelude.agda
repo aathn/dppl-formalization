@@ -22,3 +22,17 @@ open import Data.Vec.Base public using (Vec ; lookup)
 
 module VecSyntax where
   open import Data.Vec.Base public using ([] ; _∷_)
+
+private variable
+  l : Level
+  A B C D : Type l
+
+swizzle-equiv
+  : ∀ (f : B ≃ A) (g : C ≃ D) (h : C → A) (i : D → B)
+  → Equiv.from f ∘ h ≡ i ∘ Equiv.to g
+  → Equiv.to f ∘ i   ≡ h ∘ Equiv.from g
+swizzle-equiv f g h i p =
+  Equiv.to f ∘ i                               ≡⟨ ap (λ x → Equiv.to f ∘ i ∘ x) (funext (sym ∘ Equiv.ε g)) ⟩
+  Equiv.to f ∘ i ∘ Equiv.to g ∘ Equiv.from g   ≡⟨ ap (λ x → Equiv.to f ∘ x ∘ Equiv.from g) (sym p) ⟩
+  Equiv.to f ∘ Equiv.from f ∘ h ∘ Equiv.from g ≡⟨ ap (λ x → x ∘ h ∘ Equiv.from g) (funext (Equiv.ε f)) ⟩
+  h ∘ Equiv.from g                             ∎

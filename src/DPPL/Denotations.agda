@@ -9,6 +9,7 @@ open import DPPL.Syntax R hiding (_▸_)
 open import DPPL.Typing R
 open import DPPL.Properties.Syntax R
 
+open import Lib.Prelude using (swizzle-equiv)
 open import Lib.Cat.Concrete
 open import Lib.Cat.Functor
 open import Lib.Cat.Product
@@ -34,7 +35,7 @@ open import Cat.Functor.Naturality
 open import Cat.Functor.Subcategory
 open import Data.Dec.Base
 open import Data.Fin.Base hiding (_≤_)
-open import Data.List.Base
+open import Data.List.Base hiding (_++_)
 open import Data.Power hiding (_∪_ ; _∩_)
 open import Order.Base
 open import Order.Lattice
@@ -59,8 +60,8 @@ is-const {n = n} f = elΩ (Σ[ x ∈ ℝ ^ n ] f ≡ λ _ → x)
 π'[_] : Fin m → ℝ ^ m → ℝ ^ 1
 π'[ i ] = make ⊙ π[ i ]
 
-π'1 : {f : ℝ ^ m → ℝ ^ 1} → π'[ fzero ] ⊙ f ≡ f
-π'1 {f = f} = ext λ _ → Fin-cases refl λ ()
+π'1 : (f : ℝ ^ m → ℝ ^ 1) → π'[ fzero ] ⊙ f ≡ f
+π'1 _ = ext λ _ → Fin-cases refl λ ()
 
 record DenotAssumptions : Type₁ where
   field
@@ -82,13 +83,13 @@ record DenotAssumptions : Type₁ where
     else
       is-const
 
-  ⟨_⟩-sec : Coeff ^ n → ∀ {m} → Coeff → ℙ (ℝ ^ m → ℝ ^ n)
-  ⟨ cs ⟩-sec c g = elΩ $ ∀ i → π'[ i ] ⊙ g ∈ ⟨ c ∣ cs i ⟩-reg
+  ⟨_⟩-sec : Coeff ^ n → (U : Nat × Coeff) → ℙ (ℝ ^ (U .fst) → ℝ ^ n)
+  ⟨ cs ⟩-sec U g = elΩ $ ∀ i → π'[ i ] ⊙ g ∈ ⟨ U .snd ∣ cs i ⟩-reg
 
-  ⟨_∥_⟩-reg : Coeff ^ m → Coeff ^ n → ℙ (ℝ ^ m → ℝ ^ n)
-  ⟨_∥_⟩-reg {m} {n} cs cs' f = elΩ $
-    ∀ {k : Nat} {c : Coeff} (g : ℝ ^ k → ℝ ^ m)
-    → g ∈ ⟨ cs ⟩-sec c → f ⊙ g ∈ ⟨ cs' ⟩-sec c
+  ⟨_∥_⟩-reg : Coeff ^ m → Coeff ^ n → (ℝ ^ m → ℝ ^ n) → Type _
+  ⟨_∥_⟩-reg {m} {n} cs cs' f =
+    ∀ {U : Nat × Coeff} (g : ℝ ^ (U .fst) → ℝ ^ m)
+    → g ∈ ⟨ cs ⟩-sec U → f ⊙ g ∈ ⟨ cs' ⟩-sec U
 
   field
     Prim-denot : (ϕ : Prim) → ℝ ^ PrimAr ϕ → ℝ ^ 1
@@ -462,45 +463,110 @@ module Denotations (Ax : DenotAssumptions) where
   𝔇ℝ'[_] : Coeff ^ n → 𝔇.Ob
   𝔇ℝ'[ cs ] = 𝔇-ip.ΠF λ i → 𝔇ℝ[ 1 , cs i ]
 
-  top-underlying : top ʻ ⋆ ≡ ℝ ^ 0
-  top-underlying = ua $ Iso→Equiv
+  top-underlying : top ʻ ⋆ ≃ ℝ ^ 0
+  top-underlying = Iso→Equiv
     $ (λ _ ()) , iso (λ _ → lift tt) (λ _ → ext λ ()) (λ _ → refl)
 
-  𝔇ℝ-underlying : 𝔇ℝ[ n , c ] ʻ ⋆ ≡ ℝ ^ n
-  𝔇ℝ-underlying = ua $ Iso→Equiv
+  𝔇ℝ-underlying : ∀ U → 𝔇ℝ[ U ] ʻ ⋆ ≃ ℝ ^ (U .fst)
+  𝔇ℝ-underlying U = Iso→Equiv
     $ (λ (f , _) → f (make 0r))
     , iso (λ x → ℛ-const x)
       (λ _ → refl)
       (λ f → ℛ-hom-path (ext λ _ x → ap (λ y → f .fst y x) (ext λ ())))
 
-  𝔇ℝ'-underlying : {cs : Coeff ^ n} → 𝔇ℝ'[ cs ] ʻ ⋆ ≡ ℝ ^ n
-  𝔇ℝ'-underlying {n = zero}             = top-underlying
-  𝔇ℝ'-underlying {n = suc zero}         = 𝔇ℝ-underlying
-  𝔇ℝ'-underlying {n = suc (suc n)} {cs} =
-    ap₂ _×_ 𝔇ℝ-underlying 𝔇ℝ'-underlying ∙ vec-prod-sum
+  𝔇ℝ'-underlying : (cs : Coeff ^ n) → 𝔇ℝ'[ cs ] ʻ ⋆ ≃ ℝ ^ n
+  𝔇ℝ'-underlying {n = zero}        cs = top-underlying
+  𝔇ℝ'-underlying {n = suc zero}    cs = 𝔇ℝ-underlying (1 , cs fzero)
+  𝔇ℝ'-underlying {n = suc (suc n)} cs =
+    Σ-ap (𝔇ℝ-underlying (1 , cs fzero)) (λ _ → 𝔇ℝ'-underlying (cs ⊙ fsuc)) ∙e
+    vec-prod-sum
 
-  ⟨⟩-sec≃𝔇ℝ'-section
-    : {cs : Coeff ^ n}
-    → ∫ₚ (⟨ cs ⟩-sec {m} c) ≃ ∫ₚ (is-conc-section ℛ-conc {U = m , c} 𝔇ℝ'[ cs ])
-  ⟨⟩-sec≃𝔇ℝ'-section = {!!}
-  -- ⟨⟩-sec→section {n = zero} (f , Hf)                  = lift tt
-  -- ⟨⟩-sec→section {n = suc zero} {c = c} {cs} (f , Hf) =
-  --   π'[ fzero ] ⊙ f , case Hf of λ Hf' → Hf' fzero
-  -- ⟨⟩-sec→section {n = suc (suc n)} (f , Hf) =
-  --   (π'[ fzero ] ⊙ f , case Hf of λ Hf' → Hf' fzero) ,
-  --   ⟨⟩-sec→section {n = suc n}
-  --     ((λ x → f x ⊙ fsuc) , case Hf of λ Hf' → inc (Hf' ⊙ fsuc))
+  𝔇ℝ→𝔇ℝ'-underlying
+    : ∀ U (cs : Coeff ^ n) → (𝔇ℝ[ U ] ʻ ⋆ → 𝔇ℝ'[ cs ] ʻ ⋆) ≃ (ℝ ^ (U .fst) → ℝ ^ n)
+  𝔇ℝ→𝔇ℝ'-underlying U cs = →-ap (𝔇ℝ-underlying U) (𝔇ℝ'-underlying cs)
 
-  -- section→⟨⟩-sec : {cs : Coeff ^ n} → 𝔇ℝ'[ cs ] ʻ (m , c) → ∫ₚ (⟨ cs ⟩-sec {m} c)
-  -- section→⟨⟩-sec {n = n} H = {!!}
+  ⟨⟩-sec→𝔇ℝ'-section : ∀ {U} {cs : Coeff ^ n} → ∫ₚ (⟨ cs ⟩-sec U) → 𝔇ℝ'[ cs ] ʻ U
+  ⟨⟩-sec→𝔇ℝ'-section {n = zero} (f , Hf)     = lift tt
+  ⟨⟩-sec→𝔇ℝ'-section {n = suc zero} (f , Hf) =
+    π'[ fzero ] ⊙ f , case Hf of λ Hf' → Hf' fzero
+  ⟨⟩-sec→𝔇ℝ'-section {n = suc (suc n)} (f , Hf) =
+    (π'[ fzero ] ⊙ f , case Hf of λ Hf' → Hf' fzero) ,
+    ⟨⟩-sec→𝔇ℝ'-section {n = suc n}
+      ((λ x → f x ⊙ fsuc) , case Hf of λ Hf' → inc (Hf' ⊙ fsuc))
 
-  -- -- ⟨∥⟩-reg-morphism
-  -- --   : {cs : Coeff ^ m} {cs' : Coeff ^ n} (f : ℝ ^ m → ℝ ^ n)
-  -- --   → f ∈ ⟨ cs ∥ cs' ⟩-reg → Hom 𝔇ℝ'[ cs ] 𝔇ℝ'[ cs' ]
-  -- -- ⟨∥⟩-reg-morphism {n = n} f Hf = {!!}
-  -- -- -- full-hom record
-  -- -- --   { η = λ U g → {!!} -- f ⊙ g
-  -- -- --   ; is-natural = λ _ _ _ → {!!} }
+  𝔇ℝ'-section→⟨⟩-sec : ∀ {U} {cs : Coeff ^ n} → 𝔇ℝ'[ cs ] ʻ U → ∫ₚ (⟨ cs ⟩-sec U)
+  𝔇ℝ'-section→⟨⟩-sec {n = zero} f                         = (λ _ ()) , inc λ ()
+  𝔇ℝ'-section→⟨⟩-sec {n = suc zero} {_ , c} {cs} (f , Hf) =
+    f , inc (Fin-cases (subst (_∈ ⟨ c ∣ cs fzero ⟩-reg) (sym (π'1 f)) Hf) λ ())
+  𝔇ℝ'-section→⟨⟩-sec {n = suc (suc n)} {_ , c} {cs} ((f , Hf) , Hfs) =
+    let f' , Hf' = 𝔇ℝ'-section→⟨⟩-sec {n = suc n} Hfs in
+    (λ x → f x ++ f' x) , case Hf' of λ Hreg →
+      inc (Fin-cases (subst (_∈ ⟨ c ∣ cs fzero ⟩-reg) (sym (π'1 f)) Hf) Hreg)
+
+  ⟨⟩-sec≃𝔇ℝ'-section : ∀ {U} {cs : Coeff ^ n} → ∫ₚ (⟨ cs ⟩-sec U) ≃ 𝔇ℝ'[ cs ] ʻ U
+  ⟨⟩-sec≃𝔇ℝ'-section =
+    Iso→Equiv $ ⟨⟩-sec→𝔇ℝ'-section , iso 𝔇ℝ'-section→⟨⟩-sec rinv linv where
+    rinv : ∀ {n} {cs : Coeff ^ n} → is-right-inverse (𝔇ℝ'-section→⟨⟩-sec {cs = cs}) ⟨⟩-sec→𝔇ℝ'-section
+    rinv {zero} (lift tt)       = refl
+    rinv {suc zero} f           = ℛ-hom-path (π'1 (f .fst))
+    rinv {suc (suc n)} (f , fs) = ℛ-hom-path (π'1 (f .fst)) ,ₚ
+      ap ⟨⟩-sec→𝔇ℝ'-section (ext λ _ _ → refl) ∙ rinv {suc n} fs
+    linv : ∀ {n} {cs : Coeff ^ n} → is-left-inverse (𝔇ℝ'-section→⟨⟩-sec {cs = cs}) ⟨⟩-sec→𝔇ℝ'-section
+    linv {zero} _                    = ext λ _ ()
+    linv {suc zero} (f , Hf)         = ext λ _ _ → π'1 f $ₚ _ $ₚ _
+    linv {suc (suc n)} {cs} (f , Hf) = ext λ x i →
+      let p = linv {suc n} {cs ⊙ fsuc}
+            $ (λ x → f x ⊙ fsuc) , case Hf of λ Hf' → inc (Hf' ⊙ fsuc)
+      in
+      ap (λ l → (π'[ fzero ] ⊙ f) x ++ l x $ i) (ap fst p) ∙ ++-head-tail (f x) $ₚ i
+
+  ⟨⟩-sec≃𝔇ℝ'-conc-section
+    : ∀ {U} {cs : Coeff ^ n}
+    → ∫ₚ (⟨ cs ⟩-sec U) ≃ ∫ₚ (is-conc-section ℛ-conc {U = U} 𝔇ℝ'[ cs ])
+  ⟨⟩-sec≃𝔇ℝ'-conc-section {cs = cs} =
+    ⟨⟩-sec≃𝔇ℝ'-section ∙e conc-section≃section ℛ-conc {A = 𝔇ℝ'[ cs ]} e⁻¹
+
+  sec≃𝔇ℝ'-pres-dom
+    : ∀ {U} {cs : Coeff ^ n}
+    → Equiv.from (𝔇ℝ→𝔇ℝ'-underlying U cs) ⊙ fst ≡ fst ⊙ Equiv.to ⟨⟩-sec≃𝔇ℝ'-conc-section
+  sec≃𝔇ℝ'-pres-dom {zero}     = refl
+  sec≃𝔇ℝ'-pres-dom {suc zero} = ext λ f _ g _ → ℛ-hom-path
+    $ ext λ _ → Fin-cases (ap (λ x → f (g x) _) (ext λ ())) λ ()
+  sec≃𝔇ℝ'-pres-dom {suc (suc n)} {U} {cs} = ext λ f Hf g Hg →
+    ℛ-hom-path (ext λ _ → Fin-cases (ap (λ x → f (g x) _) (ext λ ())) λ ()) ,ₚ
+    ap (λ z → 𝔇ℝ'-underlying (cs ⊙ fsuc) .snd .is-eqv z .centre .fst) (transport-refl _)
+    ∙ sec≃𝔇ℝ'-pres-dom {suc n} {U} {cs ⊙ fsuc}
+      $ₚ ((λ x → f x ⊙ fsuc) , case Hf of λ Hf' → inc (Hf' ⊙ fsuc)) $ₚ (g , Hg)
+
+  ∈-sec≃conc-section
+    : ∀ {U} {cs : Coeff ^ n}
+    → (_∈ ⟨ cs ⟩-sec U) ≃[ 𝔇ℝ→𝔇ℝ'-underlying U cs e⁻¹ ] is-conc-section ℛ-conc 𝔇ℝ'[ cs ]
+  ∈-sec≃conc-section {U = U} {cs = cs} =
+    prop-over-ext (𝔇ℝ→𝔇ℝ'-underlying _ cs e⁻¹)
+      (hlevel 1) (λ {b} → is-conc-section-prop ℛ-conc 𝔇ℝ'[ cs ] b)
+      (λ f Hf →
+        subst (is-conc-section ℛ-conc 𝔇ℝ'[ cs ]) (sym sec≃𝔇ℝ'-pres-dom $ₚ (f , Hf))
+        $ Equiv.to ⟨⟩-sec≃𝔇ℝ'-conc-section (f , Hf) .snd)
+      (λ f Hf →
+        let pres-dom' = swizzle-equiv (𝔇ℝ→𝔇ℝ'-underlying U cs)
+              ⟨⟩-sec≃𝔇ℝ'-conc-section fst fst sec≃𝔇ℝ'-pres-dom
+        in
+        subst (_∈ ⟨ cs ⟩-sec _) (sym pres-dom' $ₚ (f , Hf))
+        $ Equiv.from ⟨⟩-sec≃𝔇ℝ'-conc-section (f , Hf) .snd)
+
+  ⟨∥⟩-reg≃Hom
+    : {cs : Coeff ^ m} {cs' : Coeff ^ n}
+    → ∫ₚ ⟨ cs ∥ cs' ⟩-reg ≃ Hom 𝔇ℝ'[ cs ] 𝔇ℝ'[ cs' ]
+  ⟨∥⟩-reg≃Hom {cs = cs} {cs'} = eqv'' ∙e Iso→Equiv eqv e⁻¹ ∙e Conc-hom≃Hom ℛ-conc where
+    unquoteDecl eqv = declare-record-iso eqv (quote Conc-hom)
+    eqv' = →-ap (𝔇ℝ'-underlying _ e⁻¹) (𝔇ℝ'-underlying _ e⁻¹)
+    eqv'' = Σ-ap eqv' λ f → Π'-ap-cod λ x →
+      Π-ap-dom (𝔇ℝ→𝔇ℝ'-underlying x cs) ∙e
+      Π-ap-cod λ g → →-ap
+        (∈-sec≃conc-section _ _ (Equiv.η (𝔇ℝ→𝔇ℝ'-underlying x cs) _))
+        (∈-sec≃conc-section _ _
+          (funext λ z → ap (Equiv.to eqv' f ⊙ g)
+            (ℛ-hom-path (ext λ _ i → ap (λ y → z .fst y i) (ext λ ())))))
 
   Ty-denot : Ty → 𝔇.Ob
   Ty-denot (treal c)            = 𝔇ℝ[ 1 , c ]
@@ -566,8 +632,8 @@ module Denotations (Ax : DenotAssumptions) where
       (Tm-denot (Hty a ⦃ ∉∪₁ H∉ ⦄))
   Tm-denot (tapp {T = T} {T' = T'} Hty Hty₁) = ev {Ty-denot T}
     ∘ ⟨ □-counit {A↓} .η (Ty-denot T ⇒ Ty-denot T') ∘ Tm-denot Hty , Tm-denot Hty₁ ⟩
-  Tm-denot (tprim {ϕ = ϕ} Hϕ Hty) = {!!}
-    -- ⟨∥⟩-reg-morphism (Prim-denot ϕ) (Prim-reg Hϕ) ∘ Tm-denot Hty
+  Tm-denot (tprim {ϕ = ϕ} Hϕ Hty) =
+    Equiv.to ⟨∥⟩-reg≃Hom (Prim-denot ϕ , Prim-reg Hϕ) ∘ Tm-denot Hty
   Tm-denot (treal {r = r}) =
     full-hom (よ₁ ℛ (ℛ-const (make r))) ∘ よ⋆-is-terminal ℛ-conc _ .centre ∘ !
   Tm-denot (ttup Htys) = 𝔇-ip.tuple _ λ i → Tm-denot (Htys i)
