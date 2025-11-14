@@ -142,8 +142,8 @@ module _ (Ax : EvalAssumptions) where
         (_ : Γ ⊢ t₁ :[ e ] treals n (make c))
         (_ : c ≡ A↓ ⊎ c ≡ P↓)
         (v₀ : IsValue (t₀)) (v₁ : IsValue (t₁))
-        → -----------------------------------------------------------------------------------
-        Γ ⊢ Diff (_ , v₀) (_ , v₁) :[ e ] treals n (make A↓) ⇒[ A↓ , det ] treals m (make A↓)
+        → ----------------------------------------------------------------------------------------
+        Γ ⊢ Diff (_ , v₀) (_ , v₁) .fst :[ e ] treals n (make A↓) ⇒[ A↓ , det ] treals m (make A↓)
 
       SolvePres :
         {t₀ t₁ t₂ : Tm}
@@ -152,8 +152,8 @@ module _ (Ax : EvalAssumptions) where
         (_ : Γ ⊢ t₂ :[ e ] treal (c ∩ PC↓))
         (_ : c ≡ A↓ ⊎ c ≡ C↓)
         (v₀ : IsValue t₀) (v₁ : IsValue t₁) (v₂ : IsValue t₂)
-        → ---------------------------------------------------------------------------------------
-        Γ ⊢ Solve (_ , v₀) (_ , v₁) (_ , v₂) :[ e ] ttup 2 (pair (treal A↓) (treals n (make A↓)))
+        → --------------------------------------------------------------------------------------------
+        Γ ⊢ Solve (_ , v₀) (_ , v₁) (_ , v₂) .fst :[ e ] ttup 2 (pair (treal A↓) (treals n (make A↓)))
 
       InferPres :
         (_ : Γ ⊢ t :[ e ] tunit ⇒[ M↓ , rnd ] T)

@@ -69,8 +69,8 @@ record EvalAssumptions : Type where
     is-pos : ℝ → Bool
     PrimEv : (ϕ : Prim) → ℝ ^ PrimAr ϕ → ℝ
     Infer  : Value → 𝕀 → Value
-    Diff  : Value → Value → Tm
-    Solve : Value → Value → Value → Tm
+    Diff  : Value → Value → Value
+    Solve : Value → Value → Value → Value
 
 module EvalVars where
   variable
@@ -119,16 +119,16 @@ module Eval (Ax : EvalAssumptions) where
       {ts : Tm ^ 2}
       (v₀ : IsValue (ts ₀))
       (v₁ : IsValue (ts ₁))
-      → ---------------------------------
-      diff ▸ ts →ᵈ Diff (_ , v₀) (_ , v₁)
+      → --------------------------------------
+      diff ▸ ts →ᵈ Diff (_ , v₀) (_ , v₁) .fst
 
     esolve :
       {ts : Tm ^ 3}
       (v₀ : IsValue (ts ₀))
       (v₁ : IsValue (ts ₁))
       (v₂ : IsValue (ts ₂))
-      → --------------------------------------------
-      solve ▸ ts →ᵈ Solve (_ , v₀) (_ , v₁) (_ , v₂)
+      → -------------------------------------------------
+      solve ▸ ts →ᵈ Solve (_ , v₀) (_ , v₁) (_ , v₂) .fst
 
 
   data _→ʳ_ : (Tm × ℝ × List 𝕀) → (Tm × ℝ × List 𝕀) → Type where

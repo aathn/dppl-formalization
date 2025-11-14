@@ -33,12 +33,13 @@ module _ (Ax : EvalAssumptions) where
   →ᵈ-deterministic (eif Heq) (eif Heq') =
     ap (λ r → if is-pos r then _ else _) (real-inj $ sym Heq ∙ Heq')
   →ᵈ-deterministic (ediff Hv₀ Hv₁) (ediff Hv₀' Hv₁') i =
-    Diff (_ , IsValue-is-prop Hv₀ Hv₀' i) (_ , IsValue-is-prop Hv₁ Hv₁' i)
+    Diff (_ , IsValue-is-prop Hv₀ Hv₀' i) (_ , IsValue-is-prop Hv₁ Hv₁' i) .fst
   →ᵈ-deterministic (esolve Hv₀ Hv₁ Hv₂) (esolve Hv₀' Hv₁' Hv₂') i =
     Solve
       (_ , IsValue-is-prop Hv₀ Hv₀' i)
       (_ , IsValue-is-prop Hv₁ Hv₁' i)
       (_ , IsValue-is-prop Hv₂ Hv₂' i)
+      .fst
 
 
   DetCtx-cannot-step :
