@@ -147,7 +147,7 @@ module _ (Ax : EvalAssumptions) where
 
       SolvePres :
         {t₀ t₁ t₂ : Tm}
-        (_ : Γ ⊢ t₀ :[ e ] ttup 2 (pair (treal c) (treals n (make A↓))) ⇒[ A↓ , det ] treals n (make A↓))
+        (_ : Γ ⊢ t₀ :[ e ] ttup 2 (pair (treal c) (treals n (make A↓))) ⇒[ C↓ , det ] treals n (make A↓))
         (_ : Γ ⊢ t₁ :[ e ] ttup 2 (pair (treal c) (treals n (make A↓))))
         (_ : Γ ⊢ t₂ :[ e ] treal (c ∩ PC↓))
         (_ : c ≡ A↓ ⊎ c ≡ C↓)
@@ -161,7 +161,7 @@ module _ (Ax : EvalAssumptions) where
         → --------------------------------------
         Γ ⊢ Infer (_ , v) p .fst :[ e ] T
 
-  module Preservation (PAx : PresAssumptions) where
+  module Preservation (PAx : PresAssumptions) (TAx : TempAssumptions) where
     open PresAssumptions PAx
 
     preservation-det-step :
@@ -177,7 +177,7 @@ module _ (Ax : EvalAssumptions) where
       (λ H∈ → absurd (¬mem-[] (env-sub→dom-⊆ H∈ _ hereₛ)))
       env-sub-nil
     preservation-det-step (tapp Hty Hty₁) (eapp {t = t} Heq Hv) =
-      let Иi As Hty' = tlam-inv (subst (_ ⊢_:[ _ ] _) Heq Hty) reflᵢ
+      let Иi As Hty' = tlam-inv TAx (subst (_ ⊢_:[ _ ] _) Heq Hty) reflᵢ
           x , H∉     = fresh{𝔸} (As ∪ fv (t ₀))
       in  subst (_ ⊢_:[ _ ] _) (sym $ subst-intro (t ₀) (∉∪₂ As H∉))
           $ subst-pres-typing

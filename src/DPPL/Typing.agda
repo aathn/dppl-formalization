@@ -144,7 +144,7 @@ data _⊢_:[_]_ : TyEnv → Tm → Eff → Ty → Type where
     (_ : Γ ⊢ ts ₀ :[ e ] treal P↓)
     (_ : Γ ⊢ ts ₁ :[ e ] treals n cs)
     (_ : Γ ⊢ ts ₂ :[ e ] treals n cs)
-    (_ : ∀ i → P↓ ≤reg cs i )
+    (_ : ∀ i → P↓ ≤reg cs i)
     → -------------------------------
     Γ ⊢ if ▸ ts :[ e ] treals n cs
 
@@ -181,7 +181,7 @@ data _⊢_:[_]_ : TyEnv → Tm → Eff → Ty → Type where
 
   tsolve :
     {ts : Tm ^ 3}
-    (_ : Γ ⊢ ts ₀ :[ e ] ttup 2 (pair (treal c) (treals n (make A↓))) ⇒[ A↓ , det ] treals n (make A↓))
+    (_ : Γ ⊢ ts ₀ :[ e ] ttup 2 (pair (treal c) (treals n (make A↓))) ⇒[ C↓ , det ] treals n (make A↓))
     (_ : Γ ⊢ ts ₁ :[ e ] ttup 2 (pair (treal c) (treals n (make A↓))))
     (_ : Γ ⊢ ts ₂ :[ e ] treal (c ∩ PC↓))
     (_ : c ≡ A↓ ⊎ c ≡ C↓)

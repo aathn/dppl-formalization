@@ -37,6 +37,7 @@ open import Data.Dec.Base
 open import Data.Fin.Base hiding (_≤_)
 open import Data.List.Base hiding (_++_)
 open import Data.Power hiding (_∪_ ; _∩_)
+open import Data.Sum using (_⊎_)
 open import Order.Base
 open import Order.Lattice
 import Cat.Reasoning as Cr
@@ -73,8 +74,6 @@ record DenotAssumptions : Type₁ where
     ∘-reg
       : {m n k : Nat} {f : ℝ ^ n → ℝ ^ k} {g : ℝ ^ m → ℝ ^ n}
       → f ∈ ⟨ c ⟩-reg → g ∈ ⟨ c ⟩-reg → f ⊙ g ∈ ⟨ c ⟩-reg
-    -- cond-reg
-    --   : (λ a → if a ₀ ≲? 0r then a ₁ else a ₂) ∈ ⟨ P↓ ⟩-reg {3} {1}
 
   ⟨_∣_⟩-reg : Coeff → Coeff → ∀ {m n} → ℙ (ℝ ^ m → ℝ ^ n)
   ⟨_∣_⟩-reg c d =
@@ -96,6 +95,11 @@ record DenotAssumptions : Type₁ where
     Prim-reg
       : {cs : Coeff ^ PrimAr ϕ} → PrimTy ϕ ≡ (cs , c)
       → Prim-denot ϕ ∈ ⟨ cs ∥ make c ⟩-reg
+
+    cond-denot : ℝ ^ (1 + (n + n)) → ℝ ^ n
+    cond-reg
+      : (cs : Coeff ^ n) (_ : ∀ i → P↓ ≤ cs i)
+      → cond-denot ∈ ⟨ make {n = 1} P↓ ++ (cs ++ cs) ∥ cs ⟩-reg
 
 
 module Denotations (Ax : DenotAssumptions) where
@@ -619,26 +623,75 @@ module Denotations (Ax : DenotAssumptions) where
   env-≤-□ : Γ ≤ᵉ c → □⟨ c ⟩ .F₀ ⟦ Γ ⟧ ≅ ⟦ Γ ⟧
   env-≤-□ {Γ = Γ} H≤ = raw-env-≤-□ (env-nub-is-nubbed Γ) (H≤ ⊙ env-mem-nub)
 
-  Tm-denot : Γ ⊢ t :[ det ] T → Hom ⟦ Γ ⟧ ⟦ T ⟧
-  Tm-denot (tsub {e = det} Hty _ H<:) = Sub-denot H<: ∘ Tm-denot Hty
-  Tm-denot (tpromote {Γ = Γ} {T = T} {c} {Γ'} Hty H≤ H⊆) =
-    ∩ᵗ-is-□ T .to ∘ □⟨ c ⟩ .F₁ (Tm-denot Hty) ∘ env-≤-□ H≤ .from ∘ env-proj {Γ} {Γ'} H⊆
-  Tm-denot {Γ} (tvar H∈) = π₂ {top} ∘ env-proj {Γ' = Γ} H∈
-  Tm-denot (tlam {e = rnd} Hlam) = !
-  Tm-denot {Γ} (tlam {T = T} {e = det} {T'} (Иi As Hty))
-    with (a , H∉) ← fresh{𝔸} (As ∪ env-dom Γ) =
-    □⟨A⟩-Id .from .η _ ∘ ƛ {Ty-denot T} body where
-    body = subst (λ Γ → Hom ⟦ Γ ⟧ (Ty-denot T')) (env-nub-cons Γ (∉∪₂ As H∉))
-      (Tm-denot (Hty a ⦃ ∉∪₁ H∉ ⦄))
-  Tm-denot (tapp {T = T} {T' = T'} Hty Hty₁) = ev {Ty-denot T}
-    ∘ ⟨ □-counit {A↓} .η (Ty-denot T ⇒ Ty-denot T') ∘ Tm-denot Hty , Tm-denot Hty₁ ⟩
-  Tm-denot (tprim {ϕ = ϕ} Hϕ Hty) =
-    Equiv.to ⟨∥⟩-reg≃Hom (Prim-denot ϕ , Prim-reg Hϕ) ∘ Tm-denot Hty
-  Tm-denot (treal {r = r}) =
-    full-hom (よ₁ ℛ (ℛ-const (make r))) ∘ よ⋆-is-terminal ℛ-conc _ .centre ∘ !
-  Tm-denot (ttup Htys) = 𝔇-ip.tuple _ λ i → Tm-denot (Htys i)
-  Tm-denot (tproj i Hty) = 𝔇-ip.π _ i ∘ Tm-denot Hty
-  Tm-denot (tif Hty Hty₁ Hty₂ H≤) = {!!}
-  Tm-denot (tinfer Hty) = !
-  Tm-denot (tdiff Hty Hty₁ Hc) = {!!}
-  Tm-denot (tsolve Hty Hty₁ Hty₂ Hc) = {!!}
+  -- Here we gather assumptions that were left unproven due to lack of time.
+  record TempAssumptions : Type where
+    field
+      𝔇ℝ'-⊗ : (cs : Coeff ^ n) (cs' : Coeff ^ m) → (𝔇ℝ'[ cs ] ⊗₀ 𝔇ℝ'[ cs' ]) ≅ 𝔇ℝ'[ cs ++ cs' ]
+
+      diff-denot :
+        {t₀ t₁ : Tm} →
+        (_ : Γ ⊢ t₀ :[ e ] treals n (make c) ⇒[ P↓ , det ] treals m (make c))
+        (_ : Γ ⊢ t₁ :[ e ] treals n (make c))
+        (_ : c ≡ A↓ ⊎ c ≡ P↓)
+        → ----------------------------------------------------------------------
+        Hom ⟦ Γ ⟧ ⟦ treals n (make A↓) ⇒[ A↓ , det ] treals m (make A↓) ⟧
+
+      solve-denot :
+        {t₀ t₁ t₂ : Tm}
+        (_ : Γ ⊢ t₀ :[ e ] ttup 2 (pair (treal c) (treals n (make A↓))) ⇒[ C↓ , det ] treals n (make A↓))
+        (_ : Γ ⊢ t₁ :[ e ] ttup 2 (pair (treal c) (treals n (make A↓))))
+        (_ : Γ ⊢ t₂ :[ e ] treal (c ∩ PC↓))
+        (_ : c ≡ A↓ ⊎ c ≡ C↓)
+        → -----------------------------------------------------------------
+        Hom ⟦ Γ ⟧ ⟦ ttup 2 (pair (treal A↓) (treals n (make A↓))) ⟧
+
+      -- The formulations below for diff-denot and solve-denot are closer to what
+      -- we want, but using them straight off makes Agda eat all memory.
+
+      -- diff-denot
+      --   : ∀ n m → c ≡ A↓ ⊎ c ≡ P↓ → Hom
+      --     (□⟨ P↓ ⟩ .F₀ (𝔇ℝ'[ make {n = n} c ] ⇒ 𝔇ℝ'[ make {n = m} c ]) ⊗₀ 𝔇ℝ'[ make {n = n} c ])
+      --     (𝔇ℝ'[ make {n = n} A↓ ] ⇒ 𝔇ℝ'[ make {n = m} A↓ ])
+
+      -- solve-denot
+      --   : ∀ n → c ≡ A↓ ⊎ c ≡ C↓ → Hom
+      --     (□⟨ C↓ ⟩ .F₀ (𝔇-ip.ΠF (λ i → Ty-denot (pair (treal c) (treals n (make A↓)) i)) ⇒ 𝔇ℝ'[ make {n = n} A↓ ])
+      --      ⊗₀ (𝔇-ip.ΠF λ i → Ty-denot (pair (treal c) (treals n (make A↓)) i))
+      --      ⊗₀ 𝔇ℝ[ 1 , c ∩ PC↓ ])
+      --     (𝔇-ip.ΠF λ i → Ty-denot (pair (treal A↓) (treals n (make A↓)) i))
+
+  module _ (TAx : TempAssumptions) where
+    open TempAssumptions TAx
+
+    if-distr : (cs : Coeff ^ n) → Hom (𝔇ℝ[ 1 , P↓ ] ⊗₀ 𝔇ℝ'[ cs ] ⊗₀ 𝔇ℝ'[ cs ]) 𝔇ℝ'[ make {n = 1} P↓ ++ (cs ++ cs) ]
+    if-distr cs = 𝔇ℝ'-⊗ (make {n = 1} P↓) (cs ++ cs) .to ∘ id {𝔇ℝ[ 1 , P↓ ]} ⊗₁ 𝔇ℝ'-⊗ cs cs .to
+  
+    if-denot
+      : (cs : Coeff ^ n) → (∀ i → P↓ ≤ cs i)
+      → Hom (𝔇ℝ[ 1 , P↓ ] ⊗₀ 𝔇ℝ'[ cs ] ⊗₀ 𝔇ℝ'[ cs ]) 𝔇ℝ'[ cs ]
+    if-denot {n = n} cs H≤ = Equiv.to ⟨∥⟩-reg≃Hom (cond-denot , cond-reg cs H≤) ∘ if-distr cs
+
+    Tm-denot : Γ ⊢ t :[ det ] T → Hom ⟦ Γ ⟧ ⟦ T ⟧
+    Tm-denot (tsub {e = det} Hty _ H<:) = Sub-denot H<: ∘ Tm-denot Hty
+    Tm-denot (tpromote {Γ = Γ} {T = T} {c} {Γ'} Hty H≤ H⊆) =
+      ∩ᵗ-is-□ T .to ∘ □⟨ c ⟩ .F₁ (Tm-denot Hty) ∘ env-≤-□ H≤ .from ∘ env-proj {Γ} {Γ'} H⊆
+    Tm-denot {Γ} (tvar H∈) = π₂ {top} ∘ env-proj {Γ' = Γ} H∈
+    Tm-denot (tlam {e = rnd} Hlam) = !
+    Tm-denot {Γ} (tlam {T = T} {e = det} {T'} (Иi As Hty))
+      with (a , H∉) ← fresh{𝔸} (As ∪ env-dom Γ) =
+      □⟨A⟩-Id .from .η _ ∘ ƛ {Ty-denot T} body where
+      body = subst (λ Γ → Hom ⟦ Γ ⟧ (Ty-denot T')) (env-nub-cons Γ (∉∪₂ As H∉))
+        (Tm-denot (Hty a ⦃ ∉∪₁ H∉ ⦄))
+    Tm-denot (tapp {T = T} {T' = T'} Hty Hty₁) = ev {Ty-denot T}
+      ∘ ⟨ □-counit {A↓} .η (Ty-denot T ⇒ Ty-denot T') ∘ Tm-denot Hty , Tm-denot Hty₁ ⟩
+    Tm-denot (tprim {ϕ = ϕ} Hϕ Hty) =
+      Equiv.to ⟨∥⟩-reg≃Hom (Prim-denot ϕ , Prim-reg Hϕ) ∘ Tm-denot Hty
+    Tm-denot (treal {r = r}) =
+      full-hom (よ₁ ℛ (ℛ-const (make r))) ∘ よ⋆-is-terminal ℛ-conc _ .centre ∘ !
+    Tm-denot (ttup Htys)   = 𝔇-ip.tuple _ λ i → Tm-denot (Htys i)
+    Tm-denot (tproj i Hty) = 𝔇-ip.π _ i ∘ Tm-denot Hty
+    Tm-denot (tif {n = n} {cs = cs} Hty Hty₁ Hty₂ H≤) =
+      if-denot cs H≤ ∘ ⟨ Tm-denot Hty , ⟨ Tm-denot Hty₁ , Tm-denot Hty₂ ⟩ ⟩
+    Tm-denot (tinfer Hty)              = !
+    Tm-denot (tdiff Hty Hty₁ Hc)       = diff-denot Hty Hty₁ Hc
+    Tm-denot (tsolve Hty Hty₁ Hty₂ Hc) = solve-denot Hty Hty₁ Hty₂ Hc

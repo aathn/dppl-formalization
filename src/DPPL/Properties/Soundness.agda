@@ -10,16 +10,17 @@ open import DPPL.Typing R
 open import DPPL.SmallStep R
 open import DPPL.Properties.Preservation R
 open import DPPL.Properties.Progress R
+open import DPPL.Properties.Typing R
 
 open import Lib.Prelude
 open import Lib.Syntax.Env
 
 open SyntaxVars
 
-module Soundness (Ax : EvalAssumptions) (PAx : PresAssumptions Ax) where
+module Soundness (Ax : EvalAssumptions) (PAx : PresAssumptions Ax) (TAx : TempAssumptions) where
   open Eval Ax
   open Progress Ax
-  open Preservation Ax PAx
+  open Preservation Ax PAx TAx
 
   type-system-sound-det :
     (_ : ε ⊢ t :[ det ] T)

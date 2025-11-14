@@ -2,7 +2,6 @@ module Lib.Cat.Concrete where
 
 -- Our definitions of concrete categories and presheaves.
 
-open import Lib.Cat.Sheafification
 open import Lib.Cat.Subcategory
 
 open import Cat.Prelude

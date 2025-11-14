@@ -2,24 +2,19 @@ module Lib.Cat.Product where
 
 open import Cat.Prelude
 open import Cat.Cartesian
-open import Cat.Diagram.Product
 open import Cat.Diagram.Product.Finite
 open import Cat.Diagram.Product.Indexed
 open import Cat.Functor.Base
-open import Cat.Functor.Naturality
-open import Cat.Functor.Naturality.Reflection
 open import Cat.Instances.Product
 open import Data.Fin.Base
 import Cat.Reasoning as Cr
 
-open _=>_
-open Functor
 open Cr._≅_
 open Cr.Inverses
 
 private variable
   o h : Level
-  B B' C C' D D' : Precategory o h
+  C D : Precategory o h
 
 _,Iso_
   : {A A' : ⌞ C ⌟} {B B' : ⌞ D ⌟} → Cr._≅_ C A A' → Cr._≅_ D B B'
@@ -29,26 +24,6 @@ _,Iso_
 (iA ,Iso iB) .inverses = λ where
   .invl → iA .invl ,ₚ iB .invl
   .invr → iA .invr ,ₚ iB .invr
-
-_nt,_
-  : {F G : Functor B C} {H K : Functor B D}
-  → F => G → H => K → Cat⟨ F , H ⟩ => Cat⟨ G , K ⟩
-_nt,_ α β .η c = α .η c , β .η c
-_nt,_ α β .is-natural _ _ f = Σ-pathp
-  (α .is-natural _ _ f)
-  (β .is-natural _ _ f)
-
-F×-interchange
-  : {F : Functor C D} {G : Functor C' D'}
-  → {H : Functor B C} {K : Functor B' C'}
-  → ((F F∘ H) F× (G F∘ K)) ≅ⁿ (F F× G) F∘ (H F× K)
-F×-interchange = trivial-isoⁿ!
-
-×ᶜ-op : Functor (C ^op ×ᶜ D ^op) ((C ×ᶜ D) ^op)
-×ᶜ-op .F₀ x = x
-×ᶜ-op .F₁ f = f
-×ᶜ-op .F-id = refl
-×ᶜ-op .F-∘ _ _ = refl
 
 module ProdIso {o ℓ} {C : Precategory o ℓ} (Cart : Cartesian-category C) where
   private module C = Cr C

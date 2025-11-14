@@ -15,8 +15,6 @@ record is-ordered-ring {o ℓ} (P : Poset o ℓ) (R : Ring-on ⌞ P ⌟) : Type 
   field
     -- We adopt a weaker definition of total order than Order.Total,
     -- postulating not an ordering procedure but a "mere" ordering.
-    -- This is because we want to represent real numbers, where
-    -- comparison is undecidable.
     compare        : (a b : ⌞ P ⌟) → ∥ a ≤ b ⊎ b ≤ a ∥
     +-preserves-≤r : (a b c : ⌞ P ⌟) → a ≤ b → (a + c) ≤ (b + c)
     *-preserves-0≤ : (a b : ⌞ P ⌟) → 0r ≤ a → 0r ≤ b → 0r ≤ (a * b)
