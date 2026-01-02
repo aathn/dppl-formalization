@@ -26,10 +26,11 @@ _,Iso_
   .invr → iA .invr ,ₚ iB .invr
 
 module ProdIso {o ℓ} {C : Precategory o ℓ} (Cart : Cartesian-category C) where
-  private module C = Cr C
   open Cartesian-category Cart
-  module ip {n} (F : Fin n → C.Ob) =
-    Indexed-product (Cartesian→standard-finite-products terminal products F)
+  private
+    module C = Cr C
+    module ip {n} (F : Fin n → C.Ob) =
+      Indexed-product (Cartesian→standard-finite-products terminal products F)
 
   _⊗Iso_ : {A A' B B' : C.Ob} → A C.≅ A' → B C.≅ B' → (A ⊗₀ B) C.≅ (A' ⊗₀ B')
   iA ⊗Iso iB = F-map-iso ×-functor (iA ,Iso iB)
