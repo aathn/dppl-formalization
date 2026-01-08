@@ -42,7 +42,7 @@ record is-DPPL-model {o ℓ} (𝔇 : Precategory o ℓ) : Type (o ⊔ ℓ) where
     𝔇-closed : Cartesian-closed 𝔇 𝔇-cartesian
 
   open Cartesian-category 𝔇-cartesian public
-  open Cartesian-closed   𝔇-closed public renaming ([_,_] to _⇒_)
+  open Cartesian-closed   𝔇-closed public renaming ([_,_] to infixr 4 _⇒_)
   open ProdIso 𝔇-cartesian public
 
   module 𝔇-ip {n} (F : Fin n → Ob) =
@@ -81,10 +81,10 @@ record is-DPPL-model {o ℓ} (𝔇 : Precategory o ℓ) : Type (o ⊔ ℓ) where
         (𝔇ℝ'[ make {n = n} A↓ ] ⇒ 𝔇ℝ'[ make {n = m} A↓ ])
     𝔇-solve
       : ∀ n → c ≡ A↓ ⊎ c ≡ C↓ → Hom
-        (□⟨ C↓ ⟩ .F₀ (𝔇-ip.ΠF (pair 𝔇ℝ[ 1 , c ] 𝔇ℝ'[ make {n = n} A↓ ]) ⇒ 𝔇ℝ'[ make {n = n} A↓ ])
-         ⊗₀ (𝔇-ip.ΠF (pair 𝔇ℝ[ 1 , c ] 𝔇ℝ'[ make {n = n} A↓ ]))
+        (□⟨ C↓ ⟩ .F₀ (𝔇ℝ[ 1 , c ] ⊗₀ 𝔇ℝ'[ make {n = n} A↓ ] ⇒ 𝔇ℝ'[ make {n = n} A↓ ])
+         ⊗₀ (𝔇ℝ[ 1 , c ] ⊗₀ 𝔇ℝ'[ make {n = n} A↓ ])
          ⊗₀ 𝔇ℝ[ 1 , c ∩ PC↓ ])
-        (𝔇-ip.ΠF (pair 𝔇ℝ[ 1 , A↓ ] 𝔇ℝ'[ make {n = n} A↓ ]))
+        (𝔇ℝ[ 1 , A↓ ] ⊗₀ 𝔇ℝ'[ make {n = n} A↓ ])
 
   □-pres-ip
     : ∀ (F : Fin n → Ob) → □⟨ c ⟩ .F₀ (𝔇-ip.ΠF F) ≅ 𝔇-ip.ΠF λ i → □⟨ c ⟩ .F₀ (F i)
@@ -158,12 +158,12 @@ module Denotations {o} (model : DPPL-model o o) where
   Tm-denot (tvar H∈) = π₂ ∘ env-proj H∈
   Tm-denot (tlam {e = rnd} Hlam) = !
   Tm-denot {Γ} (tlam {T = T} {e = det} {T'} (Иi As Hty))
-    with (a , H∉) ← fresh{𝔸} (As ∪ env-dom Γ) =
-    □⟨A⟩-Id .from .η _ ∘ ƛ {Ty-denot T} body where
-    body = subst (λ Γ → Hom ⟦ Γ ⟧ (Ty-denot T')) (env-nub-cons Γ (∉∪₂ As H∉))
-      (Tm-denot (Hty a ⦃ ∉∪₁ H∉ ⦄))
+    with (a , H∉) ← fresh{𝔸} (As ∪ env-dom Γ) = □⟨A⟩-Id .from .η _ ∘ ƛ body
+    where
+      body = subst (λ Γ → Hom ⟦ Γ ⟧ _) (env-nub-cons Γ (∉∪₂ As H∉))
+        (Tm-denot (Hty a ⦃ ∉∪₁ H∉ ⦄))
   Tm-denot (tapp {T = T} {T' = T'} Hty Hty₁) =
-    ev {Ty-denot T} ∘ ⟨ □⟨A⟩-Id .to .η _ ∘ Tm-denot Hty , Tm-denot Hty₁ ⟩
+    ev ∘ ⟨ □⟨A⟩-Id .to .η _ ∘ Tm-denot Hty , Tm-denot Hty₁ ⟩
   Tm-denot (tprim {ϕ = ϕ} Hϕ Hty) = 𝔇-prim Hϕ ∘ Tm-denot Hty
   Tm-denot (treal {r = r}) = 𝔇-real r ∘ !
   Tm-denot (ttup Htys)   = 𝔇-ip.tuple _ λ i → Tm-denot (Htys i)
