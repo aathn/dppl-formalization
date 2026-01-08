@@ -7,14 +7,18 @@ open import Cat.Diagram.Product.Indexed
 open import Cat.Functor.Base
 open import Cat.Functor.Hom
 open import Cat.Instances.Sheaf.Limits.Finite
+open import Cat.Instances.Shape.Terminal
 open import Cat.Site.Base
+open import Cat.Site.Instances.Canonical
 
 open import Data.Fin.Base
 
-module Bug {C : Precategory lzero lzero} (J : Coverage C lzero) (⋆ : ⌞ C ⌟) where
+cov : Coverage ⊤Cat lzero
+cov = Canonical-coverage ⊤Cat
 
-  module C = Precategory C
-  open Cartesian-category (Sh[]-cartesian J)
+module Bug where
+
+  open Cartesian-category (Sh[]-cartesian cov)
 
   module ip {n} (F : Fin n → Ob) =
     Indexed-product (Cartesian→standard-finite-products terminal products F)
@@ -24,9 +28,9 @@ module Bug {C : Precategory lzero lzero} (J : Coverage C lzero) (⋆ : ⌞ C ⌟
   bug : (n : Nat) → Type
   bug n =
     Hom
-      (top ⊗₀ ((よ₀ C ⋆ , {!!}) ⊗₀ ip.ΠF (λ (_ : Fin n) → top)) ⊗₀ top)
+      (top ⊗₀ ((よ₀ ⊤Cat tt , よ-is-sheaf-canonical ⊤Cat) ⊗₀ ip.ΠF (λ (_ : Fin n) → top)) ⊗₀ top)
       top
   
-  -- record MyRecord : Type where
-  --   field
-  --     my-field : (n : Nat) → bug n
+  record MyRecord : Type where
+    field
+      my-field : (n : Nat) → bug n
