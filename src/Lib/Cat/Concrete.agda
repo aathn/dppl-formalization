@@ -91,6 +91,7 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
   -- Morphisms of concrete presheaves are given by functions of underlying sets
   -- which preserve membership in is-conc-section.
   record Conc-hom {κ} (A B : CPSh.Ob {κ}) : Type (o ⊔ ℓ ⊔ κ) where
+    no-eta-equality
     constructor conc-hom
     field
       to     : A ʻ ⋆ → B ʻ ⋆
@@ -125,16 +126,16 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
       where unquoteDecl eqv = declare-record-iso eqv (quote Conc-hom)
 
   Conc-hom→Hom : ∀ {κ} {A B : CPSh.Ob {κ}} → Conc-hom A B → CPSh.Hom A B
-  Conc-hom→Hom {A = A , Aconc} {B , Bconc} (conc-hom f Hf) = full-hom λ where
-    .η U au           → Hf (conc-section Conc A au) (au , refl) .fst
+  Conc-hom→Hom {A = A , Aconc} {B , Bconc} f = full-hom λ where
+    .η U au           → f .is-hom (conc-section Conc A au) (au , refl) .fst
     .is-natural _ _ g → ext λ au →
-      let bu , p   = Hf (conc-section Conc A au) (au , refl)
-          bu' , p' = Hf (conc-section Conc A (A ⟪ g ⟫ au)) (_ , refl)
+      let bu , p   = f .is-hom (conc-section Conc A au) (au , refl)
+          bu' , p' = f .is-hom (conc-section Conc A (A ⟪ g ⟫ au)) (_ , refl)
       in
       Bconc $ ext λ h →
-        B ⟪ h ⟫ bu'          ≡˘⟨ ap f (A .F-∘ _ _ $ₚ au) ∙ p' $ₚ _ ⟩
-        f (A ⟪ g C.∘ h ⟫ au) ≡⟨ p $ₚ _ ∙ B .F-∘ _ _ $ₚ bu ⟩
-        B ⟪ h ⟫ (B ⟪ g ⟫ bu) ∎
+        B ⟪ h ⟫ bu'              ≡˘⟨ ap (f .to) (A .F-∘ _ _ $ₚ au) ∙ p' $ₚ _ ⟩
+        f .to (A ⟪ g C.∘ h ⟫ au) ≡⟨ p $ₚ _ ∙ B .F-∘ _ _ $ₚ bu ⟩
+        B ⟪ h ⟫ (B ⟪ g ⟫ bu)     ∎
 
   Hom→Conc-hom : ∀ {κ} {A B : CPSh.Ob {κ}} → CPSh.Hom A B → Conc-hom A B
   Hom→Conc-hom {A = A , AConc} {B , Bconc} f =
