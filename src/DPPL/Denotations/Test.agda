@@ -1,36 +1,29 @@
-module DPPL.Denotations.Test where
+open import Lib.Algebra.Reals
+import DPPL.Denotations.Site as Site
+
+module DPPL.Denotations.Test (R : Reals₀) (Ax : Site.SiteAssumptions R) where
+
+open import Lib.Cat.Concrete
 
 open import Cat.Prelude
 open import Cat.Cartesian
-open import Cat.Diagram.Product.Finite
-open import Cat.Diagram.Product.Indexed
-open import Cat.Functor.Base
-open import Cat.Functor.Hom
-open import Cat.Instances.Sheaf.Limits.Finite
-open import Cat.Instances.Shape.Terminal
-open import Cat.Site.Base
-open import Cat.Site.Instances.Canonical
 
-open import Data.Fin.Base
+open Site.Site R Ax
 
-cov : Coverage ⊤Cat lzero
-cov = Canonical-coverage ⊤Cat
+open Cartesian-category (ConcPSh-cartesian ℛ-conc)
 
-module Bug where
+bug : Type
+bug =
+  Hom
+    (top ⊗₀ (Conc-よ₀ ℛ-conc ⋆ ⊗₀ Conc-よ₀ ℛ-conc ⋆) ⊗₀ top)
+    top
 
-  open Cartesian-category (Sh[]-cartesian cov)
+record MyRecord : Type where
+  no-eta-equality
+  field
+    -- The record field below triggers makes type checking eat 16GB
+    my-field : bug
 
-  module ip {n} (F : Fin n → Ob) =
-    Indexed-product (Cartesian→standard-finite-products terminal products F)
-
-
--- (Conc-よ₀ ℛ-conc ⋆ ⊗₀ 𝔇-ip.ΠF (make {n = n} top))
-  bug : (n : Nat) → Type
-  bug n =
-    Hom
-      (top ⊗₀ ((よ₀ ⊤Cat tt , よ-is-sheaf-canonical ⊤Cat) ⊗₀ ip.ΠF (λ (_ : Fin n) → top)) ⊗₀ top)
-      top
-  
-  record MyRecord : Type where
-    field
-      my-field : (n : Nat) → bug n
+-- The postulate below is fine
+-- postulate
+--   foo : bug
