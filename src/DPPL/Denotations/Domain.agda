@@ -9,7 +9,6 @@ open import Lib.Prelude using (swizzle-equiv)
 open import Lib.Cat.Concrete
 open import Lib.Cat.Functor
 open import Lib.Cat.Product
-open import Lib.Cat.Subcategory
 open import Lib.Data.Vector
 
 open import Cat.Prelude
@@ -19,8 +18,8 @@ open import Cat.Diagram.Product.Finite
 open import Cat.Diagram.Product.Indexed
 open import Cat.Diagram.Terminal
 open import Cat.Functor.Coherence
+open import Cat.Functor.FullSubcategory
 open import Cat.Functor.Naturality
-open import Cat.Functor.Subcategory
 open import Data.Fin.Base hiding (_≤_)
 open import Data.Power hiding (_∪_ ; _∩_)
 open import Order.Base
@@ -36,7 +35,6 @@ open Site.SiteAssumptions Ax
 open Reg↓≤ using (_≤_)
 open is-lattice Reg↓-lattice hiding (top)
 
-open Subcat-hom
 open Functor
 open _=>_ renaming (op to opⁿ)
 open Cr._≅_
@@ -75,39 +73,39 @@ open ProdIso 𝔇-cartesian
 □⟨ c ⟩ = conc-dir-image ℛ-conc ℛ-conc μ⟨ c ⟩ (path→iso μ-pres-top) μ-onto-points
 
 □-counit : □⟨ c ⟩ => Id
-□-counit = sub-nat λ where
+□-counit = λ where
   .η X              → nat-idr-op-to (X .fst ▸ opⁿ μ-unit)
-  .is-natural _ _ f → Nat-path λ _ → sym $ f .hom .is-natural _ _ _
+  .is-natural _ _ f → Nat-path λ _ → sym $ f .is-natural _ _ _
 
 □-comult : □⟨ c ⟩ F∘ □⟨ c' ⟩ ≅ⁿ □⟨ c ∩ c' ⟩
-□-comult .to = sub-nat λ where
+□-comult .to = λ where
   .η X              → nat-assoc-from (X .fst ▸ op-compose-from (opⁿ (μ-mult .from)))
-  .is-natural _ _ f → Nat-path λ _ → sym $ f .hom .is-natural _ _ _
-□-comult .from = sub-nat λ where
+  .is-natural _ _ f → Nat-path λ _ → sym $ f .is-natural _ _ _
+□-comult .from = λ where
   .η X              → nat-assoc-to (X .fst ▸ op-compose-into (opⁿ (μ-mult .to)))
-  .is-natural _ _ f → Nat-path λ _ → sym $ f .hom .is-natural _ _ _
+  .is-natural _ _ f → Nat-path λ _ → sym $ f .is-natural _ _ _
 □-comult .inverses = λ where
   .invl → ext λ F _ _ → Fr.annihilate (F .fst) (μ-mult .inverses .invl ηₚ _) $ₚ _
   .invr → ext λ F _ _ → Fr.annihilate (F .fst) (μ-mult .inverses .invr ηₚ _) $ₚ _
 
 □-≤ : c ≤ c' → □⟨ c ⟩ => □⟨ c' ⟩
-□-≤ {c} {c'} H≤ = sub-nat λ where
+□-≤ {c} {c'} H≤ = λ where
   .η X              → X .fst ▸ opⁿ (μ-≤ H≤)
-  .is-natural _ _ f → Nat-path λ _ → sym $ f .hom .is-natural _ _ _
+  .is-natural _ _ f → Nat-path λ _ → sym $ f .is-natural _ _ _
 
 □⟨A⟩-Id : □⟨ A↓ ⟩ ≅ⁿ Id
-□⟨A⟩-Id .to = sub-nat λ where
+□⟨A⟩-Id .to = λ where
   .η X              → nat-idr-op-to (X .fst ▸ opⁿ (μ⟨A⟩-Id .from))
-  .is-natural _ _ f → Nat-path λ _ → sym $ f .hom .is-natural _ _ _
-□⟨A⟩-Id .from = sub-nat λ where
+  .is-natural _ _ f → Nat-path λ _ → sym $ f .is-natural _ _ _
+□⟨A⟩-Id .from = λ where
   .η X              → nat-idr-op-from (X .fst ▸ opⁿ (μ⟨A⟩-Id .to))
-  .is-natural _ _ f → Nat-path λ _ → sym $ f .hom .is-natural _ _ _
+  .is-natural _ _ f → Nat-path λ _ → sym $ f .is-natural _ _ _
 □⟨A⟩-Id .inverses = λ where
   .invl → ext λ F _ _ → Fr.annihilate (F .fst) (μ⟨A⟩-Id .inverses .invl ηₚ _) $ₚ _
   .invr → ext λ F _ _ → Fr.annihilate (F .fst) (μ⟨A⟩-Id .inverses .invr ηₚ _) $ₚ _
 
 □-pres-top : □⟨ c ⟩ .F₀ top ≅ top
-□-pres-top = iso→sub-iso (to-natural-iso ni) where
+□-pres-top = super-iso→sub-iso _ (to-natural-iso ni) where
   ni : make-natural-iso _ _
   ni .make-natural-iso.eta _ u       = u
   ni .make-natural-iso.inv _ u       = u
@@ -116,7 +114,7 @@ open ProdIso 𝔇-cartesian
   ni .make-natural-iso.natural _ _ _ = refl
 
 □-pres-prod : ∀ X Y → □⟨ c ⟩ .F₀ (X ⊗₀ Y) ≅ (□⟨ c ⟩ .F₀ X ⊗₀ □⟨ c ⟩ .F₀ Y)
-□-pres-prod X Y = iso→sub-iso (to-natural-iso ni) where
+□-pres-prod X Y = super-iso→sub-iso _ (to-natural-iso ni) where
   ni : make-natural-iso _ _
   ni .make-natural-iso.eta _ u       = u
   ni .make-natural-iso.inv _ u       = u
@@ -233,13 +231,15 @@ sec≃𝔇ℝ'-pres-dom {suc (suc n)} {U} {cs} = ext λ f Hf g Hg →
 ⟨∥⟩-reg≃Hom
   : {cs : Reg↓ ^ m} {cs' : Reg↓ ^ n}
   → ∫ₚ ⟨ cs ∥ cs' ⟩-reg ≃ Hom 𝔇ℝ'[ cs ] 𝔇ℝ'[ cs' ]
-⟨∥⟩-reg≃Hom {cs = cs} {cs'} = eqv'' ∙e Iso→Equiv eqv e⁻¹ ∙e Conc-hom≃Hom ℛ-conc where
-  unquoteDecl eqv = declare-record-iso eqv (quote Conc-hom)
-  eqv' = →-ap (𝔇ℝ'-underlying _ e⁻¹) (𝔇ℝ'-underlying _ e⁻¹)
-  eqv'' = Σ-ap eqv' λ f → Π'-ap-cod λ x →
-    Π-ap-dom (𝔇ℝ→𝔇ℝ'-underlying x cs) ∙e
-    Π-ap-cod λ g → →-ap
-      (∈-sec≃conc-section _ _ (Equiv.η (𝔇ℝ→𝔇ℝ'-underlying x cs) _))
-      (∈-sec≃conc-section _ _
-        (funext λ z → ap (Equiv.to eqv' f ⊙ g)
-          (ℛ-hom-path (ext λ _ i → ap (λ y → z .fst y i) (ext λ ())))))
+⟨∥⟩-reg≃Hom {cs = cs} {cs'} =
+  eqv'' ∙e Iso→Equiv (eqv {A = 𝔇ℝ'[ cs ]} {𝔇ℝ'[ cs' ]}) e⁻¹ ∙e Conc-hom≃Hom ℛ-conc
+  where
+    unquoteDecl eqv = declare-record-iso eqv (quote Conc-hom)
+    eqv' = →-ap (𝔇ℝ'-underlying _ e⁻¹) (𝔇ℝ'-underlying _ e⁻¹)
+    eqv'' = Σ-ap eqv' λ f → Π'-ap-cod λ x →
+      Π-ap-dom (𝔇ℝ→𝔇ℝ'-underlying x cs) ∙e
+      Π-ap-cod λ g → →-ap
+        (∈-sec≃conc-section _ _ (Equiv.η (𝔇ℝ→𝔇ℝ'-underlying x cs) _))
+        (∈-sec≃conc-section _ _
+          (funext λ z → ap (Equiv.to eqv' f ⊙ g)
+            (ℛ-hom-path (ext λ _ i → ap (λ y → z .fst y i) (ext λ ())))))

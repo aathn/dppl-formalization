@@ -2,8 +2,6 @@ module Lib.Cat.Concrete where
 
 -- Our definitions of concrete categories and presheaves.
 
-open import Lib.Cat.Subcategory
-
 open import Cat.Prelude
 open import Cat.Cartesian
 open import Cat.Diagram.Exponential
@@ -15,7 +13,7 @@ open import Cat.Functor.Base
 open import Cat.Functor.Compose
 open import Cat.Functor.Hom.Yoneda
 open import Cat.Functor.Properties
-open import Cat.Functor.Subcategory
+open import Cat.Functor.FullSubcategory
 open import Cat.Instances.Presheaf.Limits
 open import Cat.Instances.Presheaf.Exponentials
 open import Cat.Instances.Shape.Two
@@ -25,7 +23,6 @@ import Cat.Functor.Reasoning as Fr
 
 open _=>_ hiding (op)
 open Functor
-open Subcat-hom
 
 record Conc-category {o ℓ} (C : Precategory o ℓ) : Type (o ⊔ ℓ) where
   no-eta-equality
@@ -82,14 +79,14 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
 
   is-conc-section-prop
     : ∀ {κ U} (A : CPSh.Ob {κ}) (f : ob∣ U ∣ → A ʻ ⋆) → is-prop (is-conc-section A f)
-  is-conc-section-prop (A , Aconc) f (au , p) (au' , q) = (Aconc (sym p ∙ q)) ,ₚ prop!
+  is-conc-section-prop (A , Aconc) f (au , p) (au' , q) = Aconc (sym p ∙ q) ,ₚ prop!
 
+  -- Morphisms of concrete presheaves are given by functions of underlying sets
+  -- which preserve membership in is-conc-section.
   is-conc-hom : ∀ {κ} (A B : CPSh.Ob {κ}) → (A ʻ ⋆ → B ʻ ⋆) → Type (o ⊔ ℓ ⊔ κ)
   is-conc-hom A B f =
     ∀ {U} (g : ob∣ U ∣ → A ʻ ⋆) → is-conc-section A g → is-conc-section B (f ⊙ g)
 
-  -- Morphisms of concrete presheaves are given by functions of underlying sets
-  -- which preserve membership in is-conc-section.
   record Conc-hom {κ} (A B : CPSh.Ob {κ}) : Type (o ⊔ ℓ ⊔ κ) where
     no-eta-equality
     constructor conc-hom
@@ -126,7 +123,7 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
       where unquoteDecl eqv = declare-record-iso eqv (quote Conc-hom)
 
   Conc-hom→Hom : ∀ {κ} {A B : CPSh.Ob {κ}} → Conc-hom A B → CPSh.Hom A B
-  Conc-hom→Hom {A = A , Aconc} {B , Bconc} f = full-hom λ where
+  Conc-hom→Hom {A = A , Aconc} {B , Bconc} f = λ where
     .η U au           → f .is-hom (conc-section Conc A au) (au , refl) .fst
     .is-natural _ _ g → ext λ au →
       let bu , p   = f .is-hom (conc-section Conc A au) (au , refl)
@@ -139,11 +136,11 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
 
   Hom→Conc-hom : ∀ {κ} {A B : CPSh.Ob {κ}} → CPSh.Hom A B → Conc-hom A B
   Hom→Conc-hom {A = A , AConc} {B , Bconc} f =
-    conc-hom (f .hom .η ⋆) λ {U} g (au , p) →
-    f .hom .η U au ,
-    (f .hom .η ⋆ ⊙ g                      ≡⟨ ap (f .hom .η ⋆ ⊙_) p ⟩
-     f .hom .η ⋆ ⊙ conc-section Conc A au ≡⟨ ext (λ x → f .hom .is-natural _ _ x $ₚ au) ⟩
-     conc-section Conc B (f .hom .η U au) ∎)
+    conc-hom (f .η ⋆) λ {U} g (au , p) →
+    f .η U au ,
+    (f .η ⋆ ⊙ g                      ≡⟨ ap (f .η ⋆ ⊙_) p ⟩
+     f .η ⋆ ⊙ conc-section Conc A au ≡⟨ ext (λ x → f .is-natural _ _ x $ₚ au) ⟩
+     conc-section Conc B (f .η U au) ∎)
 
   Conc-hom≃Hom : ∀ {κ} {A B : CPSh.Ob {κ}} → Conc-hom A B ≃ CPSh.Hom A B
   Conc-hom≃Hom {A = A , Aconc} {B , Bconc} = Iso→Equiv $ Conc-hom→Hom ,
@@ -174,25 +171,28 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
       : ∀ {κ} (F : Functor D C)
       → (F .F₀ CD.⋆ C.≅ ⋆) → (∀ {U} → is-surjective (F .F₁ {CD.⋆} {U}))
       → Functor (ConcPSh κ Conc) (ConcPSh κ ConcD)
-    conc-dir-image {κ} F α F-onto-points =
-      sub-functor (G F∘ Forget-subcat) λ (A , conc) → G-concrete A conc
-      where
-        G : Functor (PSh κ C) (PSh κ D)
-        G = precompose (op F)
+    conc-dir-image {κ} F α F-onto-points = F' where
+      G : Functor (PSh κ C) (PSh κ D)
+      G = precompose (op F)
 
-        G-concrete : ∀ A → is-concrete Conc A → is-concrete ConcD (G .F₀ A)
-        G-concrete A conc {U} {x} {y} H≡ = conc $ funext λ f →
-          let module A = Fr A in
-          case F-onto-points (f C.∘ α .to) of λ g p →
-            A ⟪ f ⟫ x                           ≡⟨ A.expand (C.insertr (α .inverses .invl)) $ₚ x ⟩
-            A ⟪ α .from ⟫ (A ⟪ f C.∘ α .to ⟫ x) ≡⟨ ap (A ⟪ _ ⟫_) (sym A.⟨ p ⟩ $ₚ x ∙ H≡ $ₚ g ∙ A.⟨ p ⟩ $ₚ y) ⟩
-            A ⟪ α .from ⟫ (A ⟪ f C.∘ α .to ⟫ y) ≡⟨ A.collapse (C.cancelr (α .inverses .invl)) $ₚ y ⟩
-            A ⟪ f ⟫ y                           ∎
+      G-concrete : ∀ A → is-concrete Conc A → is-concrete ConcD (G .F₀ A)
+      G-concrete A conc {U} {x} {y} H≡ = conc $ funext λ f →
+        let module A = Fr A in
+        case F-onto-points (f C.∘ α .to) of λ g p →
+          A ⟪ f ⟫ x                           ≡⟨ A.expand (C.insertr (α .inverses .invl)) $ₚ x ⟩
+          A ⟪ α .from ⟫ (A ⟪ f C.∘ α .to ⟫ x) ≡⟨ ap (A ⟪ _ ⟫_) (sym A.⟨ p ⟩ $ₚ x ∙ H≡ $ₚ g ∙ A.⟨ p ⟩ $ₚ y) ⟩
+          A ⟪ α .from ⟫ (A ⟪ f C.∘ α .to ⟫ y) ≡⟨ A.collapse (C.cancelr (α .inverses .invl)) $ₚ y ⟩
+          A ⟪ f ⟫ y                           ∎
+
+      F' : Functor (ConcPSh κ Conc) (ConcPSh κ ConcD)
+      F' .F₀ (A , conc) = G .F₀ A , G-concrete A conc
+      F' .F₁            = G .F₁
+      F' .F-id          = G .F-id
+      F' .F-∘           = G .F-∘
 
   よ⋆-is-terminal : is-terminal (ConcPSh ℓ Conc) (Conc-よ₀ ⋆)
-  よ⋆-is-terminal X .centre = full-hom record
-    { η = λ _ _ → ! ; is-natural = λ _ _ _ → ext λ _ → !-unique₂ _ _ }
-  よ⋆-is-terminal X .paths f = ext λ _ _ → !-unique _
+  よ⋆-is-terminal X =
+    contr→is-terminal-PSh ℓ C (よ₀ ⋆) ⦃ basic-instance 0 (⋆-is-terminal _) ⦄ (X .fst)
 
   -- Limits of concrete presheaves can be computed pointwise.
   is-concrete-limit
@@ -220,13 +220,9 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
   open Terminal
 
   ConcPSh-terminal : Terminal (ConcPSh ℓ Conc)
-  ConcPSh-terminal .top .fst = ⊤PSh ℓ C
-  ConcPSh-terminal .top .snd _ = refl
-  ConcPSh-terminal .has⊤ (A , _) = record
-    { centre = full-hom (PSh-terminal _ C .has⊤ A .centre)
-    ; paths  = λ f → Subcat-hom-path
-      $ PSh-terminal _ C .has⊤ A .paths (f .hom)
-    }
+  ConcPSh-terminal .top .fst     = ⊤PSh ℓ C
+  ConcPSh-terminal .top .snd _   = refl
+  ConcPSh-terminal .has⊤ (A , _) = PSh-terminal _ C .has⊤ A
 
   ConcPSh-products : has-products (ConcPSh ℓ Conc)
   ConcPSh-products (A , aconc) (B , bconc) = prod where
@@ -238,14 +234,12 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
       {F = 2-object-diagram _ _} {ψ = 2-object-nat-trans _ _}
       (is-product→is-limit (PSh _ C) (prod' .has-is-product))
       λ { true → aconc ; false → bconc }
-    prod .π₁ = full-hom (prod' .π₁)
-    prod .π₂ = full-hom (prod' .π₂)
-    prod .has-is-product .⟨_,_⟩ f g =
-      full-hom (prod' .⟨_,_⟩ (f .hom) (g .hom))
-    prod .has-is-product .π₁∘⟨⟩ = Subcat-hom-path $ prod' .π₁∘⟨⟩
-    prod .has-is-product .π₂∘⟨⟩ = Subcat-hom-path $ prod' .π₂∘⟨⟩
-    prod .has-is-product .unique p q = Subcat-hom-path
-      $ prod' .unique (ap hom p) (ap hom q)
+    prod .π₁                     = prod' .π₁
+    prod .π₂                     = prod' .π₂
+    prod .has-is-product .⟨_,_⟩  = prod' .⟨_,_⟩
+    prod .has-is-product .π₁∘⟨⟩  = prod' .π₁∘⟨⟩
+    prod .has-is-product .π₂∘⟨⟩  = prod' .π₂∘⟨⟩
+    prod .has-is-product .unique = prod' .unique
 
   ConcPSh-cartesian : Cartesian-category (ConcPSh ℓ Conc)
   ConcPSh-cartesian .terminal = ConcPSh-terminal
@@ -279,12 +273,10 @@ module _ {ℓ} {C : Precategory ℓ ℓ} (Conc : Conc-category C) where
     exp' = PSh-closed C .has-exp A B
 
     exp : Exponential (ConcPSh ℓ Conc) _ _ _
-    exp .B^A .fst = exp' .B^A
-    exp .B^A .snd = is-concrete-exponential A B bconc
-    exp .ev = full-hom (exp' .ev)
-    exp .has-is-exp .ƛ f = full-hom (exp' .ƛ (f .hom))
-    exp .has-is-exp .commutes m = Subcat-hom-path
-      $ exp' .commutes (m .hom)
-    exp .has-is-exp .unique m p = Subcat-hom-path
-      $ exp' .unique (m .hom) (ap hom p)
+    exp .B^A .fst             = exp' .B^A
+    exp .B^A .snd             = is-concrete-exponential A B bconc
+    exp .ev                   = exp' .ev
+    exp .has-is-exp .ƛ        = exp' .ƛ
+    exp .has-is-exp .commutes = exp' .commutes
+    exp .has-is-exp .unique   = exp' .unique
 
