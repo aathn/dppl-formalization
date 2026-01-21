@@ -58,7 +58,7 @@ record DenotAssumptions : Type where
         (𝔇ℝ[ 1 , A↓ ] ⊗₀ 𝔇ℝ'[ make {n = n} A↓ ])
 
     𝔇ℝ'-⊗
-      : (cs : Coeff ^ n) (cs' : Coeff ^ m)
+      : (cs : Coeff ^ m) (cs' : Coeff ^ n)
       → (𝔇ℝ'[ cs ] ⊗₀ 𝔇ℝ'[ cs' ]) ≅ 𝔇ℝ'[ cs ++ cs' ]
 
 module _ (Ax : DenotAssumptions) where
@@ -79,7 +79,7 @@ module _ (Ax : DenotAssumptions) where
     ; □-𝔇ℝ        = super-iso→sub-iso _ (adjunct-hom-iso-into μ⊣ν _)
     ; 𝔇ℝ'-⊗       = 𝔇ℝ'-⊗
     ; 𝔇-real      = λ r {x} →
-      _∘_ {x = top} {y = Conc-よ₀ ℛ-conc ⋆} {𝔇ℝ[ x ]}
+      _∘_ {x = top} {Conc-よ₀ ℛ-conc ⋆} {𝔇ℝ[ x ]}
       (よ₁ ℛ (ℛ-const (make r))) (よ⋆-is-terminal ℛ-conc top .centre)
     ; 𝔇-prim  = λ Hϕ → Equiv.to ⟨∥⟩-reg≃Hom (Prim-denot _ , Prim-reg Hϕ)
     ; 𝔇-cond  = λ cs H≤ → Equiv.to ⟨∥⟩-reg≃Hom (cond-denot , cond-reg cs H≤)

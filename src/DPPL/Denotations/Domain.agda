@@ -17,6 +17,9 @@ open import Cat.Diagram.Exponential
 open import Cat.Diagram.Product.Finite
 open import Cat.Diagram.Product.Indexed
 open import Cat.Diagram.Terminal
+open import Cat.Monoidal.Base
+open import Cat.Monoidal.Instances.Cartesian
+open import Cat.Functor.Base
 open import Cat.Functor.Coherence
 open import Cat.Functor.FullSubcategory
 open import Cat.Functor.Naturality
@@ -25,6 +28,7 @@ open import Data.Power hiding (_∪_ ; _∩_)
 open import Order.Base
 open import Order.Lattice
 import Cat.Reasoning as Cr
+import Cat.Functor.Bifunctor as Bifunctor
 import Cat.Functor.Reasoning as Fr
 
 open Reals R using (ℝ ; 0r)
@@ -64,6 +68,7 @@ module 𝔇 = Cr 𝔇
 
 open Cartesian-category 𝔇-cartesian
 open Cartesian-closed 𝔇-closed renaming ([_,_] to _⇒_)
+open Monoidal-category (Cartesian-monoidal 𝔇-cartesian)
 
 module 𝔇-ip {n} (F : Fin n → 𝔇.Ob) =
   Indexed-product (Cartesian→standard-finite-products terminal products F)
@@ -113,7 +118,7 @@ open ProdIso 𝔇-cartesian
   ni .make-natural-iso.inv∘eta _     = refl
   ni .make-natural-iso.natural _ _ _ = refl
 
-□-pres-prod : ∀ X Y → □⟨ c ⟩ .F₀ (X ⊗₀ Y) ≅ (□⟨ c ⟩ .F₀ X ⊗₀ □⟨ c ⟩ .F₀ Y)
+□-pres-prod : ∀ X Y → □⟨ c ⟩ .F₀ (X ⊗ Y) ≅ (□⟨ c ⟩ .F₀ X ⊗ □⟨ c ⟩ .F₀ Y)
 □-pres-prod X Y = super-iso→sub-iso _ (to-natural-iso ni) where
   ni : make-natural-iso _ _
   ni .make-natural-iso.eta _ u       = u
@@ -136,6 +141,23 @@ open ProdIso 𝔇-cartesian
 
 𝔇ℝ'[_] : Reg↓ ^ n → 𝔇.Ob
 𝔇ℝ'[ cs ] = 𝔇-ip.ΠF λ i → 𝔇ℝ[ 1 , cs i ]
+
+𝔇ℝ'-cons : (cs : Reg↓ ^ suc m) → 𝔇ℝ'[ cs ] ≅ (𝔇ℝ[ 1 , head cs ] ⊗ 𝔇ℝ'[ tail cs ])
+𝔇ℝ'-cons = {!!}
+
+𝔇ℝ'-⊗
+  : (cs : Reg↓ ^ m) (cs' : Reg↓ ^ n)
+  → (𝔇ℝ'[ cs ] ⊗ 𝔇ℝ'[ cs' ]) ≅ 𝔇ℝ'[ cs ++ cs' ]
+𝔇ℝ'-⊗ {m = zero} cs cs' =
+  λ≅ {𝔇ℝ'[ cs' ]} Iso⁻¹ ∙Iso path→iso (ap 𝔇ℝ'[_] (++-split 0 (cs ++ cs')))
+𝔇ℝ'-⊗ {m = suc m} cs cs' =
+  F-map-iso (Bifunctor.Left -⊗- 𝔇ℝ'[ cs' ]) (𝔇ℝ'-cons cs) ∙Iso
+  -- α≅ {A = 𝔇ℝ[ 1 , head cs ]} {𝔇ℝ'[ tail cs ]} {𝔇ℝ'[ cs' ]} ∙Iso
+  foo ∙Iso
+  {!!}
+  where foo : ((𝔇ℝ[ 1 , head cs ] ⊗ 𝔇ℝ'[ tail cs ]) ⊗ 𝔇ℝ'[ cs' ]) ≅ (𝔇ℝ[ 1 , head cs ] ⊗ (𝔇ℝ'[ tail cs ] ⊗ 𝔇ℝ'[ cs' ]))
+        foo = α≅ {A = 𝔇ℝ[ 1 , head cs ]} {𝔇ℝ'[ tail cs ]} {𝔇ℝ'[ cs' ]}
+-- (cs : Reg↓ ^ (1 + m)) → 𝔇ℝ'[ cs ] ≅ 𝔇ℝ[ head cs ] ⊗ 𝔇ℝ'[ tail cs ]
 
 top-underlying : top ʻ ⋆ ≃ ℝ ^ 0
 top-underlying = Iso→Equiv
@@ -192,7 +214,8 @@ top-underlying = Iso→Equiv
     let p = linv {suc n} {cs ⊙ fsuc}
           $ (λ x → f x ⊙ fsuc) , case Hf of λ Hf' → inc (Hf' ⊙ fsuc)
     in
-    ap (λ l → (π'[ fzero ] ⊙ f) x ++ l x $ i) (ap fst p) ∙ ++-head-tail (f x) $ₚ i
+    ap (λ l → (π'[ fzero ] ⊙ f) x ++ l x $ i) (ap fst p) ∙
+    ++-singleton $ₚ i ∙ ∷-head-tail (f x) $ₚ i
 
 ⟨⟩-sec≃𝔇ℝ'-conc-section
   : ∀ {U} {cs : Reg↓ ^ n}

@@ -5,7 +5,7 @@ open import 1Lab.Prelude
 open import Lib.Data.Fin
 
 open import Data.Fin.Base
-  using (Fin ; fzero ; fsuc ; fin-view ; zero ; suc ; split-+ ; fshift ; inject)
+  using (Fin ; fzero ; fsuc ; fin-view ; zero ; suc ; split-+ ; fshift ; inject ; Fin-cases)
 open import Data.Fin.Base public using (_[_≔_] ; delete)
 open import Data.Fin.Properties
   using (insert-delete ; insert-lookup ; avoid-insert ; skip-avoid ; delete-insert)
@@ -97,12 +97,15 @@ updateAt-updateAt
 updateAt-updateAt {n = suc n} ρ i a b j =
   ap (λ xs → (xs [ i ≔ a ]) j) (funext $ delete-insert _ i b)
 
-++-head-tail : ∀ {m} (x : A ^ suc m) → make (head x) ++ tail x ≡ x
-++-head-tail {m = m} x = ext go where
-  go : ∀ i → (make (head x) ++ tail x) i ≡ x i
+∷-head-tail : ∀ {m} (x : A ^ suc m) → head x ∷ tail x ≡ x
+∷-head-tail {m = m} x = ext go where
+  go : ∀ i → (head x ∷ tail x) i ≡ x i
   go i with fin-view i
   ... | zero  = refl
   ... | suc _ = refl
+
+++-singleton : ∀ {m} {x : A} {xs : A ^ m} → make x ++ xs ≡ x ∷ xs
+++-singleton = funext $ Fin-cases refl λ _ → refl
 
 ++-split : ∀ m (x : A ^ (m + n)) → uncurry _++_ (split m x) ≡ x
 ++-split m x = ext go where
