@@ -143,22 +143,22 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
      conc-section Conc B (f .η U au) ∎)
 
   Conc-hom≃Hom : ∀ {κ} {A B : CPSh.Ob {κ}} → Conc-hom A B ≃ CPSh.Hom A B
-  Conc-hom≃Hom {A = A , Aconc} {B , Bconc} = Iso→Equiv $ Conc-hom→Hom ,
-    iso Hom→Conc-hom
+  Conc-hom≃Hom {A = A , Aconc} {B , Bconc} = Conc-hom→Hom , is-iso→is-equiv
+    (iso Hom→Conc-hom
       (λ f → ext λ _ _ → refl)
       (λ f → ext λ x →
         let y , p = f .is-hom (conc-section Conc A x) (_ , refl) in
         y                  ≡˘⟨ B .F-id $ₚ y ⟩
         B ⟪ C.id ⟫ y       ≡˘⟨ p $ₚ C.id ⟩
         f · (A ⟪ C.id ⟫ x) ≡⟨ ap (f ·_) (A .F-id $ₚ x) ⟩
-        f · x              ∎)
+        f · x              ∎))
 
   conc-section≃section
     : ∀ {κ} {A : CPSh.Ob {κ}} {U} → ∫ₚ (is-conc-section {U = U} A) ≃ A ʻ U
-  conc-section≃section {A = A , Aconc} = Iso→Equiv $
-    (λ (_ , au , _) → au) , iso (λ au → conc-section Conc A au , _ , refl)
+  conc-section≃section {A = A , Aconc} = (λ (_ , au , _) → au) , is-iso→is-equiv
+    (iso (λ au → conc-section Conc A au , _ , refl)
       (λ _ → refl)
-      (λ (f , au , p) → sym p ,ₚ refl ,ₚ prop!)
+      (λ (f , au , p) → sym p ,ₚ refl ,ₚ prop!))
 
   -- Representable presheaves are concrete
   Conc-よ₀ : (U : ⌞ C ⌟) → CPSh.Ob
@@ -175,14 +175,15 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
       G : Functor (PSh κ C) (PSh κ D)
       G = precompose (op F)
 
-      G-concrete : ∀ A → is-concrete Conc A → is-concrete ConcD (G .F₀ A)
-      G-concrete A conc {U} {x} {y} H≡ = conc $ funext λ f →
-        let module A = Fr A in
-        case F-onto-points (f C.∘ α .to) of λ g p →
-          A ⟪ f ⟫ x                           ≡⟨ A.expand (C.insertr (α .inverses .invl)) $ₚ x ⟩
-          A ⟪ α .from ⟫ (A ⟪ f C.∘ α .to ⟫ x) ≡⟨ ap (A ⟪ _ ⟫_) (sym A.⟨ p ⟩ $ₚ x ∙ H≡ $ₚ g ∙ A.⟨ p ⟩ $ₚ y) ⟩
-          A ⟪ α .from ⟫ (A ⟪ f C.∘ α .to ⟫ y) ≡⟨ A.collapse (C.cancelr (α .inverses .invl)) $ₚ y ⟩
-          A ⟪ f ⟫ y                           ∎
+      opaque
+        G-concrete : ∀ A → is-concrete Conc A → is-concrete ConcD (G .F₀ A)
+        G-concrete A conc {U} {x} {y} H≡ = conc $ funext λ f →
+          let module A = Fr A in
+          case F-onto-points (f C.∘ α .to) of λ g p →
+            A ⟪ f ⟫ x                           ≡⟨ A.expand (C.insertr (α .inverses .invl)) $ₚ x ⟩
+            A ⟪ α .from ⟫ (A ⟪ f C.∘ α .to ⟫ x) ≡⟨ ap (A ⟪ _ ⟫_) (sym A.⟨ p ⟩ $ₚ x ∙ H≡ $ₚ g ∙ A.⟨ p ⟩ $ₚ y) ⟩
+            A ⟪ α .from ⟫ (A ⟪ f C.∘ α .to ⟫ y) ≡⟨ A.collapse (C.cancelr (α .inverses .invl)) $ₚ y ⟩
+            A ⟪ f ⟫ y                           ∎
 
       F' : Functor (ConcPSh κ Conc) (ConcPSh κ ConcD)
       F' .F₀ (A , conc) = G .F₀ A , G-concrete A conc
@@ -194,25 +195,26 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
   よ⋆-is-terminal X =
     contr→is-terminal-PSh ℓ C (よ₀ ⋆) ⦃ basic-instance 0 (⋆-is-terminal _) ⦄ (X .fst)
 
-  -- Limits of concrete presheaves can be computed pointwise.
-  is-concrete-limit
-    : ∀ {o' ℓ'} {D : Precategory o' ℓ'} {F : Functor D (PSh ℓ C)} {L} {ψ}
-    → is-limit F L ψ
-    → ((d : ⌞ D ⌟) → is-concrete Conc (F · d))
-    → is-concrete Conc L
-  is-concrete-limit {F = F} {L} {ψ} lim dconc {U} {x} {y} p =
-    -- Mimicking Yoneda voodoo from Cat.Instances.Sheaf.Limits
-    unyo-path $ lim.unique₂ {x = よ₀ U} _
-      (λ f → yo-natl (sym (ψ .is-natural _ _ _ ηₚ _ $ₚ _))) (λ j → yo-natl refl)
-      (λ j → yo-natl (dconc j $ funext λ g →
-        F.₁ j g (ψ .η j .η U y) ≡˘⟨ ψ .η j .is-natural _ _ _ $ₚ _ ⟩
-        ψ .η j .η _ (L.₁ g y)   ≡˘⟨ ap (ψ .η j .η _) (p $ₚ g) ⟩
-        ψ .η j .η _ (L.₁ g x)   ≡⟨ ψ .η j .is-natural _ _ _ $ₚ _ ⟩
-        F.₁ j g (ψ .η j .η U x) ∎))
-    where
-    module lim = is-limit lim
-    module F x = Functor (F .F₀ x)
-    module L = Functor L
+  opaque
+    -- Limits of concrete presheaves can be computed pointwise.
+    is-concrete-limit
+      : ∀ {o' ℓ'} {D : Precategory o' ℓ'} {F : Functor D (PSh ℓ C)} {L} {ψ}
+      → is-limit F L ψ
+      → ((d : ⌞ D ⌟) → is-concrete Conc (F · d))
+      → is-concrete Conc L
+    is-concrete-limit {F = F} {L} {ψ} lim dconc {U} {x} {y} p =
+      -- Mimicking Yoneda voodoo from Cat.Instances.Sheaf.Limits
+      unyo-path $ lim.unique₂ {x = よ₀ U} _
+        (λ f → yo-natl (sym (ψ .is-natural _ _ _ ηₚ _ $ₚ _))) (λ j → yo-natl refl)
+        (λ j → yo-natl (dconc j $ funext λ g →
+          F.₁ j g (ψ .η j .η U y) ≡˘⟨ ψ .η j .is-natural _ _ _ $ₚ _ ⟩
+          ψ .η j .η _ (L.₁ g y)   ≡˘⟨ ap (ψ .η j .η _) (p $ₚ g) ⟩
+          ψ .η j .η _ (L.₁ g x)   ≡⟨ ψ .η j .is-natural _ _ _ $ₚ _ ⟩
+          F.₁ j g (ψ .η j .η U x) ∎))
+      where
+      module lim = is-limit lim
+      module F x = Functor (F .F₀ x)
+      module L = Functor L
 
   open Cartesian-category
   open is-product
@@ -251,22 +253,23 @@ module _ {ℓ} {C : Precategory ℓ ℓ} (Conc : Conc-category C) where
   open Exponential
   open is-exponential
 
-  -- Concrete presheaves form an exponential ideal, just like sheaves.
-  -- Morally, this is because if we can distinguish points of B, then we
-  -- can also distinguish maps into B.
-  is-concrete-exponential
-    : (A B : Functor (C ^op) (Sets ℓ))
-    → is-concrete Conc B
-    → is-concrete Conc (PSh[_,_] C A B)
-  is-concrete-exponential A B bconc {x = x} {y} p =
-    ext λ V f au → bconc $ ext λ g →
-      B ⟪ g ⟫ x .η V (f , au)            ≡˘⟨ x .is-natural V _ g $ₚ (f , au) ⟩
-      _                                  ≡˘⟨ ap (λ fg → x .η _ (fg , _)) (idr _) ⟩
-      x .η _ ((f ∘ g) ∘ id , A ⟪ g ⟫ au) ≡⟨ (p $ₚ (f ∘ g) ηₚ _) $ₚ (id , A ⟪ g ⟫ au) ⟩
-      y .η _ ((f ∘ g) ∘ id , A ⟪ g ⟫ au) ≡⟨ ap (λ fg → y .η _ (fg , _)) (idr _) ⟩
-      _                                  ≡⟨ y .is-natural V _ g $ₚ (f , au) ⟩
-      B ⟪ g ⟫ y .η V (f , au)            ∎
-    where open Precategory C
+  opaque
+    -- Concrete presheaves form an exponential ideal, just like sheaves.
+    -- Morally, this is because if we can distinguish points of B, then we
+    -- can also distinguish maps into B.
+    is-concrete-exponential
+      : (A B : Functor (C ^op) (Sets ℓ))
+      → is-concrete Conc B
+      → is-concrete Conc (PSh[_,_] C A B)
+    is-concrete-exponential A B bconc {x = x} {y} p =
+      ext λ V f au → bconc $ ext λ g →
+        B ⟪ g ⟫ x .η V (f , au)            ≡˘⟨ x .is-natural V _ g $ₚ (f , au) ⟩
+        _                                  ≡˘⟨ ap (λ fg → x .η _ (fg , _)) (idr _) ⟩
+        x .η _ ((f ∘ g) ∘ id , A ⟪ g ⟫ au) ≡⟨ (p $ₚ (f ∘ g) ηₚ _) $ₚ (id , A ⟪ g ⟫ au) ⟩
+        y .η _ ((f ∘ g) ∘ id , A ⟪ g ⟫ au) ≡⟨ ap (λ fg → y .η _ (fg , _)) (idr _) ⟩
+        _                                  ≡⟨ y .is-natural V _ g $ₚ (f , au) ⟩
+        B ⟪ g ⟫ y .η V (f , au)            ∎
+      where open Precategory C
 
   ConcPSh-closed : Cartesian-closed (ConcPSh ℓ Conc) (ConcPSh-cartesian Conc)
   ConcPSh-closed .has-exp (A , _) (B , bconc) = exp where

@@ -172,7 +172,7 @@ module Denotations {o} (model : DPPL-model o o) where
     𝔇-cond cs H≤ ∘ if-distr ∘ ⟨ Tm-denot Hty , ⟨ Tm-denot Hty₁ , Tm-denot Hty₂ ⟩ ⟩
     where
       if-distr =
-        𝔇ℝ'-⊗ (make {n = 1} P↓) (cs ++ cs) .to ∘ id {𝔇ℝ[ 1 , P↓ ]} ⊗₁ 𝔇ℝ'-⊗ cs cs .to
+        𝔇ℝ'-⊗ (make {n = 1} P↓) (cs ++ cs) .to ∘ id ⊗₁ 𝔇ℝ'-⊗ cs cs .to
   Tm-denot (tinfer _) = !
   Tm-denot (tdiff {n = n} {m = m} Hty Hty₁ Hc) =
     □⟨A⟩-Id .from .η _ ∘ 𝔇-diff n m Hc ∘ ⟨ Tm-denot Hty , Tm-denot Hty₁ ⟩

@@ -13,12 +13,14 @@ open import Cat.Diagram.Terminal
 open import Cat.Functor.Adjoint
 open import Cat.Functor.Base
 open import Cat.Functor.Naturality
+open import Cat.Functor.Properties
 open import Data.Dec.Base
 open import Data.Fin.Base hiding (_≤_)
 open import Data.Power hiding (_∩_)
 open import Order.Base
 open import Order.Lattice
 import Cat.Reasoning as Cr
+import Cat.Functor.Hom as Hom
 
 open Reals R using (ℝ ; 0r)
 
@@ -130,9 +132,13 @@ module Site (Ax : SiteAssumptions) where
   ℛ-const x = (λ _ → x) , const-reg' x
 
   ℛ-conc : Conc-category ℛ
-  ℛ-conc .Conc-category.terminal          = ℛ-terminal
-  ℛ-conc .Conc-category.⋆-hom-faithful H≡ = ℛ-hom-path
-    $ funext (λ z → ap fst (H≡ $ₚ ℛ-const z) $ₚ make 0r)
+  ℛ-conc .Conc-category.terminal       = ℛ-terminal
+  ℛ-conc .Conc-category.⋆-hom-faithful = ⋆-hom-faithful where
+    open Hom ℛ
+    opaque
+      ⋆-hom-faithful : is-faithful Hom[ ⋆ ,-]
+      ⋆-hom-faithful H≡ =
+        ℛ-hom-path $ funext (λ z → ap fst (H≡ $ₚ ℛ-const z) $ₚ make 0r)
 
   μ⟨_⟩ : Reg↓ → Functor ℛ ℛ
   μ⟨ c ⟩ .F₀ (m , d) =
