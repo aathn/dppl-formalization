@@ -151,13 +151,10 @@ open ProdIso 𝔇-cartesian
 𝔇ℝ'-⊗ {m = zero} cs cs' =
   λ≅ {𝔇ℝ'[ cs' ]} Iso⁻¹ ∙Iso path→iso (ap 𝔇ℝ'[_] (++-split 0 (cs ++ cs')))
 𝔇ℝ'-⊗ {m = suc m} cs cs' =
-  F-map-iso (Bifunctor.Left -⊗- 𝔇ℝ'[ cs' ]) (𝔇ℝ'-cons cs) ∙Iso
-  -- α≅ {A = 𝔇ℝ[ 1 , head cs ]} {𝔇ℝ'[ tail cs ]} {𝔇ℝ'[ cs' ]} ∙Iso
-  foo ∙Iso
-  {!!}
-  where foo : ((𝔇ℝ[ 1 , head cs ] ⊗ 𝔇ℝ'[ tail cs ]) ⊗ 𝔇ℝ'[ cs' ]) ≅ (𝔇ℝ[ 1 , head cs ] ⊗ (𝔇ℝ'[ tail cs ] ⊗ 𝔇ℝ'[ cs' ]))
-        foo = α≅ {A = 𝔇ℝ[ 1 , head cs ]} {𝔇ℝ'[ tail cs ]} {𝔇ℝ'[ cs' ]}
--- (cs : Reg↓ ^ (1 + m)) → 𝔇ℝ'[ cs ] ≅ 𝔇ℝ[ head cs ] ⊗ 𝔇ℝ'[ tail cs ]
+  𝔇ℝ'[ cs ] ⊗ 𝔇ℝ'[ cs' ]                          ≅⟨ F-map-iso (Bifunctor.Left -⊗- 𝔇ℝ'[ cs' ]) (𝔇ℝ'-cons cs) ∙Iso α≅ ⟩
+  𝔇ℝ[ 1 , head cs ] ⊗ 𝔇ℝ'[ tail cs ] ⊗ 𝔇ℝ'[ cs' ] ≅⟨ F-map-iso (Bifunctor.Right -⊗- 𝔇ℝ[ 1 , head cs ]) (𝔇ℝ'-⊗ (tail cs) cs' ∙Iso path→iso (ap 𝔇ℝ'[_] (sym (++-tail cs cs')))) ⟩
+  𝔇ℝ[ 1 , head cs ] ⊗ 𝔇ℝ'[ tail (cs ++ cs') ]     ≅˘⟨ 𝔇ℝ'-cons (cs ++ cs') ⟩
+  𝔇ℝ'[ cs ++ cs' ]                                ≅∎
 
 top-underlying : top ʻ ⋆ ≃ ℝ ^ 0
 top-underlying .fst = λ _ ()

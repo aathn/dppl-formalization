@@ -10,7 +10,7 @@ open import Data.Fin.Base public using (_[_≔_] ; delete)
 open import Data.Fin.Properties
   using (insert-delete ; insert-lookup ; avoid-insert ; skip-avoid ; delete-insert)
 open import Data.Nat.Properties using (+-≤l)
-open import Data.Sum.Base using (inl ; inr)
+open import Data.Sum.Base using (inl ; inr ; ⊎-map)
 
 Vector : {l : Level} → Type l → Nat → Type l
 Vector A n = Fin n → A
@@ -22,7 +22,7 @@ private variable
   l l' : Level
   A : Type l
   B : Type l'
-  n m : Nat
+  m n : Nat
 
 module VectorSyntax where
 
@@ -97,14 +97,27 @@ updateAt-updateAt
 updateAt-updateAt {n = suc n} ρ i a b j =
   ap (λ xs → (xs [ i ≔ a ]) j) (funext $ delete-insert _ i b)
 
-∷-head-tail : ∀ {m} (x : A ^ suc m) → head x ∷ tail x ≡ x
+∷-head-tail : (x : A ^ suc m) → head x ∷ tail x ≡ x
 ∷-head-tail {m = m} x = ext go where
   go : ∀ i → (head x ∷ tail x) i ≡ x i
   go i with fin-view i
   ... | zero  = refl
   ... | suc _ = refl
 
-++-singleton : ∀ {m} {x : A} {xs : A ^ m} → make x ++ xs ≡ x ∷ xs
+++-tail : (xs : A ^ suc m) (ys : A ^ n) → tail (xs ++ ys) ≡ tail xs ++ ys
+++-tail {m = m} xs ys = ext go where
+  eqₗ : {i : Fin (m + n)} {j : Fin m} → split-+ i ≡ᵢ inl j → split-+ (fsuc i) ≡ᵢ inl (fsuc j)
+  eqₗ = apᵢ (⊎-map fsuc id)
+
+  eqᵣ : {i : Fin (m + n)} {j : Fin n} → split-+ i ≡ᵢ inr j → split-+ (fsuc i) ≡ᵢ inr j
+  eqᵣ = apᵢ (⊎-map fsuc id)
+
+  go : ∀ i → (tail (xs ++ ys)) i ≡ (tail xs ++ ys) i
+  go i with split-+ {m} i in Heq
+  ... | inl _ rewrite eqₗ Heq = refl
+  ... | inr _ rewrite eqᵣ Heq = refl
+
+++-singleton : {x : A} {xs : A ^ m} → make x ++ xs ≡ x ∷ xs
 ++-singleton = funext $ Fin-cases refl λ _ → refl
 
 ++-split : ∀ m (x : A ^ (m + n)) → uncurry _++_ (split m x) ≡ x
@@ -114,7 +127,7 @@ updateAt-updateAt {n = suc n} ρ i a b j =
   ... | inl j = ap x (split-+-inl Heq)
   ... | inr j = ap x (split-+-inr Heq)
 
-split-++ : ∀ (xy : A ^ m × A ^ n) → split m (uncurry _++_ xy) ≡ xy
+split-++ : (xy : A ^ m × A ^ n) → split m (uncurry _++_ xy) ≡ xy
 split-++ {m = m} {n} xy = ext Hx ,ₚ ext Hy where
   Hx : Extensional-Π .Pathᵉ (split m (uncurry _++_ xy) .fst) (xy .fst)
   Hx i rewrite Id≃path.from (split-+-inject {n = n} i) = refl
