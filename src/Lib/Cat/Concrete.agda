@@ -143,22 +143,23 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
      conc-section Conc B (f .η U au) ∎)
 
   Conc-hom≃Hom : ∀ {κ} {A B : CPSh.Ob {κ}} → Conc-hom A B ≃ CPSh.Hom A B
-  Conc-hom≃Hom {A = A , Aconc} {B , Bconc} = Conc-hom→Hom , is-iso→is-equiv
-    (iso Hom→Conc-hom
-      (λ f → ext λ _ _ → refl)
-      (λ f → ext λ x →
-        let y , p = f .is-hom (conc-section Conc A x) (_ , refl) in
-        y                  ≡˘⟨ B .F-id $ₚ y ⟩
-        B ⟪ C.id ⟫ y       ≡˘⟨ p $ₚ C.id ⟩
-        f · (A ⟪ C.id ⟫ x) ≡⟨ ap (f ·_) (A .F-id $ₚ x) ⟩
-        f · x              ∎))
+  Conc-hom≃Hom .fst                             = Conc-hom→Hom
+  Conc-hom≃Hom {A = A , Aconc} {B , Bconc} .snd = is-iso→is-equiv $ iso Hom→Conc-hom
+    (λ f → ext λ _ _ → refl)
+    (λ f → ext λ x →
+      let y , p = f .is-hom (conc-section Conc A x) (_ , refl) in
+      y                  ≡˘⟨ B .F-id $ₚ y ⟩
+      B ⟪ C.id ⟫ y       ≡˘⟨ p $ₚ C.id ⟩
+      f · (A ⟪ C.id ⟫ x) ≡⟨ ap (f ·_) (A .F-id $ₚ x) ⟩
+      f · x              ∎)
 
   conc-section≃section
     : ∀ {κ} {A : CPSh.Ob {κ}} {U} → ∫ₚ (is-conc-section {U = U} A) ≃ A ʻ U
-  conc-section≃section {A = A , Aconc} = (λ (_ , au , _) → au) , is-iso→is-equiv
-    (iso (λ au → conc-section Conc A au , _ , refl)
+  conc-section≃section .fst                 = λ (_ , au , _) → au
+  conc-section≃section {A = A , Aconc} .snd = is-iso→is-equiv $
+    iso (λ au → conc-section Conc A au , _ , refl)
       (λ _ → refl)
-      (λ (f , au , p) → sym p ,ₚ refl ,ₚ prop!))
+      (λ (f , au , p) → sym p ,ₚ refl ,ₚ prop!)
 
   -- Representable presheaves are concrete
   Conc-よ₀ : (U : ⌞ C ⌟) → CPSh.Ob

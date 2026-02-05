@@ -160,13 +160,14 @@ open ProdIso 𝔇-cartesian
 -- (cs : Reg↓ ^ (1 + m)) → 𝔇ℝ'[ cs ] ≅ 𝔇ℝ[ head cs ] ⊗ 𝔇ℝ'[ tail cs ]
 
 top-underlying : top ʻ ⋆ ≃ ℝ ^ 0
-top-underlying = Iso→Equiv
-  $ (λ _ ()) , iso (λ _ → lift tt) (λ _ → ext λ ()) (λ _ → refl)
+top-underlying .fst = λ _ ()
+top-underlying .snd = is-iso→is-equiv $
+  iso (λ _ → lift tt) (λ _ → ext λ ()) (λ _ → refl)
 
 𝔇ℝ-underlying : ∀ U → 𝔇ℝ[ U ] ʻ ⋆ ≃ ℝ ^ (U .fst)
-𝔇ℝ-underlying U = Iso→Equiv
-  $ (λ (f , _) → f (make 0r))
-  , iso (λ x → ℛ-const x)
+𝔇ℝ-underlying U .fst = λ (f , _) → f (make 0r)
+𝔇ℝ-underlying U .snd = is-iso→is-equiv $
+  iso (λ x → ℛ-const x)
     (λ _ → refl)
     (λ f → ℛ-hom-path (ext λ _ x → ap (λ y → f .fst y x) (ext λ ())))
 
@@ -200,8 +201,8 @@ top-underlying = Iso→Equiv
     inc (Fin-cases (subst (_∈ ⟨ c ∣ cs fzero ⟩-reg) (sym (π'1 f)) Hf) Hreg)
 
 ⟨⟩-sec≃𝔇ℝ'-section : ∀ {U} {cs : Reg↓ ^ n} → ∫ₚ (⟨ cs ⟩-sec U) ≃ 𝔇ℝ'[ cs ] ʻ U
-⟨⟩-sec≃𝔇ℝ'-section =
-  Iso→Equiv $ ⟨⟩-sec→𝔇ℝ'-section , iso 𝔇ℝ'-section→⟨⟩-sec rinv linv where
+⟨⟩-sec≃𝔇ℝ'-section .fst = ⟨⟩-sec→𝔇ℝ'-section
+⟨⟩-sec≃𝔇ℝ'-section .snd = is-iso→is-equiv $ iso 𝔇ℝ'-section→⟨⟩-sec rinv linv where
   rinv : ∀ {n} {cs : Reg↓ ^ n} → is-right-inverse (𝔇ℝ'-section→⟨⟩-sec {cs = cs}) ⟨⟩-sec→𝔇ℝ'-section
   rinv {zero} (lift tt)       = refl
   rinv {suc zero} f           = ℛ-hom-path (π'1 (f .fst))

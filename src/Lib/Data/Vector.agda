@@ -122,8 +122,8 @@ split-++ {m = m} {n} xy = ext Hx ,ₚ ext Hy where
   Hy i rewrite Id≃path.from (split-+-fshift m i) = refl
 
 vec-prod-sum : (A ^ m × A ^ n) ≃ A ^ (m + n)
-vec-prod-sum {m = m} = Iso→Equiv
-  $ uncurry _++_ , iso (split m) (++-split m) split-++
+vec-prod-sum .fst         = uncurry _++_
+vec-prod-sum {m = m} .snd = is-iso→is-equiv $ iso (split m) (++-split m) split-++
 
 ----------------------------------------------------------------------
 -- Arrays
