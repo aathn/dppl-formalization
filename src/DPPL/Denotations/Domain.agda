@@ -143,13 +143,14 @@ open ProdIso 𝔇-cartesian
 𝔇ℝ'[ cs ] = 𝔇-ip.ΠF λ i → 𝔇ℝ[ 1 , cs i ]
 
 𝔇ℝ'-cons : (cs : Reg↓ ^ suc m) → 𝔇ℝ'[ cs ] ≅ (𝔇ℝ[ 1 , head cs ] ⊗ 𝔇ℝ'[ tail cs ])
-𝔇ℝ'-cons = {!!}
+𝔇ℝ'-cons {m = zero}  cs = ρ≅
+𝔇ℝ'-cons {m = suc m} cs = id-iso
 
 𝔇ℝ'-⊗
   : (cs : Reg↓ ^ m) (cs' : Reg↓ ^ n)
   → (𝔇ℝ'[ cs ] ⊗ 𝔇ℝ'[ cs' ]) ≅ 𝔇ℝ'[ cs ++ cs' ]
 𝔇ℝ'-⊗ {m = zero} cs cs' =
-  λ≅ {𝔇ℝ'[ cs' ]} Iso⁻¹ ∙Iso path→iso (ap 𝔇ℝ'[_] (++-split 0 (cs ++ cs')))
+  λ≅ Iso⁻¹ ∙Iso path→iso (ap 𝔇ℝ'[_] (++-split 0 (cs ++ cs')))
 𝔇ℝ'-⊗ {m = suc m} cs cs' =
   𝔇ℝ'[ cs ] ⊗ 𝔇ℝ'[ cs' ]                          ≅⟨ F-map-iso (Bifunctor.Left -⊗- 𝔇ℝ'[ cs' ]) (𝔇ℝ'-cons cs) ∙Iso α≅ ⟩
   𝔇ℝ[ 1 , head cs ] ⊗ 𝔇ℝ'[ tail cs ] ⊗ 𝔇ℝ'[ cs' ] ≅⟨ F-map-iso (Bifunctor.Right -⊗- 𝔇ℝ[ 1 , head cs ]) (𝔇ℝ'-⊗ (tail cs) cs' ∙Iso path→iso (ap 𝔇ℝ'[_] (sym (++-tail cs cs')))) ⟩

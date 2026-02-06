@@ -57,10 +57,6 @@ record DenotAssumptions : Type where
          ⊗₀ 𝔇ℝ[ 1 , c ∩ PC↓ ])
         (𝔇ℝ[ 1 , A↓ ] ⊗₀ 𝔇ℝ'[ make {n = n} A↓ ])
 
-    𝔇ℝ'-⊗
-      : (cs : Coeff ^ m) (cs' : Coeff ^ n)
-      → (𝔇ℝ'[ cs ] ⊗₀ 𝔇ℝ'[ cs' ]) ≅ 𝔇ℝ'[ cs ++ cs' ]
-
 module _ (Ax : DenotAssumptions) where
   open DenotAssumptions Ax
 
