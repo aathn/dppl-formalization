@@ -140,6 +140,14 @@ module Site (Ax : SiteAssumptions) where
       ⋆-hom-faithful H≡ =
         ℛ-hom-path $ funext (λ z → ap fst (H≡ $ₚ ℛ-const z) $ₚ make 0r)
 
+  open Conc-category ℛ-conc public using (ob∣_∣)
+
+  ℛ-underlying : ∀ {U} → ob∣ U ∣ ≃ ℝ ^ (U .fst)
+  ℛ-underlying .fst = λ (f , _) → f (make 0r)
+  ℛ-underlying .snd = is-iso→is-equiv $ iso ℛ-const
+    (λ _ → refl)
+    (λ f → ℛ-hom-path (ext λ _ x → ap (λ y → f .fst y x) (ext λ ())))
+
   μ⟨_⟩ : Reg↓ → Functor ℛ ℛ
   μ⟨ c ⟩ .F₀ (m , d) =
     ifᵈ holds? (d ≤ c) then
@@ -301,6 +309,9 @@ module Site (Ax : SiteAssumptions) where
   ν-counit : ν⟨ c ⟩ => Id
   ν-counit .η X              = ℛ-id≤ ∩≤r
   ν-counit .is-natural _ _ f = ℛ-hom-path refl
+
+  ν-pres-top : ν⟨ c ⟩ .F₀ ⋆ ≡ ⋆
+  ν-pres-top {c = c} = refl ,ₚ ∩-comm ∙ order→∩ ¡
 
   μ-dominates-ν : ν⟨ c ⟩ F∘ μ⟨ c ⟩ ≅ⁿ μ⟨ c ⟩
   μ-dominates-ν {c} = to-natural-iso ni where

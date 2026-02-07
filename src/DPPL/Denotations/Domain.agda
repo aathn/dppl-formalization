@@ -16,19 +16,17 @@ open import Cat.Cartesian
 open import Cat.Diagram.Exponential
 open import Cat.Diagram.Product.Finite
 open import Cat.Diagram.Product.Indexed
-open import Cat.Diagram.Terminal
-open import Cat.Monoidal.Base
-open import Cat.Monoidal.Instances.Cartesian
+open import Cat.Functor.Adjoint.Hom
 open import Cat.Functor.Base
 open import Cat.Functor.Coherence
 open import Cat.Functor.FullSubcategory
+open import Cat.Functor.Hom
 open import Cat.Functor.Naturality
 open import Data.Fin.Base hiding (_≤_)
 open import Data.Power hiding (_∪_ ; _∩_)
 open import Order.Base
 open import Order.Lattice
 import Cat.Reasoning as Cr
-import Cat.Functor.Bifunctor as Bifunctor
 import Cat.Functor.Reasoning as Fr
 
 open Reals R using (ℝ ; 0r)
@@ -68,7 +66,6 @@ module 𝔇 = Cr 𝔇
 
 open Cartesian-category 𝔇-cartesian
 open Cartesian-closed 𝔇-closed renaming ([_,_] to _⇒_)
-open Monoidal-category (Cartesian-monoidal 𝔇-cartesian)
 
 module 𝔇-ip {n} (F : Fin n → 𝔇.Ob) =
   Indexed-product (Cartesian→standard-finite-products terminal products F)
@@ -110,15 +107,10 @@ open ProdIso 𝔇-cartesian
   .invr → ext λ F _ _ → Fr.annihilate (F .fst) (μ⟨A⟩-Id .inverses .invr ηₚ _) $ₚ _
 
 □-pres-top : □⟨ c ⟩ .F₀ top ≅ top
-□-pres-top = super-iso→sub-iso _ (to-natural-iso ni) where
-  ni : make-natural-iso _ _
-  ni .make-natural-iso.eta _ u       = u
-  ni .make-natural-iso.inv _ u       = u
-  ni .make-natural-iso.eta∘inv _     = refl
-  ni .make-natural-iso.inv∘eta _     = refl
-  ni .make-natural-iso.natural _ _ _ = refl
+□-pres-top = super-iso→sub-iso _
+  $ F-map-iso (よ ℛ) (path→iso ν-pres-top) ∘ni adjunct-hom-iso-into μ⊣ν _
 
-□-pres-prod : ∀ X Y → □⟨ c ⟩ .F₀ (X ⊗ Y) ≅ (□⟨ c ⟩ .F₀ X ⊗ □⟨ c ⟩ .F₀ Y)
+□-pres-prod : ∀ X Y → □⟨ c ⟩ .F₀ (X ⊗₀ Y) ≅ (□⟨ c ⟩ .F₀ X ⊗₀ □⟨ c ⟩ .F₀ Y)
 □-pres-prod X Y = super-iso→sub-iso _ (to-natural-iso ni) where
   ni : make-natural-iso _ _
   ni .make-natural-iso.eta _ u       = u
@@ -128,111 +120,63 @@ open ProdIso 𝔇-cartesian
   ni .make-natural-iso.natural _ _ _ = refl
 
 
-⟨_⟩-sec : Reg↓ ^ n → (U : Nat × Reg↓) → ℙ (ℝ ^ (U .fst) → ℝ ^ n)
-⟨ cs ⟩-sec U g = elΩ $ ∀ i → π'[ i ] ⊙ g ∈ ⟨ U .snd ∣ cs i ⟩-reg
-
-⟨_∥_⟩-reg : Reg↓ ^ m → Reg↓ ^ n → (ℝ ^ m → ℝ ^ n) → Type _
-⟨_∥_⟩-reg {m} {n} cs cs' f =
-  ∀ {U : Nat × Reg↓} (g : ℝ ^ (U .fst) → ℝ ^ m)
-  → g ∈ ⟨ cs ⟩-sec U → f ⊙ g ∈ ⟨ cs' ⟩-sec U
-
 𝔇ℝ[_] : ℛ.Ob → 𝔇.Ob
 𝔇ℝ[_] = Conc-よ₀ ℛ-conc
 
 𝔇ℝ'[_] : Reg↓ ^ n → 𝔇.Ob
 𝔇ℝ'[ cs ] = 𝔇-ip.ΠF λ i → 𝔇ℝ[ 1 , cs i ]
 
-𝔇ℝ'-cons : (cs : Reg↓ ^ suc m) → 𝔇ℝ'[ cs ] ≅ (𝔇ℝ[ 1 , head cs ] ⊗ 𝔇ℝ'[ tail cs ])
-𝔇ℝ'-cons {m = zero}  cs = ρ≅
-𝔇ℝ'-cons {m = suc m} cs = id-iso
-
-𝔇ℝ'-⊗
-  : (cs : Reg↓ ^ m) (cs' : Reg↓ ^ n)
-  → (𝔇ℝ'[ cs ] ⊗ 𝔇ℝ'[ cs' ]) ≅ 𝔇ℝ'[ cs ++ cs' ]
-𝔇ℝ'-⊗ {m = zero} cs cs' =
-  λ≅ Iso⁻¹ ∙Iso path→iso (ap 𝔇ℝ'[_] (++-split 0 (cs ++ cs')))
-𝔇ℝ'-⊗ {m = suc m} cs cs' =
-  𝔇ℝ'[ cs ] ⊗ 𝔇ℝ'[ cs' ]                          ≅⟨ F-map-iso (Bifunctor.Left -⊗- 𝔇ℝ'[ cs' ]) (𝔇ℝ'-cons cs) ∙Iso α≅ ⟩
-  𝔇ℝ[ 1 , head cs ] ⊗ 𝔇ℝ'[ tail cs ] ⊗ 𝔇ℝ'[ cs' ] ≅⟨ F-map-iso (Bifunctor.Right -⊗- 𝔇ℝ[ 1 , head cs ]) (𝔇ℝ'-⊗ (tail cs) cs' ∙Iso path→iso (ap 𝔇ℝ'[_] (sym (++-tail cs cs')))) ⟩
-  𝔇ℝ[ 1 , head cs ] ⊗ 𝔇ℝ'[ tail (cs ++ cs') ]     ≅˘⟨ 𝔇ℝ'-cons (cs ++ cs') ⟩
-  𝔇ℝ'[ cs ++ cs' ]                                ≅∎
-
-top-underlying : top ʻ ⋆ ≃ ℝ ^ 0
-top-underlying .fst = λ _ ()
-top-underlying .snd = is-iso→is-equiv $
-  iso (λ _ → lift tt) (λ _ → ext λ ()) (λ _ → refl)
-
-𝔇ℝ-underlying : ∀ U → 𝔇ℝ[ U ] ʻ ⋆ ≃ ℝ ^ (U .fst)
-𝔇ℝ-underlying U .fst = λ (f , _) → f (make 0r)
-𝔇ℝ-underlying U .snd = is-iso→is-equiv $
-  iso (λ x → ℛ-const x)
-    (λ _ → refl)
-    (λ f → ℛ-hom-path (ext λ _ x → ap (λ y → f .fst y x) (ext λ ())))
-
 𝔇ℝ'-underlying : (cs : Reg↓ ^ n) → 𝔇ℝ'[ cs ] ʻ ⋆ ≃ ℝ ^ n
-𝔇ℝ'-underlying {n = zero}        cs = top-underlying
-𝔇ℝ'-underlying {n = suc zero}    cs = 𝔇ℝ-underlying (1 , cs fzero)
+𝔇ℝ'-underlying {n = zero}        cs = ℛ-underlying
+𝔇ℝ'-underlying {n = suc zero}    cs = ℛ-underlying
 𝔇ℝ'-underlying {n = suc (suc n)} cs =
-  Σ-ap (𝔇ℝ-underlying (1 , cs fzero)) (λ _ → 𝔇ℝ'-underlying (cs ⊙ fsuc)) ∙e
+  Σ-ap ℛ-underlying (λ _ → 𝔇ℝ'-underlying (cs ⊙ fsuc)) ∙e
   vec-prod-sum
 
 𝔇ℝ→𝔇ℝ'-underlying
   : ∀ U (cs : Reg↓ ^ n) → (𝔇ℝ[ U ] ʻ ⋆ → 𝔇ℝ'[ cs ] ʻ ⋆) ≃ (ℝ ^ (U .fst) → ℝ ^ n)
-𝔇ℝ→𝔇ℝ'-underlying U cs = →-ap (𝔇ℝ-underlying U) (𝔇ℝ'-underlying cs)
+𝔇ℝ→𝔇ℝ'-underlying U cs = →-ap ℛ-underlying (𝔇ℝ'-underlying cs)
 
-⟨⟩-sec→𝔇ℝ'-section : ∀ {U} {cs : Reg↓ ^ n} → ∫ₚ (⟨ cs ⟩-sec U) → 𝔇ℝ'[ cs ] ʻ U
-⟨⟩-sec→𝔇ℝ'-section {n = zero} (f , Hf)     = lift tt
-⟨⟩-sec→𝔇ℝ'-section {n = suc zero} (f , Hf) =
-  π'[ fzero ] ⊙ f , case Hf of λ Hf' → Hf' fzero
-⟨⟩-sec→𝔇ℝ'-section {n = suc (suc n)} (f , Hf) =
-  (π'[ fzero ] ⊙ f , case Hf of λ Hf' → Hf' fzero) ,
-  ⟨⟩-sec→𝔇ℝ'-section {n = suc n}
-    ((λ x → f x ⊙ fsuc) , case Hf of λ Hf' → inc (Hf' ⊙ fsuc))
 
-𝔇ℝ'-section→⟨⟩-sec : ∀ {U} {cs : Reg↓ ^ n} → 𝔇ℝ'[ cs ] ʻ U → ∫ₚ (⟨ cs ⟩-sec U)
-𝔇ℝ'-section→⟨⟩-sec {n = zero} f                         = (λ _ ()) , inc λ ()
-𝔇ℝ'-section→⟨⟩-sec {n = suc zero} {_ , c} {cs} (f , Hf) =
-  f , inc (Fin-cases (subst (_∈ ⟨ c ∣ cs fzero ⟩-reg) (sym (π'1 f)) Hf) λ ())
-𝔇ℝ'-section→⟨⟩-sec {n = suc (suc n)} {_ , c} {cs} ((f , Hf) , Hfs) =
-  let f' , Hf' = 𝔇ℝ'-section→⟨⟩-sec {n = suc n} Hfs in
-  (λ x → f x ++ f' x) , case Hf' of λ Hreg →
-    inc (Fin-cases (subst (_∈ ⟨ c ∣ cs fzero ⟩-reg) (sym (π'1 f)) Hf) Hreg)
+⟨_⟩-sec : Reg↓ ^ n → (U : Nat × Reg↓) → (ℝ ^ (U .fst) → ℝ ^ n) → Type _
+⟨ cs ⟩-sec U g = ∀ i → π'[ i ] ⊙ g ∈ ⟨ U .snd ∣ cs i ⟩-reg
 
-⟨⟩-sec≃𝔇ℝ'-section : ∀ {U} {cs : Reg↓ ^ n} → ∫ₚ (⟨ cs ⟩-sec U) ≃ 𝔇ℝ'[ cs ] ʻ U
-⟨⟩-sec≃𝔇ℝ'-section .fst = ⟨⟩-sec→𝔇ℝ'-section
-⟨⟩-sec≃𝔇ℝ'-section .snd = is-iso→is-equiv $ iso 𝔇ℝ'-section→⟨⟩-sec rinv linv where
-  rinv : ∀ {n} {cs : Reg↓ ^ n} → is-right-inverse (𝔇ℝ'-section→⟨⟩-sec {cs = cs}) ⟨⟩-sec→𝔇ℝ'-section
-  rinv {zero} (lift tt)       = refl
-  rinv {suc zero} f           = ℛ-hom-path (π'1 (f .fst))
-  rinv {suc (suc n)} (f , fs) = ℛ-hom-path (π'1 (f .fst)) ,ₚ
-    ap ⟨⟩-sec→𝔇ℝ'-section (ext λ _ _ → refl) ∙ rinv {suc n} fs
-  linv : ∀ {n} {cs : Reg↓ ^ n} → is-left-inverse (𝔇ℝ'-section→⟨⟩-sec {cs = cs}) ⟨⟩-sec→𝔇ℝ'-section
-  linv {zero} _                    = ext λ _ ()
-  linv {suc zero} (f , Hf)         = ext λ _ _ → π'1 f $ₚ _ $ₚ _
-  linv {suc (suc n)} {cs} (f , Hf) = ext λ x i →
-    let p = linv {suc n} {cs ⊙ fsuc}
-          $ (λ x → f x ⊙ fsuc) , case Hf of λ Hf' → inc (Hf' ⊙ fsuc)
-    in
-    ap (λ l → (π'[ fzero ] ⊙ f) x ++ l x $ i) (ap fst p) ∙
-    ++-singleton $ₚ i ∙ ∷-head-tail (f x) $ₚ i
+⟨_∥_⟩-reg : Reg↓ ^ m → Reg↓ ^ n → (ℝ ^ m → ℝ ^ n) → Type _
+⟨_∥_⟩-reg {m} {n} cs cs' f =
+  {U : Nat × Reg↓} (g : ℝ ^ (U .fst) → ℝ ^ m)
+  → g ∈ ⟨ cs ⟩-sec U → f ⊙ g ∈ ⟨ cs' ⟩-sec U
 
-⟨⟩-sec≃𝔇ℝ'-conc-section
-  : ∀ {U} {cs : Reg↓ ^ n}
-  → ∫ₚ (⟨ cs ⟩-sec U) ≃ ∫ₚ (is-conc-section ℛ-conc {U = U} 𝔇ℝ'[ cs ])
-⟨⟩-sec≃𝔇ℝ'-conc-section {cs = cs} =
-  ⟨⟩-sec≃𝔇ℝ'-section ∙e conc-section≃section ℛ-conc {A = 𝔇ℝ'[ cs ]} e⁻¹
+∈-sec→conc-section
+  : ∀ {U} {cs : Reg↓ ^ n} (f : ℝ ^ U .fst → ℝ ^ n)
+  → f ∈ ⟨ cs ⟩-sec U
+  → is-conc-section ℛ-conc 𝔇ℝ'[ cs ] (Equiv.from (𝔇ℝ→𝔇ℝ'-underlying U cs) f)
+∈-sec→conc-section {zero} f Hf = ℛ⊤.! , ext λ _ _ → ℛ-hom-path (ext λ _ ())
+∈-sec→conc-section {suc zero} {U} {cs} f Hf =
+  (π'[ fzero ] ⊙ f , Hf fzero) , ext λ g _ →
+    ℛ-hom-path (ext λ _ → Fin-cases (ap (λ z → f (g z) _) (ext λ ())) (λ ()))
+∈-sec→conc-section {suc (suc n)} {U} {cs} f Hf =
+  let f' , Hf' = ∈-sec→conc-section (λ x → f x ⊙ fsuc) (Hf ⊙ fsuc)
+  in  ((π'[ fzero ] ⊙ f , Hf fzero) , f') , ext λ g Hg →
+    ℛ-hom-path (ext λ _ → Fin-cases (ap (λ z → f (g z) _) (ext λ ())) (λ ())) ,ₚ
+    ap (Equiv.from (𝔇ℝ'-underlying (tail cs))) (transport-refl _) ∙ Hf' $ₚ (g , Hg)
 
-sec≃𝔇ℝ'-pres-dom
-  : ∀ {U} {cs : Reg↓ ^ n}
-  → Equiv.from (𝔇ℝ→𝔇ℝ'-underlying U cs) ⊙ fst ≡ fst ⊙ Equiv.to ⟨⟩-sec≃𝔇ℝ'-conc-section
-sec≃𝔇ℝ'-pres-dom {zero}     = refl
-sec≃𝔇ℝ'-pres-dom {suc zero} = ext λ f _ g _ → ℛ-hom-path
-  $ ext λ _ → Fin-cases (ap (λ x → f (g x) _) (ext λ ())) λ ()
-sec≃𝔇ℝ'-pres-dom {suc (suc n)} {U} {cs} = ext λ f Hf g Hg →
-  ℛ-hom-path (ext λ _ → Fin-cases (ap (λ x → f (g x) _) (ext λ ())) λ ()) ,ₚ
-  ap (λ z → 𝔇ℝ'-underlying (cs ⊙ fsuc) .snd .is-eqv z .centre .fst) (transport-refl _)
-  ∙ sec≃𝔇ℝ'-pres-dom {suc n} {U} {cs ⊙ fsuc}
-    $ₚ ((λ x → f x ⊙ fsuc) , case Hf of λ Hf' → inc (Hf' ⊙ fsuc)) $ₚ (g , Hg)
+conc-section→∈-sec
+  : ∀ {U} {cs : Reg↓ ^ n} (f : 𝔇ℝ[ U ] ʻ ⋆ → 𝔇ℝ'[ cs ] ʻ ⋆)
+  → is-conc-section ℛ-conc 𝔇ℝ'[ cs ] f
+  → Equiv.to (𝔇ℝ→𝔇ℝ'-underlying U cs) f ∈ ⟨ cs ⟩-sec U
+conc-section→∈-sec {zero} f _                            = λ ()
+conc-section→∈-sec {suc zero} {U} {cs} f ((g , Hg) , Hf) =
+  let Hf'  = ap ((π'[ fzero ] ⊙_) ⊙ Equiv.to (𝔇ℝ→𝔇ℝ'-underlying U cs)) Hf ∙
+             ext λ _ → Fin-cases refl λ ()
+      Hsec = subst (_∈ ⟨ U .snd ∣ cs fzero ⟩-reg) (sym Hf') Hg
+  in Fin-cases Hsec λ ()
+conc-section→∈-sec {suc (suc n)} {U} {cs} f (((g₁ , Hg₁) , g₂) , Hf) =
+  let Hf' = ap (λ z → π'[ fzero ] ⊙ Equiv.to (𝔇ℝ→𝔇ℝ'-underlying U cs) z) Hf ∙
+            ext λ _ → Fin-cases refl λ () 
+      Hsec₁ = subst (λ x → ∣ ⟨ U .snd ∣ cs fzero ⟩-reg x ∣) (sym Hf') Hg₁
+      Hsec₂ = conc-section→∈-sec (snd ⊙ f) (g₂ , ap (snd ⊙_) Hf)
+  in
+  Fin-cases Hsec₁ Hsec₂
 
 ∈-sec≃conc-section
   : ∀ {U} {cs : Reg↓ ^ n}
@@ -240,15 +184,14 @@ sec≃𝔇ℝ'-pres-dom {suc (suc n)} {U} {cs} = ext λ f Hf g Hg →
 ∈-sec≃conc-section {U = U} {cs = cs} =
   prop-over-ext (𝔇ℝ→𝔇ℝ'-underlying _ cs e⁻¹)
     (hlevel 1) (λ {b} → is-conc-section-prop ℛ-conc 𝔇ℝ'[ cs ] b)
-    (λ f Hf →
-      subst (is-conc-section ℛ-conc 𝔇ℝ'[ cs ]) (sym sec≃𝔇ℝ'-pres-dom $ₚ (f , Hf))
-      $ Equiv.to ⟨⟩-sec≃𝔇ℝ'-conc-section (f , Hf) .snd)
-    (λ f Hf →
-      let pres-dom' = swizzle-equiv (𝔇ℝ→𝔇ℝ'-underlying U cs)
-            ⟨⟩-sec≃𝔇ℝ'-conc-section fst fst sec≃𝔇ℝ'-pres-dom
-      in
-      subst (_∈ ⟨ cs ⟩-sec _) (sym pres-dom' $ₚ (f , Hf))
-      $ Equiv.from ⟨⟩-sec≃𝔇ℝ'-conc-section (f , Hf) .snd)
+    ∈-sec→conc-section
+    conc-section→∈-sec
+
+⟨⟩-sec≃𝔇ℝ'-section
+  : ∀ {U} {cs : Reg↓ ^ n}
+  → ∫ₚ (⟨ cs ⟩-sec U) ≃ ∫ₚ (is-conc-section ℛ-conc {U = U} 𝔇ℝ'[ cs ])
+⟨⟩-sec≃𝔇ℝ'-section {U = U} {cs} =
+  Σ-ap (𝔇ℝ→𝔇ℝ'-underlying U cs e⁻¹) λ _ → ∈-sec≃conc-section _ _ refl
 
 ⟨∥⟩-reg≃Hom
   : {cs : Reg↓ ^ m} {cs' : Reg↓ ^ n}
@@ -257,11 +200,9 @@ sec≃𝔇ℝ'-pres-dom {suc (suc n)} {U} {cs} = ext λ f Hf g Hg →
   eqv'' ∙e Iso→Equiv (eqv {A = 𝔇ℝ'[ cs ]} {𝔇ℝ'[ cs' ]}) e⁻¹ ∙e Conc-hom≃Hom ℛ-conc
   where
     unquoteDecl eqv = declare-record-iso eqv (quote Conc-hom)
-    eqv' = →-ap (𝔇ℝ'-underlying _ e⁻¹) (𝔇ℝ'-underlying _ e⁻¹)
-    eqv'' = Σ-ap eqv' λ f → Π'-ap-cod λ x →
-      Π-ap-dom (𝔇ℝ→𝔇ℝ'-underlying x cs) ∙e
-      Π-ap-cod λ g → →-ap
-        (∈-sec≃conc-section _ _ (Equiv.η (𝔇ℝ→𝔇ℝ'-underlying x cs) _))
-        (∈-sec≃conc-section _ _
-          (funext λ z → ap (Equiv.to eqv' f ⊙ g)
-            (ℛ-hom-path (ext λ _ i → ap (λ y → z .fst y i) (ext λ ())))))
+    eqv'  = →-ap (𝔇ℝ'-underlying _ e⁻¹) (𝔇ℝ'-underlying _ e⁻¹)
+    eqv'' = Σ-ap eqv' λ f → Π'-ap-cod λ U → curry≃ e⁻¹ ∙e
+      Π-ap-dom ((⟨⟩-sec≃𝔇ℝ'-section ∙e conc-section≃section ℛ-conc (𝔇ℝ'[ cs ])) e⁻¹) ∙e
+      Π-ap-cod λ g → ∈-sec≃conc-section _ _ $ funext λ z →
+        ap (Equiv.to eqv' f ⊙ conc-section ℛ-conc (𝔇ℝ'[ cs ] .fst) g)
+           (ℛ-hom-path (ext λ _ i → ap (λ y → z .fst y i) (ext λ ())))

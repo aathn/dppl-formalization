@@ -18,13 +18,17 @@ open import Cat.Cartesian
 open import Cat.Diagram.Exponential
 open import Cat.Diagram.Product.Finite
 open import Cat.Diagram.Product.Indexed
+open import Cat.Functor.Base
 open import Cat.Functor.Naturality
+open import Cat.Monoidal.Base
+open import Cat.Monoidal.Instances.Cartesian
 open import Data.Fin.Base hiding (_≤_)
-open import Data.List.Base hiding (_++_)
+open import Data.List.Base hiding (_++_ ; head ; tail)
 open import Data.Power hiding (_∪_ ; _∩_)
 open import Data.Sum using (_⊎_)
 open import Order.Base
 open import Order.Lattice
+import Cat.Functor.Bifunctor as Bifunctor
 import Cat.Reasoning as Cr
 
 open Reals R using (ℝ)
@@ -43,6 +47,7 @@ record is-DPPL-model {o ℓ} (𝔇 : Precategory o ℓ) : Type (o ⊔ ℓ) where
 
   open Cartesian-category 𝔇-cartesian public
   open Cartesian-closed   𝔇-closed public renaming ([_,_] to infixr 4 _⇒_)
+  open Monoidal-category (Cartesian-monoidal 𝔇-cartesian)
   open ProdIso 𝔇-cartesian public
 
   module 𝔇-ip {n} (F : Fin n → Ob) =
@@ -51,7 +56,7 @@ record is-DPPL-model {o ℓ} (𝔇 : Precategory o ℓ) : Type (o ⊔ ℓ) where
   field
     □⟨_⟩        : Coeff → Functor 𝔇 𝔇
     □-pres-top  : □⟨ c ⟩ .F₀ top ≅ top
-    □-pres-prod : ∀ X Y → □⟨ c ⟩ .F₀ (X ⊗₀ Y) ≅ (□⟨ c ⟩ .F₀ X ⊗₀ □⟨ c ⟩ .F₀ Y)
+    □-pres-prod : ∀ X Y → □⟨ c ⟩ .F₀ (X ⊗ Y) ≅ (□⟨ c ⟩ .F₀ X ⊗ □⟨ c ⟩ .F₀ Y)
     □-≤         : c ≤ c' → □⟨ c ⟩ => □⟨ c' ⟩
     □-comult    : □⟨ c ⟩ F∘ □⟨ c' ⟩ ≅ⁿ □⟨ c ∩ c' ⟩
     □⟨A⟩-Id     : □⟨ A↓ ⟩ ≅ⁿ Id
@@ -63,10 +68,7 @@ record is-DPPL-model {o ℓ} (𝔇 : Precategory o ℓ) : Type (o ⊔ ℓ) where
   𝔇ℝ'[ cs ] = 𝔇-ip.ΠF λ i → 𝔇ℝ[ 1 , cs i ]
 
   field
-    𝔇ℝ'-⊗
-      : (cs : Coeff ^ n) (cs' : Coeff ^ m)
-      → (𝔇ℝ'[ cs ] ⊗₀ 𝔇ℝ'[ cs' ]) ≅ 𝔇ℝ'[ cs ++ cs' ]
-
+    𝔇-sub : c ≤ c' → Hom 𝔇ℝ[ n , c ] 𝔇ℝ[ n , c' ]
     𝔇-real : ℝ → ∀ {c} → Hom top 𝔇ℝ[ c ]
     𝔇-prim
       : {cs : Reg↓ ^ PrimAr ϕ} → PrimTy ϕ ≡ (cs , c)
@@ -74,17 +76,16 @@ record is-DPPL-model {o ℓ} (𝔇 : Precategory o ℓ) : Type (o ⊔ ℓ) where
     𝔇-cond
       : (cs : Coeff ^ n) (_ : ∀ i → P↓ ≤ cs i)
       → Hom 𝔇ℝ'[ make {n = 1} P↓ ++ (cs ++ cs) ] 𝔇ℝ'[ cs ]
-    𝔇-sub : c ≤ c' → Hom 𝔇ℝ[ n , c ] 𝔇ℝ[ n , c' ]
     𝔇-diff
       : ∀ n m → c ≡ A↓ ⊎ c ≡ P↓ → Hom
-        (□⟨ P↓ ⟩ .F₀ (𝔇ℝ'[ make {n = n} c ] ⇒ 𝔇ℝ'[ make {n = m} c ]) ⊗₀ 𝔇ℝ'[ make {n = n} c ])
+        (□⟨ P↓ ⟩ .F₀ (𝔇ℝ'[ make {n = n} c ] ⇒ 𝔇ℝ'[ make {n = m} c ]) ⊗ 𝔇ℝ'[ make {n = n} c ])
         (𝔇ℝ'[ make {n = n} A↓ ] ⇒ 𝔇ℝ'[ make {n = m} A↓ ])
     𝔇-solve
       : ∀ n → c ≡ A↓ ⊎ c ≡ C↓ → Hom
-        (□⟨ C↓ ⟩ .F₀ (𝔇ℝ[ 1 , c ] ⊗₀ 𝔇ℝ'[ make {n = n} A↓ ] ⇒ 𝔇ℝ'[ make {n = n} A↓ ])
-         ⊗₀ (𝔇ℝ[ 1 , c ] ⊗₀ 𝔇ℝ'[ make {n = n} A↓ ])
-         ⊗₀ 𝔇ℝ[ 1 , c ∩ PC↓ ])
-        (𝔇ℝ[ 1 , A↓ ] ⊗₀ 𝔇ℝ'[ make {n = n} A↓ ])
+        (□⟨ C↓ ⟩ .F₀ (𝔇ℝ[ 1 , c ] ⊗ 𝔇ℝ'[ make {n = n} A↓ ] ⇒ 𝔇ℝ'[ make {n = n} A↓ ])
+         ⊗ (𝔇ℝ[ 1 , c ] ⊗ 𝔇ℝ'[ make {n = n} A↓ ])
+         ⊗ 𝔇ℝ[ 1 , c ∩ PC↓ ])
+        (𝔇ℝ[ 1 , A↓ ] ⊗ 𝔇ℝ'[ make {n = n} A↓ ])
 
   □-pres-ip
     : ∀ (F : Fin n → Ob) → □⟨ c ⟩ .F₀ (𝔇-ip.ΠF F) ≅ 𝔇-ip.ΠF λ i → □⟨ c ⟩ .F₀ (F i)
@@ -93,8 +94,24 @@ record is-DPPL-model {o ℓ} (𝔇 : Precategory o ℓ) : Type (o ⊔ ℓ) where
   □-pres-ip {n = suc (suc n)} {c = c} F = □-pres-prod (F fzero) (𝔇-ip.ΠF (F ⊙ fsuc))
     ∙Iso (id-iso {□⟨ c ⟩ .F₀ (F fzero)} ⊗Iso □-pres-ip (F ⊙ fsuc))
 
+  𝔇ℝ'-cons : (cs : Reg↓ ^ suc m) → 𝔇ℝ'[ cs ] ≅ (𝔇ℝ[ 1 , head cs ] ⊗ 𝔇ℝ'[ tail cs ])
+  𝔇ℝ'-cons {m = zero}  cs = ρ≅
+  𝔇ℝ'-cons {m = suc m} cs = id-iso
+
+  𝔇ℝ'-⊗
+    : (cs : Reg↓ ^ m) (cs' : Reg↓ ^ n)
+    → (𝔇ℝ'[ cs ] ⊗ 𝔇ℝ'[ cs' ]) ≅ 𝔇ℝ'[ cs ++ cs' ]
+  𝔇ℝ'-⊗ {m = zero} cs cs' =
+    λ≅ Iso⁻¹ ∙Iso path→iso (ap 𝔇ℝ'[_] (++-split 0 (cs ++ cs')))
+  𝔇ℝ'-⊗ {m = suc m} cs cs' =
+    𝔇ℝ'[ cs ] ⊗ 𝔇ℝ'[ cs' ]                          ≅⟨ F-map-iso (Bifunctor.Left -⊗- 𝔇ℝ'[ cs' ]) (𝔇ℝ'-cons cs) ∙Iso α≅ ⟩
+    𝔇ℝ[ 1 , head cs ] ⊗ 𝔇ℝ'[ tail cs ] ⊗ 𝔇ℝ'[ cs' ] ≅⟨ F-map-iso (Bifunctor.Right -⊗- 𝔇ℝ[ 1 , head cs ]) (𝔇ℝ'-⊗ (tail cs) cs' ∙Iso path→iso (ap 𝔇ℝ'[_] (sym (++-tail cs cs')))) ⟩
+    𝔇ℝ[ 1 , head cs ] ⊗ 𝔇ℝ'[ tail (cs ++ cs') ]     ≅˘⟨ 𝔇ℝ'-cons (cs ++ cs') ⟩
+    𝔇ℝ'[ cs ++ cs' ]                                ≅∎
+
+
 DPPL-model : ∀ o ℓ → Type (lsuc (o ⊔ ℓ))
-DPPL-model o ℓ = Σ (Precategory o ℓ) is-DPPL-model 
+DPPL-model o ℓ = Σ (Precategory o ℓ) is-DPPL-model
 
 module Denotations {o} (model : DPPL-model o o) where
   open is-DPPL-model (model .snd)
@@ -131,8 +148,8 @@ module Denotations {o} (model : DPPL-model o o) where
   ∩ᵗ-is-□ (T ⇒[ _ , det ] T₁) = isoⁿ→iso □-comult (Ty-denot T ⇒ Ty-denot T₁)
   ∩ᵗ-is-□ (ttup n Ts)         =
     □-pres-ip (λ i → Ty-denot (Ts i)) ∙Iso ΠIso (λ i → ∩ᵗ-is-□ (Ts i))
-  ∩ᵗ-is-□ (tdist _)           = □-pres-top
-  ∩ᵗ-is-□ (_ ⇒[ _ , rnd ] _)  = □-pres-top
+  ∩ᵗ-is-□ (tdist _)          = □-pres-top
+  ∩ᵗ-is-□ (_ ⇒[ _ , rnd ] _) = □-pres-top
 
   raw-env-≤-□
     : {l : RawEnv Ty} → is-nubbed l → (∀ {x} → raw-sub (x ∷ []) l → x .snd ≤ᵗ c)

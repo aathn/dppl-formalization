@@ -73,13 +73,10 @@ module _ (Ax : DenotAssumptions) where
     ; □⟨A⟩-Id     = □⟨A⟩-Id
     ; 𝔇ℝ[_]       = 𝔇ℝ[_]
     ; □-𝔇ℝ        = super-iso→sub-iso _ (adjunct-hom-iso-into μ⊣ν _)
-    ; 𝔇ℝ'-⊗       = 𝔇ℝ'-⊗
-    ; 𝔇-real      = λ r {x} →
-      _∘_ {x = top} {Conc-よ₀ ℛ-conc ⋆} {𝔇ℝ[ x ]}
-      (よ₁ ℛ (ℛ-const (make r))) (よ⋆-is-terminal ℛ-conc top .centre)
-    ; 𝔇-prim  = λ Hϕ → Equiv.to ⟨∥⟩-reg≃Hom (Prim-denot _ , Prim-reg Hϕ)
-    ; 𝔇-cond  = λ cs H≤ → Equiv.to ⟨∥⟩-reg≃Hom (cond-denot , cond-reg cs H≤)
-    ; 𝔇-sub   = λ H≤ → よ₁ ℛ (ℛ-id≤ H≤)
-    ; 𝔇-diff  = diff-denot
-    ; 𝔇-solve = solve-denot
+    ; 𝔇-real      = λ r → よ₁ ℛ (ℛ-const (make r))
+    ; 𝔇-prim      = λ Hϕ → Equiv.to ⟨∥⟩-reg≃Hom (Prim-denot _ , Prim-reg Hϕ)
+    ; 𝔇-cond      = λ cs H≤ → Equiv.to ⟨∥⟩-reg≃Hom (cond-denot , cond-reg cs H≤)
+    ; 𝔇-sub       = λ H≤ → よ₁ ℛ (ℛ-id≤ H≤)
+    ; 𝔇-diff      = diff-denot
+    ; 𝔇-solve     = solve-denot
     }
