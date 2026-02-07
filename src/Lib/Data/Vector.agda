@@ -117,6 +117,13 @@ updateAt-updateAt {n = suc n} ρ i a b j =
   ... | inl _ rewrite eqₗ Heq = refl
   ... | inr _ rewrite eqᵣ Heq = refl
 
+++-map : (xs : A ^ m) (ys : A ^ n) (f : A → B) → f ∘ (xs ++ ys) ≡ f ∘ xs ++ f ∘ ys
+++-map {m = m} xs ys f = ext go where
+  go : ∀ i → (f ∘ (xs ++ ys)) i ≡ (f ∘ xs ++ f ∘ ys) i
+  go i with split-+ {m} i
+  ... | inl _ = refl
+  ... | inr _ = refl
+
 ++-singleton : {x : A} {xs : A ^ m} → make x ++ xs ≡ x ∷ xs
 ++-singleton = funext $ Fin-cases refl λ _ → refl
 
