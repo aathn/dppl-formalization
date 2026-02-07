@@ -1,14 +1,14 @@
 open import Lib.Algebra.Reals
-import DPPL.Denotations.Site as Site
+open import DPPL.Denotations.Regularity
 
-module DPPL.Denotations.Denotations (R : Reals₀) (Ax : Site.SiteAssumptions R) where
+module DPPL.Denotations.Denotations (R : Reals₀) (Ax : RegAssumptions R) where
 
 open import DPPL.Regularity
 open import DPPL.Syntax R
 open import DPPL.Typing R
 open import DPPL.Denotations.Model R
 open import DPPL.Denotations.Domain R Ax
-open Site.Site R Ax
+open import DPPL.Denotations.Site R Ax
 
 open import Lib.Cat.Concrete
 open import Lib.Data.Vector
@@ -80,3 +80,5 @@ module _ (Ax : DenotAssumptions) where
     ; 𝔇-diff      = diff-denot
     ; 𝔇-solve     = solve-denot
     }
+
+  open Denotations model public

@@ -113,7 +113,7 @@ record is-DPPL-model {o ℓ} (𝔇 : Precategory o ℓ) : Type (o ⊔ ℓ) where
 DPPL-model : ∀ o ℓ → Type (lsuc (o ⊔ ℓ))
 DPPL-model o ℓ = Σ (Precategory o ℓ) is-DPPL-model
 
-module Denotations {o} (model : DPPL-model o o) where
+module Denotations {o} {l} (model : DPPL-model o l) where
   open is-DPPL-model (model .snd)
   open Cr._≅_
 

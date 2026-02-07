@@ -1,9 +1,10 @@
 open import Lib.Algebra.Reals
-import DPPL.Denotations.Site as Site
+open import DPPL.Denotations.Regularity
 
-module DPPL.Denotations.Domain (R : Reals₀) (Ax : Site.SiteAssumptions R) where
+module DPPL.Denotations.Domain (R : Reals₀) (Ax : RegAssumptions R) where
 
 open import DPPL.Regularity
+open import DPPL.Denotations.Site R Ax
 
 open import Lib.Prelude using (swizzle-equiv)
 open import Lib.Cat.Concrete
@@ -30,9 +31,7 @@ import Cat.Reasoning as Cr
 import Cat.Functor.Reasoning as Fr
 
 open Reals R using (ℝ ; 0r)
-
-open Site.Site R Ax
-open Site.SiteAssumptions Ax
+open RegAssumptions Ax
 
 open Reg↓≤ using (_≤_)
 open is-lattice Reg↓-lattice hiding (top)
