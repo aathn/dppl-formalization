@@ -87,13 +87,24 @@ open ℛ⊤ public using () renaming (top to ⋆)
     ⋆-hom-faithful H≡ =
       ℛ-hom-path $ funext (λ z → ap fst (H≡ $ₚ ℛ-const z) $ₚ make 0r)
 
-open Conc-category ℛ-conc public using (ob∣_∣)
+open Conc-category ℛ-conc using (ob∣_∣ ; is-conc-hom ; is-conc-hom-prop)
 
 ℛ-underlying : ∀ {U} → ob∣ U ∣ ≃ ℝ ^ (U .fst)
 ℛ-underlying .fst = λ (f , _) → f (make 0r)
 ℛ-underlying .snd = is-iso→is-equiv $ iso ℛ-const
   (λ _ → refl)
   (λ f → ℛ-hom-path (ext λ _ x → ap (λ y → f .fst y x) (ext λ ())))
+
+ℛ-conc-hom-equiv
+  : ∀ {U V}
+  → is-conc-hom U V ≃[ →-ap ℛ-underlying ℛ-underlying ] (_∈ ⟨ U .snd ∣ V .snd ⟩-reg)
+ℛ-conc-hom-equiv {U} {V} =
+  prop-over-ext (→-ap ℛ-underlying ℛ-underlying)
+    (λ {b} → is-conc-hom-prop _ _ b) (hlevel 1)
+    (λ f ((f' , Hf) , p) →
+      subst (_∈ ⟨ U .snd ∣ V .snd ⟩-reg)
+        (ap (Equiv.to (→-ap ℛ-underlying ℛ-underlying)) (sym p)) Hf)
+    (λ g Hg → (g , Hg) , funext λ x → Equiv.η ℛ-underlying ((g , Hg) ℛ.∘ x))
 
 μ⟨_⟩ : Reg↓ → Functor ℛ ℛ
 μ⟨ c ⟩ .F₀ (m , d) =
