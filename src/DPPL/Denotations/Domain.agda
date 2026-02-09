@@ -141,9 +141,8 @@ open ProdIso 𝔇-cartesian
 ⟨ cs ⟩-sec U g = ∀ i → π'[ i ] ⊙ g ∈ ⟨ U .snd ∣ cs i ⟩-reg
 
 ⟨_∥_⟩-reg : Reg↓ ^ m → Reg↓ ^ n → (ℝ ^ m → ℝ ^ n) → Type _
-⟨_∥_⟩-reg {m} {n} cs cs' f =
-  {U : Nat × Reg↓} (g : ℝ ^ (U .fst) → ℝ ^ m)
-  → g ∈ ⟨ cs ⟩-sec U → f ⊙ g ∈ ⟨ cs' ⟩-sec U
+⟨_∥_⟩-reg cs cs' = is-conc-hom' ℛ-conc ⟨ cs ⟩-sec ⟨ cs' ⟩-sec
+
 
 ∈-sec→conc-section
   : ∀ {U} {cs : Reg↓ ^ n} (f : ℝ ^ U .fst → ℝ ^ n)
@@ -171,7 +170,7 @@ conc-section→∈-sec {suc zero} {U} {cs} f ((g , Hg) , Hf) =
   in Fin-cases Hsec λ ()
 conc-section→∈-sec {suc (suc n)} {U} {cs} f (((g₁ , Hg₁) , g₂) , Hf) =
   let Hf' = ap (λ z → π'[ fzero ] ⊙ Equiv.to (𝔇ℝ→𝔇ℝ'-underlying U cs) z) Hf ∙
-            ext λ _ → Fin-cases refl λ () 
+            ext λ _ → Fin-cases refl λ ()
       Hsec₁ = subst (λ x → ∣ ⟨ U .snd ∣ cs fzero ⟩-reg x ∣) (sym Hf') Hg₁
       Hsec₂ = conc-section→∈-sec (snd ⊙ f) (g₂ , ap (snd ⊙_) Hf)
   in
@@ -179,29 +178,18 @@ conc-section→∈-sec {suc (suc n)} {U} {cs} f (((g₁ , Hg₁) , g₂) , Hf) =
 
 ∈-sec≃conc-section
   : ∀ {U} {cs : Reg↓ ^ n}
-  → (_∈ ⟨ cs ⟩-sec U) ≃[ 𝔇ℝ→𝔇ℝ'-underlying U cs e⁻¹ ] is-conc-section ℛ-conc 𝔇ℝ'[ cs ]
+  → is-conc-section ℛ-conc 𝔇ℝ'[ cs ] ≃[ 𝔇ℝ→𝔇ℝ'-underlying U cs ] ⟨ cs ⟩-sec U
 ∈-sec≃conc-section {U = U} {cs = cs} =
-  prop-over-ext (𝔇ℝ→𝔇ℝ'-underlying _ cs e⁻¹)
-    (hlevel 1) (λ {b} → is-conc-section-prop ℛ-conc 𝔇ℝ'[ cs ] b)
-    ∈-sec→conc-section
+  prop-over-ext (𝔇ℝ→𝔇ℝ'-underlying _ cs)
+    (λ {b} → is-conc-section-prop ℛ-conc 𝔇ℝ'[ cs ] b) (hlevel 1)
     conc-section→∈-sec
+    ∈-sec→conc-section
 
-⟨⟩-sec≃𝔇ℝ'-section
-  : ∀ {U} {cs : Reg↓ ^ n}
-  → ∫ₚ (⟨ cs ⟩-sec U) ≃ ∫ₚ (is-conc-section ℛ-conc {U = U} 𝔇ℝ'[ cs ])
-⟨⟩-sec≃𝔇ℝ'-section {U = U} {cs} =
-  Σ-ap (𝔇ℝ→𝔇ℝ'-underlying U cs e⁻¹) λ _ → ∈-sec≃conc-section _ _ refl
-
-⟨∥⟩-reg≃Hom
+Hom≃⟨∥⟩-reg
   : {cs : Reg↓ ^ m} {cs' : Reg↓ ^ n}
-  → ∫ₚ ⟨ cs ∥ cs' ⟩-reg ≃ Hom 𝔇ℝ'[ cs ] 𝔇ℝ'[ cs' ]
-⟨∥⟩-reg≃Hom {cs = cs} {cs'} =
-  eqv'' ∙e Iso→Equiv (eqv {A = 𝔇ℝ'[ cs ]} {𝔇ℝ'[ cs' ]}) e⁻¹ ∙e Conc-hom≃Hom ℛ-conc
-  where
-    unquoteDecl eqv = declare-record-iso eqv (quote Conc-hom)
-    eqv'  = →-ap (𝔇ℝ'-underlying _ e⁻¹) (𝔇ℝ'-underlying _ e⁻¹)
-    eqv'' = Σ-ap eqv' λ f → Π'-ap-cod λ U → curry≃ e⁻¹ ∙e
-      Π-ap-dom ((⟨⟩-sec≃𝔇ℝ'-section ∙e conc-section≃section ℛ-conc (𝔇ℝ'[ cs ])) e⁻¹) ∙e
-      Π-ap-cod λ g → ∈-sec≃conc-section _ _ $ funext λ z →
-        ap (Equiv.to eqv' f ⊙ conc-section ℛ-conc (𝔇ℝ'[ cs ] .fst) g)
-           (ℛ-hom-path (ext λ _ i → ap (λ y → z .fst y i) (ext λ ())))
+  → Hom 𝔇ℝ'[ cs ] 𝔇ℝ'[ cs' ] ≃ ∫ₚ ⟨ cs ∥ cs' ⟩-reg
+Hom≃⟨∥⟩-reg {cs = cs} {cs'} =
+  Hom≃Conc-hom ℛ-conc ∙e
+  Conc-hom≃Conc-hom' ℛ-conc ℛ-underlying {𝔇ℝ'[ cs ]} {𝔇ℝ'[ cs' ]}
+    (𝔇ℝ'-underlying cs) (𝔇ℝ'-underlying cs')
+    ∈-sec≃conc-section ∈-sec≃conc-section

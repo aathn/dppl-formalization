@@ -46,9 +46,9 @@ record DenotAssumptions : Type where
       → cond-denot ∈ ⟨ make {n = 1} P↓ ++ (cs ++ cs) ∥ cs ⟩-reg
 
     diff-denot
-      : {c : Coeff} (n m : Nat) → c ≡ A↓ ⊎ c ≡ P↓ → Hom
-        (□⟨ P↓ ⟩ .F₀ (𝔇ℝ'[ make {n = n} c ] ⇒ 𝔇ℝ'[ make {n = m} c ]) ⊗₀ 𝔇ℝ'[ make {n = n} c ])
-        (𝔇ℝ'[ make {n = n} A↓ ] ⇒ 𝔇ℝ'[ make {n = m} A↓ ])
+      : {c : Coeff} (m n : Nat) → c ≡ A↓ ⊎ c ≡ P↓ → Hom
+        (□⟨ P↓ ⟩ .F₀ (𝔇ℝ'[ make {n = m} c ] ⇒ 𝔇ℝ'[ make {n = n} c ]) ⊗₀ 𝔇ℝ'[ make {n = m} c ])
+        (𝔇ℝ'[ make {n = m} A↓ ] ⇒ 𝔇ℝ'[ make {n = n} A↓ ])
 
     solve-denot
       : {c : Coeff} (n : Nat) → c ≡ A↓ ⊎ c ≡ C↓ → Hom
@@ -74,8 +74,8 @@ module _ (Ax : DenotAssumptions) where
     ; 𝔇ℝ[_]       = 𝔇ℝ[_]
     ; □-𝔇ℝ        = super-iso→sub-iso _ (adjunct-hom-iso-into μ⊣ν _)
     ; 𝔇-real      = λ r → よ₁ ℛ (ℛ-const (make r))
-    ; 𝔇-prim      = λ Hϕ → Equiv.to ⟨∥⟩-reg≃Hom (Prim-denot _ , Prim-reg Hϕ)
-    ; 𝔇-cond      = λ cs H≤ → Equiv.to ⟨∥⟩-reg≃Hom (cond-denot , cond-reg cs H≤)
+    ; 𝔇-prim      = λ Hϕ → Equiv.from Hom≃⟨∥⟩-reg (Prim-denot _ , Prim-reg Hϕ)
+    ; 𝔇-cond      = λ cs H≤ → Equiv.from Hom≃⟨∥⟩-reg (cond-denot , cond-reg cs H≤)
     ; 𝔇-sub       = λ H≤ → よ₁ ℛ (ℛ-id≤ H≤)
     ; 𝔇-diff      = diff-denot
     ; 𝔇-solve     = solve-denot
