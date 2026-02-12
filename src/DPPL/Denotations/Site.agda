@@ -13,6 +13,7 @@ open import Cat.Prelude
 open import Cat.Diagram.Terminal
 open import Cat.Functor.Adjoint
 open import Cat.Functor.Base
+open import Cat.Functor.FullSubcategory
 open import Cat.Functor.Naturality
 open import Cat.Functor.Properties
 open import Data.Dec.Base
@@ -42,6 +43,7 @@ private
 open Functor
 open _=>_
 open Cr._≅_
+open Cr.Inverses
 
 module _ where
   open Precategory
@@ -87,7 +89,8 @@ open ℛ⊤ public using () renaming (top to ⋆)
     ⋆-hom-faithful H≡ =
       ℛ-hom-path $ funext (λ z → ap fst (H≡ $ₚ ℛ-const z) $ₚ make 0r)
 
-open Conc-category ℛ-conc using (ob∣_∣ ; is-conc-hom ; is-conc-hom-prop)
+open Conc-category ℛ-conc
+  using (ob∣_∣ ; is-conc-hom ; is-conc-hom-prop ; ⋆-hom-faithful)
 
 ℛ-underlying : ∀ {U} → ob∣ U ∣ ≃ ℝ ^ (U .fst)
 ℛ-underlying .fst = λ (f , _) → f (make 0r)
@@ -244,8 +247,39 @@ open Conc-category ℛ-conc using (ob∣_∣ ; is-conc-hom ; is-conc-hom-prop)
        | yes _ ← holds? (c' ≤ A↓) | _ ← ≤→is-yes {c'} A! =
     ℛ.id-comm
 
-μ-pres-top : μ⟨ c ⟩ .F₀ ⋆ ≡ ⋆
-μ-pres-top {c = c} = ifᵈ-yes (holds? (bot ≤ c)) (≤→is-yes ¡)
+ℛ≤ : Reg↓ → Precategory lzero lzero
+ℛ≤ c = Restrict {C = ℛ} ((_≤ c) ⊙ snd)
+
+ℛ≤-conc : ∀ c → Conc-category (ℛ≤ c)
+ℛ≤-conc c .Conc-category.terminal .Terminal.top  = (⋆ , ¡)
+ℛ≤-conc c .Conc-category.terminal .Terminal.has⊤ = ℛ⊤.has⊤ ⊙ fst
+ℛ≤-conc c .Conc-category.⋆-hom-faithful          = ⋆-hom-faithful
+
+ι≤ : ∀ c → Functor (ℛ≤ c) ℛ
+ι≤ c = Forget-full-subcat
+
+ι≤-pres-top : ι≤ c .F₀ (⋆ , ¡) ℛ.≅ ⋆
+ι≤-pres-top = ℛ.id-iso
+
+ι≤-onto-points : ∀ {U} → is-surjective (ι≤ c .F₁ {⋆ , ¡} {U})
+ι≤-onto-points b = inc (b , refl)
+
+μ-pres-lt : μ⟨ c ⟩ F∘ ι≤ c ≅ⁿ ι≤ c
+μ-pres-lt {c} = to-natural-iso ni where
+  ni : make-natural-iso (μ⟨ c ⟩ F∘ ι≤ c) (ι≤ c)
+  ni .make-natural-iso.eta (U , H≤)
+    with yes _ ← holds? (U .snd ≤ c) | _ ← ≤→is-yes H≤ = ℛ.id
+  ni .make-natural-iso.inv (U , H≤) = μ-unit .η _
+  ni .make-natural-iso.eta∘inv (U , H≤)
+    with yes _ ← holds? (U .snd ≤ c) | _ ← ≤→is-yes H≤ = ℛ-hom-path refl
+  ni .make-natural-iso.inv∘eta (U , H≤)
+    with yes _ ← holds? (U .snd ≤ c) | _ ← ≤→is-yes H≤ = ℛ-hom-path refl
+  ni .make-natural-iso.natural (U , HU) (V , HV) f
+    with yes _ ← holds? (U .snd ≤ c) | _ ← ≤→is-yes HU
+       | yes _ ← holds? (V .snd ≤ c) | _ ← ≤→is-yes HV = ℛ-hom-path refl
+
+μ-pres-top : μ⟨ c ⟩ .F₀ ⋆ ℛ.≅ ⋆
+μ-pres-top = isoⁿ→iso μ-pres-lt (⋆ , ¡)
 
 μ-onto-points : ∀ {U} → is-surjective (μ⟨ c ⟩ .F₁ {⋆} {U})
 μ-onto-points {c = c} {n , c'} (f , Hf) with holds? (c' ≤ c)
@@ -268,8 +302,11 @@ open Conc-category ℛ-conc using (ob∣_∣ ; is-conc-hom ; is-conc-hom-prop)
 ν-counit .η X              = ℛ-id≤ ∩≤r
 ν-counit .is-natural _ _ f = ℛ-hom-path refl
 
-ν-pres-top : ν⟨ c ⟩ .F₀ ⋆ ≡ ⋆
-ν-pres-top {c = c} = refl ,ₚ ∩-comm ∙ order→∩ ¡
+ν-pres-top : ν⟨ c ⟩ .F₀ ⋆ ℛ.≅ ⋆
+ν-pres-top .to             = ℛ⊤.!
+ν-pres-top .from           = ℛ-id≤ ¡
+ν-pres-top .inverses .invl = ℛ⊤.!-unique₂ _ _
+ν-pres-top .inverses .invr = ℛ-hom-path (ext λ _ ())
 
 μ-dominates-ν : ν⟨ c ⟩ F∘ μ⟨ c ⟩ ≅ⁿ μ⟨ c ⟩
 μ-dominates-ν {c} = to-natural-iso ni where
