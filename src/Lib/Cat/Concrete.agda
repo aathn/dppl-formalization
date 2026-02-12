@@ -16,6 +16,8 @@ open import Cat.Functor.Compose
 open import Cat.Functor.Hom.Yoneda
 open import Cat.Functor.Properties
 open import Cat.Functor.FullSubcategory
+open import Cat.Monoidal.Base
+open import Cat.Monoidal.Instances.Cartesian
 open import Cat.Instances.Presheaf.Limits
 open import Cat.Instances.Presheaf.Exponentials
 open import Cat.Instances.Shape.Two
@@ -240,11 +242,11 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
     open is-product
     open Product
     open Terminal
-  
+
     よ⋆-is-terminal : is-terminal (ConcPSh ℓ Conc) (Conc-よ₀ ⋆)
     よ⋆-is-terminal X =
       contr→is-terminal-PSh ℓ C (よ₀ ⋆) ⦃ basic-instance 0 (⋆-is-terminal _) ⦄ (X .fst)
-  
+
     ConcPSh-terminal : Terminal (ConcPSh ℓ Conc)
     ConcPSh-terminal .top  = Conc-よ₀ ⋆
     ConcPSh-terminal .has⊤ = よ⋆-is-terminal
@@ -252,7 +254,7 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
     ConcPSh-products : has-products (ConcPSh ℓ Conc)
     ConcPSh-products (A , aconc) (B , bconc) = prod where
       prod' = PSh-products _ C A B
-  
+
       prod : Product (ConcPSh ℓ Conc) _ _
       prod .apex .fst = prod' .apex
       prod .apex .snd = is-concrete-limit
@@ -265,53 +267,52 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
       prod .has-is-product .π₁∘⟨⟩  = prod' .π₁∘⟨⟩
       prod .has-is-product .π₂∘⟨⟩  = prod' .π₂∘⟨⟩
       prod .has-is-product .unique = prod' .unique
-  
+
     ConcPSh-cartesian : Cartesian-category (ConcPSh ℓ Conc)
     ConcPSh-cartesian .terminal = ConcPSh-terminal
     ConcPSh-cartesian .products = ConcPSh-products
 
-  module _ where
-    open Cartesian-category ConcPSh-cartesian hiding (!-unique₂)
+  open Cartesian-category ConcPSh-cartesian hiding (!-unique₂)
 
-    -- Note: It holds definitionally that
-    --      top ʻ ⋆ ≡ ob∣ ⋆ ∣
-    -- (A ⊗₀ B) ʻ ⋆ ≡ A ʻ ⋆ × B ʻ ⋆
+  -- Note: It holds definitionally that
+  --      top ʻ ⋆ ≡ ob∣ ⋆ ∣
+  -- (A ⊗₀ B) ʻ ⋆ ≡ A ʻ ⋆ × B ʻ ⋆
 
-    ⊗-sec-equiv
-      : ∀ {U} {A B : CPSh.Ob} (f : ob∣ U ∣ → A ʻ ⋆ × B ʻ ⋆)
-      → is-conc-section (A ⊗₀ B) f ≃ (is-conc-section A (fst ⊙ f) × is-conc-section B (snd ⊙ f))
-    ⊗-sec-equiv f .fst = λ ((au , bu) , Hf) → (au , ap (fst ⊙_) Hf) , (bu , ap (snd ⊙_) Hf)
-    ⊗-sec-equiv f .snd = is-iso→is-equiv $
-      iso (λ ((au , Hfl) , (bu , Hfr)) → (au , bu) , funext λ _ → Hfl $ₚ _ ,ₚ Hfr $ₚ _)
-        (λ _ → (refl ,ₚ prop!) ,ₚ (refl ,ₚ prop!))
-        (λ _ → refl ,ₚ prop!)
+  ⊗-sec-equiv
+    : ∀ {U} {A B : CPSh.Ob} (f : ob∣ U ∣ → A ʻ ⋆ × B ʻ ⋆)
+    → is-conc-section (A ⊗₀ B) f ≃ (is-conc-section A (fst ⊙ f) × is-conc-section B (snd ⊙ f))
+  ⊗-sec-equiv f .fst = λ ((au , bu) , Hf) → (au , ap (fst ⊙_) Hf) , (bu , ap (snd ⊙_) Hf)
+  ⊗-sec-equiv f .snd = is-iso→is-equiv $
+    iso (λ ((au , Hfl) , (bu , Hfr)) → (au , bu) , funext λ _ → Hfl $ₚ _ ,ₚ Hfr $ₚ _)
+      (λ _ → (refl ,ₚ prop!) ,ₚ (refl ,ₚ prop!))
+      (λ _ → refl ,ₚ prop!)
 
-    private
-      module ip {n} (F : Fin n → CPSh.Ob) =
-        Indexed-product
-          (Cartesian→standard-finite-products ConcPSh-terminal ConcPSh-products F)
+  private
+    module ip {n} (F : Fin n → CPSh.Ob) =
+      Indexed-product
+        (Cartesian→standard-finite-products ConcPSh-terminal ConcPSh-products F)
 
-    Π-underlying : ∀ {n} (F : Fin n → CPSh.Ob) → ip.ΠF F ʻ ⋆ ≃ ∀ i → F i ʻ ⋆
-    Π-underlying {zero} F = is-contr→≃ (⋆-is-terminal ⋆) (Π-dom-empty-is-contr λ ())
-    Π-underlying {suc zero} F =
-      Σ-contr-snd (λ _ → Π-dom-empty-is-contr λ ()) e⁻¹ ∙e Fin-suc-Π e⁻¹
-    Π-underlying {suc (suc n)} F =
-      Σ-ap-snd (λ _ → Π-underlying (F ⊙ fsuc)) ∙e Fin-suc-Π e⁻¹
+  Π-underlying : ∀ {n} (F : Fin n → CPSh.Ob) → ip.ΠF F ʻ ⋆ ≃ ∀ i → F i ʻ ⋆
+  Π-underlying {zero} F = is-contr→≃ (⋆-is-terminal ⋆) (Π-dom-empty-is-contr λ ())
+  Π-underlying {suc zero} F =
+    Σ-contr-snd (λ _ → Π-dom-empty-is-contr λ ()) e⁻¹ ∙e Fin-suc-Π e⁻¹
+  Π-underlying {suc (suc n)} F =
+    Σ-ap-snd (λ _ → Π-underlying (F ⊙ fsuc)) ∙e Fin-suc-Π e⁻¹
 
-    Π-sec-equiv
-      : ∀ {n} {U} (F : Fin n → CPSh.Ob)
-      → is-conc-section (ip.ΠF F) {U} ≃[ →-ap id≃ (Π-underlying F) ]
-        (λ f → ∀ i → is-conc-section (F i) (λ x → f x i))
-    Π-sec-equiv {zero} F _ _ _ =
-      Σ-contr-fst (⋆-is-terminal _) ∙e
-      is-contr→≃
-        (is-prop→pathp-is-contr (λ _ → Π-is-hlevel 1 λ _ → !-unique₂) _ _)
-        (Π-dom-empty-is-contr λ ())
-    Π-sec-equiv {suc zero} F = over-left→over (→-ap id≃ (Π-underlying F)) λ f →
-      Σ-contr-snd (λ _ → Π-dom-empty-is-contr λ ()) e⁻¹ ∙e Fin-suc-Π e⁻¹
-    Π-sec-equiv {suc (suc n)} F = over-left→over (→-ap id≃ (Π-underlying F)) λ f →
-      ⊗-sec-equiv {A = F fzero} {ip.ΠF (F ⊙ fsuc)} f ∙e
-      Σ-ap-snd (λ _ → Π-sec-equiv (F ⊙ fsuc) _ _ refl) ∙e Fin-suc-Π e⁻¹
+  Π-sec-equiv
+    : ∀ {n} {U} (F : Fin n → CPSh.Ob)
+    → is-conc-section (ip.ΠF F) {U} ≃[ →-ap id≃ (Π-underlying F) ]
+      (λ f → ∀ i → is-conc-section (F i) (λ x → f x i))
+  Π-sec-equiv {zero} F _ _ _ =
+    Σ-contr-fst (⋆-is-terminal _) ∙e
+    is-contr→≃
+      (is-prop→pathp-is-contr (λ _ → Π-is-hlevel 1 λ _ → !-unique₂) _ _)
+      (Π-dom-empty-is-contr λ ())
+  Π-sec-equiv {suc zero} F = over-left→over (→-ap id≃ (Π-underlying F)) λ f →
+    Σ-contr-snd (λ _ → Π-dom-empty-is-contr λ ()) e⁻¹ ∙e Fin-suc-Π e⁻¹
+  Π-sec-equiv {suc (suc n)} F = over-left→over (→-ap id≃ (Π-underlying F)) λ f →
+    ⊗-sec-equiv {A = F fzero} {ip.ΠF (F ⊙ fsuc)} f ∙e
+    Σ-ap-snd (λ _ → Π-sec-equiv (F ⊙ fsuc) _ _ refl) ∙e Fin-suc-Π e⁻¹
 
 
   module _ {o' ℓ'} {D : Precategory o' ℓ'} (ConcD : Conc-category D) where
@@ -343,37 +344,73 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
 
 
 module _ {ℓ} {C : Precategory ℓ ℓ} (Conc : Conc-category C) where
-  open Cartesian-closed
-  open Exponential
-  open is-exponential
+  open Conc-category Conc
+  open Hom C
+  open Cr._≅_
 
-  opaque
-    -- Concrete presheaves form an exponential ideal, just like sheaves.
-    -- Morally, this is because if we can distinguish points of B, then we
-    -- can also distinguish maps into B.
-    is-concrete-exponential
-      : (A B : Functor (C ^op) (Sets ℓ))
-      → is-concrete Conc B
-      → is-concrete Conc (PSh[_,_] C A B)
-    is-concrete-exponential A B bconc {x = x} {y} p =
-      ext λ V f au → bconc $ ext λ g →
-        B ⟪ g ⟫ x .η V (f , au)            ≡˘⟨ x .is-natural V _ g $ₚ (f , au) ⟩
-        _                                  ≡˘⟨ ap (λ fg → x .η _ (fg , _)) (idr _) ⟩
-        x .η _ ((f ∘ g) ∘ id , A ⟪ g ⟫ au) ≡⟨ (p $ₚ (f ∘ g) ηₚ _) $ₚ (id , A ⟪ g ⟫ au) ⟩
-        y .η _ ((f ∘ g) ∘ id , A ⟪ g ⟫ au) ≡⟨ ap (λ fg → y .η _ (fg , _)) (idr _) ⟩
-        _                                  ≡⟨ y .is-natural V _ g $ₚ (f , au) ⟩
-        B ⟪ g ⟫ y .η V (f , au)            ∎
-      where open Precategory C
+  private
+    module C = Cr C
+    module CPSh = Cr (ConcPSh ℓ Conc)
 
-  ConcPSh-closed : Cartesian-closed (ConcPSh ℓ Conc) (ConcPSh-cartesian Conc)
-  ConcPSh-closed .has-exp (A , _) (B , bconc) = exp where
-    exp' = PSh-closed C .has-exp A B
+  module _ where
+    open Cartesian-closed
+    open Exponential
+    open is-exponential
 
-    exp : Exponential (ConcPSh ℓ Conc) _ _ _
-    exp .B^A .fst             = exp' .B^A
-    exp .B^A .snd             = is-concrete-exponential A B bconc
-    exp .ev                   = exp' .ev
-    exp .has-is-exp .ƛ        = exp' .ƛ
-    exp .has-is-exp .commutes = exp' .commutes
-    exp .has-is-exp .unique   = exp' .unique
+    opaque
+      -- Concrete presheaves form an exponential ideal, just like sheaves.
+      -- Morally, this is because if we can distinguish points of B, then we
+      -- can also distinguish maps into B.
+      is-concrete-exponential
+        : (A B : Functor (C ^op) (Sets ℓ))
+        → is-concrete Conc B
+        → is-concrete Conc (PSh[_,_] C A B)
+      is-concrete-exponential A B bconc {x = x} {y} p =
+        ext λ V f au → bconc $ ext λ g →
+          B ⟪ g ⟫ x .η V (f , au)            ≡˘⟨ x .is-natural V _ g $ₚ (f , au) ⟩
+          _                                  ≡˘⟨ ap (λ fg → x .η _ (fg , _)) (idr _) ⟩
+          x .η _ ((f ∘ g) ∘ id , A ⟪ g ⟫ au) ≡⟨ (p $ₚ (f ∘ g) ηₚ _) $ₚ (id , A ⟪ g ⟫ au) ⟩
+          y .η _ ((f ∘ g) ∘ id , A ⟪ g ⟫ au) ≡⟨ ap (λ fg → y .η _ (fg , _)) (idr _) ⟩
+          _                                  ≡⟨ y .is-natural V _ g $ₚ (f , au) ⟩
+          B ⟪ g ⟫ y .η V (f , au)            ∎
+        where open Precategory C
 
+    ConcPSh-closed : Cartesian-closed (ConcPSh ℓ Conc) (ConcPSh-cartesian Conc)
+    ConcPSh-closed .has-exp (A , _) (B , bconc) = exp where
+      exp' = PSh-closed C .has-exp A B
+
+      exp : Exponential (ConcPSh ℓ Conc) _ _ _
+      exp .B^A .fst             = exp' .B^A
+      exp .B^A .snd             = is-concrete-exponential A B bconc
+      exp .ev                   = exp' .ev
+      exp .has-is-exp .ƛ        = exp' .ƛ
+      exp .has-is-exp .commutes = exp' .commutes
+      exp .has-is-exp .unique   = exp' .unique
+
+  open Monoidal-category (Cartesian-monoidal (ConcPSh-cartesian Conc))
+  open Cartesian-closed ConcPSh-closed
+
+  ⇒-underlying : {A B : CPSh.Ob} → [ A , B ] ʻ ⋆ ≃ CPSh.Hom A B
+  ⇒-underlying {A} {B} = _∘nt λ→ {A} ,
+    CPSh.invertible-precomp-equiv {A} {Unit ⊗ A} {B} (CPSh.iso→invertible λ≅)
+
+  open Cpsh-hom
+
+  ⇒-sec-equiv
+    : ∀ {U} (A B : CPSh.Ob)
+    → is-conc-section Conc [ A , B ] {U} ≃[ →-ap id≃ (⇒-underlying {A} {B} ∙e Hom≃Cpsh-hom Conc {A = A} {B}) ]
+      is-cpsh-hom Conc (Conc-よ₀ Conc U ⊗ A) B ⊙ uncurry ⊙ (to ⊙_)
+  ⇒-sec-equiv {U} A B = prop-over-ext
+    (→-ap id≃ (⇒-underlying {A} {B} ∙e Hom≃Cpsh-hom Conc))
+    (λ {b} → is-conc-section-prop Conc [ A , B ] b)
+    (λ {b} → is-cpsh-hom-prop Conc (Conc-よ₀ Conc U ⊗ A) B (uncurry (to ⊙ b)))
+    (λ f (abu , p) {V} (uv , av) → abu .η _ (uv , av) , ext λ v →
+      ap (λ f → f (uv C.∘ v) .η ⋆ _) p ∙
+      ap (λ g → abu .η ⋆ g) (C.elimr (!-unique₂ _ _) ,ₚ refl) ∙
+      abu .is-natural _ _ _ $ₚ _)
+    (λ f Hf → Cpsh-hom→Hom Conc {A = Conc-よ₀ Conc U ⊗ A} {B}
+      (conc-hom (uncurry (to ⊙ f)) λ au → Hf au) ,
+      ext λ u V x av → B .snd $ ext λ z →
+        sym (f u .is-hom av .snd) $ₚ z ∙
+        ap (λ u → f u .to _) (C.insertr (!-unique₂ _ _)) ∙
+        Hf (u C.∘ x , av) .snd $ₚ z)
