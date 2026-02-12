@@ -3,7 +3,7 @@ open import DPPL.Denotations.Regularity
 
 module DPPL.Denotations.Domain (R : Reals₀) (Ax : RegAssumptions R) where
 
-open import DPPL.Regularity
+open import DPPL.Regularity hiding (A)
 open import DPPL.Denotations.Site R Ax
 
 open import Lib.Prelude using (swizzle-equiv)
@@ -163,3 +163,12 @@ open ProdIso 𝔇-cartesian
   Cpsh-hom≃Cpsh-hom' ℛ-conc ℛ-underlying {𝔇ℝ'[ cs ]} {𝔇ℝ'[ cs' ]}
     (𝔇ℝ'-underlying cs) (𝔇ℝ'-underlying cs')
     𝔇ℝ'-sec-equiv 𝔇ℝ'-sec-equiv
+
+□-underlying : {A : 𝔇.Ob} → (□⟨ c ⟩ .F₀ A) ʻ ⋆ ≃ A ʻ ⋆
+□-underlying {A = A} = path→equiv (ap (A ʻ_) μ-pres-top)
+
+-- □-sec-equiv
+--   : ∀ {U} (A : 𝔇.Ob)
+--   → is-conc-section ℛ-conc (□⟨ c ⟩ .F₀ A) {U} ≃[ →-ap id≃ (□-underlying {A = A}) ]
+--     is-conc-section ℛ-conc A {μ⟨ c ⟩ .F₀ U} ⊙ {!!}
+-- □-sec-equiv = {!!}
