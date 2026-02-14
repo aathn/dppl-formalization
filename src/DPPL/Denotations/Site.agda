@@ -13,10 +13,13 @@ open import Cat.Prelude
 open import Cat.Diagram.Terminal
 open import Cat.Functor.Adjoint
 open import Cat.Functor.Base
+open import Cat.Functor.Constant
 open import Cat.Functor.FullSubcategory
 open import Cat.Functor.Naturality
 open import Cat.Functor.Properties
 open import Data.Dec.Base
+open import Data.Fin.Base hiding (_≤_)
+open import Data.Sum.Base
 open import Order.Base
 open import Order.Lattice
 import Cat.Reasoning as Cr
@@ -264,8 +267,8 @@ open Conc-category ℛ-conc
 ι≤-onto-points : ∀ {U} → is-surjective (ι≤ c .F₁ {⋆ , ¡} {U})
 ι≤-onto-points b = inc (b , refl)
 
-μ-pres-lt : μ⟨ c ⟩ F∘ ι≤ c ≅ⁿ ι≤ c
-μ-pres-lt {c} = to-natural-iso ni where
+μ-pres-ι≤ : μ⟨ c ⟩ F∘ ι≤ c ≅ⁿ ι≤ c
+μ-pres-ι≤ {c} = to-natural-iso ni where
   ni : make-natural-iso (μ⟨ c ⟩ F∘ ι≤ c) (ι≤ c)
   ni .make-natural-iso.eta (U , H≤)
     with yes _ ← holds? (U .snd ≤ c) | _ ← ≤→is-yes H≤ = ℛ.id
@@ -279,7 +282,7 @@ open Conc-category ℛ-conc
        | yes _ ← holds? (V .snd ≤ c) | _ ← ≤→is-yes HV = ℛ-hom-path refl
 
 μ-pres-top : μ⟨ c ⟩ .F₀ ⋆ ℛ.≅ ⋆
-μ-pres-top = isoⁿ→iso μ-pres-lt (⋆ , ¡)
+μ-pres-top = isoⁿ→iso μ-pres-ι≤ (⋆ , ¡)
 
 μ-onto-points : ∀ {U} → is-surjective (μ⟨ c ⟩ .F₁ {⋆} {U})
 μ-onto-points {c = c} {n , c'} (f , Hf) with holds? (c' ≤ c)
@@ -287,6 +290,42 @@ open Conc-category ℛ-conc
 ... | yes _ with yes _ ← holds? (bot ≤ c)  | _ ← ≤→is-yes (¡ {c})
             with yes _ ← holds? (bot ≤ c') | _ ← ≤→is-yes (¡ {c'}) =
   inc ((f , Hf) , refl)
+
+ℛ≰ : Reg↓ → Precategory lzero lzero
+ℛ≰ c = Restrict {C = ℛ} λ U → U ℛ.≅ ⋆ ⊎ ¬ U .snd ≤ c
+
+-- TODO : Extract these proofs to someplace more general
+ℛ≰-conc : ∀ c → Conc-category (ℛ≰ c)
+ℛ≰-conc c .Conc-category.terminal .Terminal.top  = (⋆ , inl ℛ.id-iso)
+ℛ≰-conc c .Conc-category.terminal .Terminal.has⊤ = ℛ⊤.has⊤ ⊙ fst
+ℛ≰-conc c .Conc-category.⋆-hom-faithful          = ⋆-hom-faithful
+
+ι≰ : ∀ c → Functor (ℛ≰ c) ℛ
+ι≰ c = Forget-full-subcat
+
+ι≰-pres-top : ι≰ c .F₀ (⋆ , inl ℛ.id-iso) ℛ.≅ ⋆
+ι≰-pres-top = ℛ.id-iso
+
+ι≰-onto-points : ∀ {U} → is-surjective (ι≰ c .F₁ {⋆ , inl ℛ.id-iso} {U})
+ι≰-onto-points b = inc (b , refl)
+
+Const⋆-onto-points : ∀ {U} → is-surjective (Const {C = ℛ≰ c} {ℛ} ⋆ .F₁ {⋆ , inl ℛ.id-iso} {U})
+Const⋆-onto-points b = inc (ℛ-const (make 0r) , ℛ-hom-path (ext λ _ ()))
+
+μ-erases-ι≰ : μ⟨ c ⟩ F∘ ι≰ c ≅ⁿ Const ⋆
+μ-erases-ι≰ {c} = to-natural-iso ni where
+  ni : make-natural-iso (μ⟨ c ⟩ F∘ ι≰ c) (Const ⋆)
+  ni .make-natural-iso.eta _           = ℛ⊤.!
+  ni .make-natural-iso.inv (U , inl p) = μ-unit .η U ℛ.∘ p .from
+  ni .make-natural-iso.inv (U , inr H≰)
+    with no _ ← holds? (U .snd ≤ c) | _ ← ≰→is-no H≰ = ℛ.id
+  ni .make-natural-iso.eta∘inv _                     = ℛ⊤.!-unique₂ _ _
+  ni .make-natural-iso.inv∘eta (U , inl p) =
+    is-contr→is-prop (is-terminal-iso ℛ ⋆≅μU ℛ⊤.has⊤ _) _ _
+    where ⋆≅μU = (F-map-iso μ⟨ c ⟩ p ℛ.∙Iso μ-pres-top {c}) ℛ.Iso⁻¹
+  ni .make-natural-iso.inv∘eta (U , inr H≰)
+    with no _ ← holds? (U .snd ≤ c) | _ ← ≰→is-no H≰ = ℛ⊤.!-unique₂ _ _
+  ni .make-natural-iso.natural (U , HU) (V , HV) _   = ℛ⊤.!-unique₂ _ _
 
 ν⟨_⟩ : Reg↓ → Functor ℛ ℛ
 ν⟨ c ⟩ .F₀ (n , x)                  = n , c ∩ x

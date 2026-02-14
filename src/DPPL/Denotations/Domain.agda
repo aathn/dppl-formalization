@@ -20,6 +20,7 @@ open import Cat.Diagram.Product.Indexed
 open import Cat.Functor.Adjoint.Hom
 open import Cat.Functor.Base
 open import Cat.Functor.Coherence
+open import Cat.Functor.Constant
 open import Cat.Functor.FullSubcategory
 open import Cat.Functor.Hom
 open import Cat.Functor.Naturality
@@ -27,6 +28,7 @@ open import Cat.Instances.Sets
 open import Data.Fin.Base hiding (_≤_)
 open import Data.Fin.Properties
 open import Data.Power hiding (_∪_ ; _∩_)
+open import Data.Sum.Base
 open import Order.Base
 open import Order.Lattice
 import Cat.Reasoning as Cr
@@ -82,6 +84,17 @@ open ProdIso 𝔇-cartesian
 ι≤' c = conc-dir-image ℛ-conc (ℛ≤-conc c) (ι≤ c)
   (ι≤-pres-top {c}) (λ {U} → ι≤-onto-points {c} {U})
 
+𝔇≰ : Reg↓ → Precategory _ _
+𝔇≰ c = ConcPSh lzero (ℛ≰-conc c)
+
+ι≰' : ∀ c → Functor 𝔇 (𝔇≰ c)
+ι≰' c = conc-dir-image ℛ-conc (ℛ≰-conc c) (ι≰ c)
+  (ι≰-pres-top {c}) (λ {U} → ι≰-onto-points {c} {U})
+
+Const⋆' : ∀ c → Functor 𝔇 (𝔇≰ c)
+Const⋆' c = conc-dir-image ℛ-conc (ℛ≰-conc c) (Const ⋆)
+  ℛ.id-iso (λ {U} → Const⋆-onto-points {c} {U})
+
 □-counit : □⟨ c ⟩ => Id
 □-counit = λ where
   .η X              → nat-idr-op-to (X .fst ▸ opⁿ μ-unit)
@@ -114,16 +127,27 @@ open ProdIso 𝔇-cartesian
   .invl → ext λ F _ _ → Fr.annihilate (F .fst) (μ⟨A⟩-Id .inverses .invl ηₚ _) $ₚ _
   .invr → ext λ F _ _ → Fr.annihilate (F .fst) (μ⟨A⟩-Id .inverses .invr ηₚ _) $ₚ _
 
-□-pres-lt : ι≤' c F∘ □⟨ c ⟩ ≅ⁿ ι≤' c
-□-pres-lt {c} .to = λ where
-  .η X → nat-assoc-from (X .fst ▸ op-compose-from (opⁿ (μ-pres-lt {c} .from)))
+□-pres-ι≤' : ι≤' c F∘ □⟨ c ⟩ ≅ⁿ ι≤' c
+□-pres-ι≤' {c} .to = λ where
+  .η X → nat-assoc-from (X .fst ▸ op-compose-from (opⁿ (μ-pres-ι≤ {c} .from)))
   .is-natural _ _ f → Nat-path λ _ → sym $ f .is-natural _ _ _
-□-pres-lt {c} .from = λ where
-  .η X → nat-assoc-to (X .fst ▸ op-compose-into (opⁿ (μ-pres-lt {c} .to)))
+□-pres-ι≤' {c} .from = λ where
+  .η X → nat-assoc-to (X .fst ▸ op-compose-into (opⁿ (μ-pres-ι≤ {c} .to)))
   .is-natural _ _ f → Nat-path λ _ → sym $ f .is-natural _ _ _
-□-pres-lt .inverses = λ where
-  .invl → ext λ F _ _ → Fr.annihilate (F .fst) (μ-pres-lt .inverses .invl ηₚ _) $ₚ _
-  .invr → ext λ F _ _ → Fr.annihilate (F .fst) (μ-pres-lt .inverses .invr ηₚ _) $ₚ _
+□-pres-ι≤' .inverses = λ where
+  .invl → ext λ F _ _ → Fr.annihilate (F .fst) (μ-pres-ι≤ .inverses .invl ηₚ _) $ₚ _
+  .invr → ext λ F _ _ → Fr.annihilate (F .fst) (μ-pres-ι≤ .inverses .invr ηₚ _) $ₚ _
+
+□-erases-ι≰' : ι≰' c F∘ □⟨ c ⟩ ≅ⁿ Const⋆' c
+□-erases-ι≰' {c} .to = λ where
+  .η X → nat-assoc-from (X .fst ▸ op-compose-from (opⁿ (μ-erases-ι≰ {c} .from)))
+  .is-natural _ _ f → Nat-path λ _ → sym $ f .is-natural _ _ _
+□-erases-ι≰' {c} .from = λ where
+  .η X → nat-assoc-to (X .fst ▸ op-compose-into (opⁿ (μ-erases-ι≰ {c} .to)))
+  .is-natural _ _ f → Nat-path λ _ → sym $ f .is-natural _ _ _
+□-erases-ι≰' .inverses = λ where
+  .invl → ext λ F i _ → Fr.annihilate (F .fst) (μ-erases-ι≰ .inverses .invl ηₚ i) $ₚ _
+  .invr → ext λ F i _ → Fr.annihilate (F .fst) (μ-erases-ι≰ .inverses .invr ηₚ i) $ₚ _
 
 □-pres-top : □⟨ c ⟩ .F₀ top ≅ top
 □-pres-top = super-iso→sub-iso _
@@ -184,11 +208,8 @@ open ProdIso 𝔇-cartesian
     𝔇ℝ'-sec-equiv 𝔇ℝ'-sec-equiv
 
 □-underlying : {A : 𝔇.Ob} → (□⟨ c ⟩ .F₀ A) ʻ ⋆ ≃ A ʻ ⋆
-□-underlying {c} {A} = iso→equiv $ F-map-iso (A .fst) λ where
-  .to             → μ-pres-top .from
-  .from           → μ-pres-top .to
-  .inverses .invl → μ-pres-top .inverses .invl
-  .inverses .invr → μ-pres-top .inverses .invr
+□-underlying {c} {A} =
+  iso→equiv $ isoⁿ→iso (sub-iso→super-iso _ $ isoⁿ→iso (□-pres-ι≤' {c}) A) (⋆ , ¡)
 
 □-sec-equiv≤
   : ∀ {U} (A : 𝔇.Ob)
@@ -198,16 +219,29 @@ open ProdIso 𝔇-cartesian
 □-sec-equiv≤ {c} {U} A H≤ = prop-over-ext (→-ap id≃ (□-underlying {A = A}))
   (λ {b} → is-conc-section-prop ℛ-conc (□⟨ c ⟩ .F₀ A) b)
   (λ {b} → is-conc-section-prop ℛ-conc A b)
-  (λ f (au , Hf) → □-pres-lt {c} .to .η A .η (U , H≤) au ,
-    ap (Equiv.to (→-ap id≃ (□-underlying {A = A}))) Hf ∙
-    ext λ g Hg → □-pres-lt {c} .to .η A .is-natural (U , H≤) (⋆ , ¡) (g , Hg) $ₚ au)
-  (λ f (au , Hf) → □-pres-lt {c} .from .η A .η (U , H≤) au ,
-    ap (Equiv.from (→-ap id≃ (□-underlying {A = A}))) Hf ∙
-    ext λ g Hg → □-pres-lt {c} .from .η A .is-natural _ _ (g , Hg) $ₚ au)
+  (λ f (au , Hf) → □-pres-ι≤' {c} .to .η A .η (U , H≤) au ,
+    ap (Equiv.to (→-ap id≃ (□-underlying {A = A}))) Hf ∙ ext λ g Hg →
+    □-pres-ι≤' {c} .to .η A .is-natural (U , H≤) (⋆ , ¡) (g , Hg) $ₚ au)
+  (λ f (au , Hf) → □-pres-ι≤' {c} .from .η A .η (U , H≤) au ,
+    ap (Equiv.from (→-ap id≃ (□-underlying {A = A}))) Hf ∙ ext λ g Hg →
+    □-pres-ι≤' {c} .from .η A .is-natural _ _ (g , Hg) $ₚ au)
 
--- □-sec-equiv≰
---   : ∀ {U} (A : 𝔇.Ob)
---   → ¬ U .snd ≤ c
---   → is-conc-section ℛ-conc (□⟨ c ⟩ .F₀ A) {U} ≃[ →-ap id≃ (□-underlying {A = A}) ]
---     λ f → Σ[ x ∈ A ʻ ⋆ ] f ≡ λ _ → x
--- □-sec-equiv≰ = {!!}
+□-sec-equiv≰
+  : ∀ {U} (A : 𝔇.Ob)
+  → ¬ U .snd ≤ c
+  → is-conc-section ℛ-conc (□⟨ c ⟩ .F₀ A) {U} ≃[ →-ap id≃ (□-underlying {A = A}) ]
+    λ f → Σ[ x ∈ A ʻ ⋆ ] f ≡ λ _ → x
+□-sec-equiv≰ {c} {U} A H≰ = prop-over-ext (→-ap id≃ (□-underlying {A = A}))
+  (λ {b} → is-conc-section-prop ℛ-conc (□⟨ c ⟩ .F₀ A) b)
+  (λ {b} x y → (sym (x .snd) ∙ y .snd) $ₚ ℛ-const (make 0r) ,ₚ prop!)
+  (λ f (au , Hf) → □-erases-ι≰' {c} .to .η A .η (U , inr H≰) au ,
+    ap (Equiv.to (→-ap id≃ (□-underlying {A = A}))) Hf ∙ ext λ g Hg →
+      sym (A .fst .F-∘ _ _) $ₚ au ∙
+      ap (λ z → A .fst .F₁ z au)
+        (ℛ-hom-path $ ap fst $ sym $
+          μ-erases-ι≰ {c} .from .is-natural (⋆ , inl ℛ.id-iso) (U , inr H≰) _))
+  (λ f (x , Hf) → □-erases-ι≰' {c} .from .η A .η (U , inr H≰) x ,
+    ap (Equiv.from (→-ap id≃ (□-underlying {A = A}))) Hf ∙ ext λ g Hg →
+    ap (λ z → A .fst .F₁ z x) (ℛ⊤.!-unique₂ _ _) ∙
+    A .fst .F-∘ _ _ $ₚ x)
+
