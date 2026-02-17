@@ -11,6 +11,7 @@ open import Lib.Cat.Concrete
 open import Lib.Cat.Functor
 open import Lib.Cat.Product
 open import Lib.Data.Vector
+open import Lib.Data.Dec
 
 open import Cat.Prelude
 open import Cat.Cartesian
@@ -27,6 +28,7 @@ open import Cat.Functor.Naturality
 open import Cat.Instances.Sets
 open import Data.Fin.Base hiding (_≤_)
 open import Data.Fin.Properties
+open import Data.Dec.Base
 open import Data.Power hiding (_∪_ ; _∩_)
 open import Data.Sum.Base
 open import Order.Base
@@ -173,7 +175,7 @@ Const⋆' c = conc-dir-image ℛ-conc (ℛ≰-conc c) (Const ⋆)
 𝔇ℝ-underlying = ℛ-underlying
 
 𝔇ℝ-sec-equiv : ∀ {U} →
-  is-conc-section ℛ-conc 𝔇ℝ[ n , c ] {U} ≃[ →-ap ℛ-underlying 𝔇ℝ-underlying ]
+  is-conc-section ℛ-conc 𝔇ℝ[ n , c ] U ≃[ →-ap ℛ-underlying 𝔇ℝ-underlying ]
   (_∈ ⟨ U .snd ∣ c ⟩-reg)
 𝔇ℝ-sec-equiv = over-left→over (→-ap ℛ-underlying 𝔇ℝ-underlying) λ f →
   ℛ-conc-hom-equiv _ _ refl
@@ -189,9 +191,9 @@ Const⋆' c = conc-dir-image ℛ-conc (ℛ≰-conc c) (Const ⋆)
 
 𝔇ℝ'-sec-equiv
   : ∀ {U} {cs : Reg↓ ^ n}
-  → is-conc-section ℛ-conc 𝔇ℝ'[ cs ] {U} ≃[ →-ap 𝔇ℝ-underlying (𝔇ℝ'-underlying cs) ]
+  → is-conc-section ℛ-conc 𝔇ℝ'[ cs ] U ≃[ →-ap ℛ-underlying (𝔇ℝ'-underlying cs) ]
     ⟨ cs ⟩-sec U
-𝔇ℝ'-sec-equiv {cs = cs} = over-left→over (→-ap 𝔇ℝ-underlying (𝔇ℝ'-underlying cs)) λ f →
+𝔇ℝ'-sec-equiv {cs = cs} = over-left→over (→-ap ℛ-underlying (𝔇ℝ'-underlying cs)) λ f →
   Π-sec-equiv ℛ-conc (λ i → 𝔇ℝ[ 1 , cs i ]) _ _ refl ∙e
   Π-ap-cod λ _ → 𝔇ℝ-sec-equiv _ _ $ ext λ _ → Fin-cases refl λ ()
 
@@ -200,12 +202,45 @@ Const⋆' c = conc-dir-image ℛ-conc (ℛ≰-conc c) (Const ⋆)
 
 𝔇ℝ'-hom≃⟨∥⟩-reg
   : {cs : Reg↓ ^ m} {cs' : Reg↓ ^ n}
-  → Hom 𝔇ℝ'[ cs ] 𝔇ℝ'[ cs' ] ≃ ∫ₚ ⟨ cs ∥ cs' ⟩-reg
+  → Cpsh-hom ℛ-conc 𝔇ℝ'[ cs ] 𝔇ℝ'[ cs' ] ≃ ∫ₚ ⟨ cs ∥ cs' ⟩-reg
 𝔇ℝ'-hom≃⟨∥⟩-reg {cs = cs} {cs'} =
-  Hom≃Cpsh-hom ℛ-conc ∙e
   Cpsh-hom≃Cpsh-hom' ℛ-conc ℛ-underlying {𝔇ℝ'[ cs ]} {𝔇ℝ'[ cs' ]}
     (𝔇ℝ'-underlying cs) (𝔇ℝ'-underlying cs')
     𝔇ℝ'-sec-equiv 𝔇ℝ'-sec-equiv
+
+⟨_∥_⟩-hom-sec
+  : (cs : Reg↓ ^ m) (cs' : Reg↓ ^ n) (U : ℛ.Ob)
+  → (ℝ ^ U .fst → ∫ₚ ⟨ cs ∥ cs' ⟩-reg)
+  → Type _
+⟨ cs ∥ cs' ⟩-hom-sec U f =
+  is-cpsh-hom' ℛ-conc
+    (λ V g → fst ⊙ g ∈ ⟨ V .snd ∣ U .snd ⟩-reg × snd ⊙ g ∈ ⟨ cs ⟩-sec V)
+    ⟨ cs' ⟩-sec
+    (uncurry (fst ⊙ f))
+
+𝔇ℝ'⇒𝔇ℝ'-sec-equiv
+  : ∀ {U} {cs : Reg↓ ^ m} {cs' : Reg↓ ^ n}
+  → is-conc-section ℛ-conc (𝔇ℝ'[ cs ] ⇒ 𝔇ℝ'[ cs' ]) U
+    ≃[ →-ap ℛ-underlying (⇒-underlying ℛ-conc ∙e 𝔇ℝ'-hom≃⟨∥⟩-reg) ]
+    ⟨ cs ∥ cs' ⟩-hom-sec U
+𝔇ℝ'⇒𝔇ℝ'-sec-equiv {U = U} {cs} {cs'} f g p =
+  ⇒-sec-equiv ℛ-conc 𝔇ℝ'[ cs ] 𝔇ℝ'[ cs' ] _ _ refl ∙e
+  is-cpsh-hom≃is-cpsh-hom' ℛ-conc ℛ-underlying {𝔇ℝ[ U ] ⊗₀ 𝔇ℝ'[ cs ]} {𝔇ℝ'[ cs' ]}
+    (Σ-ap 𝔇ℝ-underlying λ _ → 𝔇ℝ'-underlying cs) (𝔇ℝ'-underlying cs')
+    (over-left→over (→-ap ℛ-underlying (Σ-ap 𝔇ℝ-underlying λ _ → 𝔇ℝ'-underlying cs)) λ f →
+      ⊗-sec-equiv ℛ-conc {A = 𝔇ℝ[ U ]} {𝔇ℝ'[ cs ]} f ∙e
+      Σ-ap (𝔇ℝ-sec-equiv _ _ refl) λ _ → 𝔇ℝ'-sec-equiv _ _ refl)
+    𝔇ℝ'-sec-equiv
+    (uncurry (to ⊙ Equiv.to (→-ap id≃ (⇒-underlying ℛ-conc {A = 𝔇ℝ'[ cs ]} {𝔇ℝ'[ cs' ]})) f))
+    (uncurry (fst ⊙ g))
+    (q ∙ ap (uncurry ⊙ (fst ⊙_)) p)
+  where
+    open Cpsh-hom
+    q = ext λ x y z → ap
+      (λ w →
+        Equiv.to (→-ap (𝔇ℝ'-underlying cs) (𝔇ℝ'-underlying cs'))
+          (Equiv.to (→-ap ℛ-underlying (⇒-underlying ℛ-conc)) f x .to) w z)
+      Regularity.reduce!
 
 □-underlying : {A : 𝔇.Ob} → (□⟨ c ⟩ .F₀ A) ʻ ⋆ ≃ A ʻ ⋆
 □-underlying {c} {A} =
@@ -214,8 +249,8 @@ Const⋆' c = conc-dir-image ℛ-conc (ℛ≰-conc c) (Const ⋆)
 □-sec-equiv≤
   : ∀ {U} (A : 𝔇.Ob)
   → U .snd ≤ c
-  → is-conc-section ℛ-conc (□⟨ c ⟩ .F₀ A) {U} ≃[ →-ap id≃ (□-underlying {A = A}) ]
-    is-conc-section ℛ-conc A {U}
+  → is-conc-section ℛ-conc (□⟨ c ⟩ .F₀ A) U ≃[ →-ap id≃ (□-underlying {A = A}) ]
+    is-conc-section ℛ-conc A U
 □-sec-equiv≤ {c} {U} A H≤ = prop-over-ext (→-ap id≃ (□-underlying {A = A}))
   (λ {b} → is-conc-section-prop ℛ-conc (□⟨ c ⟩ .F₀ A) b)
   (λ {b} → is-conc-section-prop ℛ-conc A b)
@@ -229,7 +264,7 @@ Const⋆' c = conc-dir-image ℛ-conc (ℛ≰-conc c) (Const ⋆)
 □-sec-equiv≰
   : ∀ {U} (A : 𝔇.Ob)
   → ¬ U .snd ≤ c
-  → is-conc-section ℛ-conc (□⟨ c ⟩ .F₀ A) {U} ≃[ →-ap id≃ (□-underlying {A = A}) ]
+  → is-conc-section ℛ-conc (□⟨ c ⟩ .F₀ A) U ≃[ →-ap id≃ (□-underlying {A = A}) ]
     λ f → Σ[ x ∈ A ʻ ⋆ ] f ≡ λ _ → x
 □-sec-equiv≰ {c} {U} A H≰ = prop-over-ext (→-ap id≃ (□-underlying {A = A}))
   (λ {b} → is-conc-section-prop ℛ-conc (□⟨ c ⟩ .F₀ A) b)
@@ -245,3 +280,26 @@ Const⋆' c = conc-dir-image ℛ-conc (ℛ≰-conc c) (Const ⋆)
     ap (λ z → A .fst .F₁ z x) (ℛ⊤.!-unique₂ _ _) ∙
     A .fst .F-∘ _ _ $ₚ x)
 
+bound-sec
+  : ∀ {O : ℛ.Ob → Type} {A : Type} (c : Reg↓) → ((U : ℛ.Ob) → (O U → A) → Type)
+  → ∀ U → (O U → A) → Type
+bound-sec {A = A} c X U g =
+  ifᵈ holds? (U .snd ≤ c) then X U g else Σ[ b ∈ A ] g ≡ λ _ → b
+
+open Conc-category ℛ-conc using (ob∣_∣)
+
+□-sec-equiv
+  : ∀ {U} {A : 𝔇.Ob} {O : ℛ.Ob → Type} {A' : Type} {P : ∀ U → (O U → A') → Type}
+  → (O≃ : ∀ {U} → ob∣ U ∣ ≃ O U) (A≃ : A ʻ ⋆ ≃ A')
+  → (∀ {U} → is-conc-section ℛ-conc A U ≃[ →-ap O≃ A≃ ] P U)
+  → is-conc-section ℛ-conc (□⟨ c ⟩ .F₀ A) U ≃[ →-ap O≃ (□-underlying {A = A} ∙e A≃) ]
+    bound-sec c P U
+□-sec-equiv {c} {U} {A} O≃ A≃ A-sec≃ =
+  over-left→over (→-ap O≃ (□-underlying {A = A} ∙e A≃)) λ f →
+  case holds? (U .snd ≤ c) of λ where
+  (yes U≤c) →
+    □-sec-equiv≤ A U≤c _ _ refl ∙e A-sec≃ _ _ refl ∙e path→equiv
+      (sym (ifᵈ-yes (holds? (U .snd ≤ c)) (true→is-yes U≤c)))
+  (no  U≰c) →
+    □-sec-equiv≰ A U≰c _ _ refl ∙e Σ-ap A≃ (λ _ → ap-equiv (→-ap O≃ A≃)) ∙e path→equiv
+      (sym (ifᵈ-no (holds? (U .snd ≤ c)) (false→is-no U≰c)))

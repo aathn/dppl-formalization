@@ -16,6 +16,7 @@ open import Order.Base
 open import Order.Lattice
 
 open VecSyntax
+open VectorSyntax using () renaming (_∷_ to _∷ᵛ_)
 open Reg↓≤ renaming (_≤_ to _≤reg_)
 open Eff≤  renaming (_≤_ to _≤eff_)
 open is-lattice Reg↓-lattice
@@ -172,18 +173,19 @@ data _⊢_:[_]_ : TyEnv → Tm → Eff → Ty → Type where
     Γ ⊢ infer ▸ t :[ e ] tdist T
 
   tdiff :
-    {ts : Tm ^ 2}
-    (_ : Γ ⊢ ts ₀ :[ e ] treals n (make c) ⇒[ P↓ , det ] treals m (make c))
-    (_ : Γ ⊢ ts ₁ :[ e ] treals n (make c))
+    {ts : Tm ^ 3}
+    (_ : Γ ⊢ ts ₀ :[ e ] treals m (make c) ⇒[ P↓ , det ] treals n (make c))
+    (_ : Γ ⊢ ts ₁ :[ e ] treals m (make c))
+    (_ : Γ ⊢ ts ₂ :[ e ] treals m (make A↓))
     (_ : c ≡ A↓ ⊎ c ≡ P↓)
-    → ----------------------------------------------------------------------
-    Γ ⊢ diff ▸ ts :[ e ] treals n (make A↓) ⇒[ A↓ , det ] treals m (make A↓)
+    → ---------------------------------------------------------------------
+    Γ ⊢ diff ▸ ts :[ e ] treals n (make A↓)
 
   tsolve :
     {ts : Tm ^ 3}
-    (_ : Γ ⊢ ts ₀ :[ e ] ttup 2 (pair (treal c) (treals n (make A↓))) ⇒[ C↓ , det ] treals n (make A↓))
-    (_ : Γ ⊢ ts ₁ :[ e ] ttup 2 (pair (treal c) (treals n (make A↓))))
+    (_ : Γ ⊢ ts ₀ :[ e ] (treals (1 + n) (c ∷ᵛ make A↓)) ⇒[ C↓ , det ] treals n (make A↓))
+    (_ : Γ ⊢ ts ₁ :[ e ] (treals (1 + n) (c ∷ᵛ make A↓)))
     (_ : Γ ⊢ ts ₂ :[ e ] treal (c ∩ PC↓))
     (_ : c ≡ A↓ ⊎ c ≡ C↓)
     → -----------------------------------------------------------------
-    Γ ⊢ solve ▸ ts :[ e ] ttup 2 (pair (treal A↓) (treals n (make A↓)))
+    Γ ⊢ solve ▸ ts :[ e ] (treals (1 + n) (make A↓))

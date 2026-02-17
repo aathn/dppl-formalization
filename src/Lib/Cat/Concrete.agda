@@ -92,15 +92,15 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
     module C = Cr C
     module CPSh {κ} = Precategory (ConcPSh κ Conc)
 
-  is-conc-section : ∀ {κ} (A : CPSh.Ob {κ}) {U} → (ob∣ U ∣ → A ʻ ⋆) → Type (ℓ ⊔ κ)
-  is-conc-section (A , _) {U} f = Σ[ au ∈ A ʻ U ] f ≡ conc-section Conc A au
+  is-conc-section : ∀ {κ} (A : CPSh.Ob {κ}) U → (ob∣ U ∣ → A ʻ ⋆) → Type (ℓ ⊔ κ)
+  is-conc-section (A , _) U f = Σ[ au ∈ A ʻ U ] f ≡ conc-section Conc A au
 
   is-conc-section-prop
-    : ∀ {κ} (A : CPSh.Ob {κ}) {U} (f : ob∣ U ∣ → A ʻ ⋆) → is-prop (is-conc-section A f)
+    : ∀ {κ} (A : CPSh.Ob {κ}) {U} (f : ob∣ U ∣ → A ʻ ⋆) → is-prop (is-conc-section A U f)
   is-conc-section-prop (A , Aconc) f (au , p) (au' , q) = Aconc (sym p ∙ q) ,ₚ prop!
 
   section≃conc-section
-    : ∀ {κ} (A : CPSh.Ob {κ}) {U} → A ʻ U ≃ ∫ₚ (is-conc-section A {U})
+    : ∀ {κ} (A : CPSh.Ob {κ}) {U} → A ʻ U ≃ ∫ₚ (is-conc-section A U)
   section≃conc-section (A , _) .fst = λ au → conc-section Conc A au , _ , refl
   section≃conc-section (A , _) .snd = is-iso→is-equiv $
     iso (λ (_ , au , _) → au)
@@ -111,7 +111,7 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
   -- which preserve membership in is-conc-section.
   is-cpsh-hom : ∀ {κ} (A B : CPSh.Ob {κ}) → (A ʻ ⋆ → B ʻ ⋆) → Type (o ⊔ ℓ ⊔ κ)
   is-cpsh-hom A B f =
-    ∀ {U : C.Ob} (au : A ʻ U) → is-conc-section B (f ⊙ conc-section Conc (A .fst) au)
+    ∀ {U : C.Ob} (au : A ʻ U) → is-conc-section B U (f ⊙ conc-section Conc (A .fst) au)
 
   record Cpsh-hom {κ} (A B : CPSh.Ob {κ}) : Type (o ⊔ ℓ ⊔ κ) where
     no-eta-equality
@@ -185,27 +185,39 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
   is-cpsh-hom' {O = O} {A} {B} P Q f =
     ∀ {U : C.Ob} (g : O U → A) → P U g → Q U (f ⊙ g)
 
+  opaque
+    is-cpsh-hom≃is-cpsh-hom'
+      : ∀ {κ ℓ'} {O : C.Ob → Type κ} {A' B' : Type κ}
+      → {P : ∀ U → (O U → A') → Type ℓ'} {Q : ∀ U → (O U → B') → Type ℓ'}
+      → (O≃ : ∀ {U} → ob∣ U ∣ ≃ O U) {A B : CPSh.Ob {κ}}
+      → (A≃ : A ʻ ⋆ ≃ A') (B≃ : B ʻ ⋆ ≃ B')
+      → (∀ {U} → is-conc-section A U ≃[ →-ap O≃ A≃ ] P U)
+      → (∀ {U} → is-conc-section B U ≃[ →-ap O≃ B≃ ] Q U)
+      → is-cpsh-hom A B ≃[ →-ap A≃ B≃ ] is-cpsh-hom' P Q
+    is-cpsh-hom≃is-cpsh-hom' O≃ {A} A≃ B≃ Asec≃ Bsec≃ =
+      over-left→over (→-ap A≃ B≃) λ f → Π'-ap-cod λ U →
+        Π-ap-dom (section≃conc-section A e⁻¹) ∙e curry≃ ∙e
+        Π-ap-dom (→-ap O≃ A≃ e⁻¹) ∙e Π-ap-cod λ g →
+        Π-ap-dom (Asec≃ _ g (Equiv.ε (→-ap O≃ A≃) g) e⁻¹) ∙e
+        Π-ap-cod λ Hg → Bsec≃ _ (Equiv.to (→-ap A≃ B≃) f ⊙ g) $ ext λ x →
+          let g-sec : is-conc-section A U (Equiv.from (→-ap O≃ A≃) g)
+              g-sec = Equiv.from (Asec≃ _ g (Equiv.ε (→-ap O≃ A≃) g)) Hg
+          in
+          ap (Equiv.to B≃ ⊙ f) $
+            ap fst (Equiv.ε (section≃conc-section A) (_ , g-sec)) $ₚ Equiv.from O≃ x ∙
+            ap (Equiv.from A≃ ⊙ g) (Equiv.ε O≃ x)
+
   Cpsh-hom≃Cpsh-hom'
     : ∀ {κ ℓ'} {O : C.Ob → Type κ} {A' B' : Type κ}
     → {P : ∀ U → (O U → A') → Type ℓ'} {Q : ∀ U → (O U → B') → Type ℓ'}
     → (O≃ : ∀ {U} → ob∣ U ∣ ≃ O U) {A B : CPSh.Ob {κ}}
     → (A≃ : A ʻ ⋆ ≃ A') (B≃ : B ʻ ⋆ ≃ B')
-    → (∀ {U} → is-conc-section A ≃[ →-ap O≃ A≃ ] P U)
-    → (∀ {U} → is-conc-section B ≃[ →-ap O≃ B≃ ] Q U)
+    → (∀ {U} → is-conc-section A U ≃[ →-ap O≃ A≃ ] P U)
+    → (∀ {U} → is-conc-section B U ≃[ →-ap O≃ B≃ ] Q U)
     → Cpsh-hom A B ≃ ∫ₚ (is-cpsh-hom' P Q)
-  Cpsh-hom≃Cpsh-hom' O≃ {A} A≃ B≃ Asec≃ Bsec≃ =
-    Iso→Equiv Cpsh-hom-record-iso ∙e
-    Σ-ap (→-ap A≃ B≃) λ f → Π'-ap-cod λ U →
-      Π-ap-dom (section≃conc-section A e⁻¹) ∙e curry≃ ∙e
-      Π-ap-dom (→-ap O≃ A≃ e⁻¹) ∙e Π-ap-cod λ g →
-      Π-ap-dom (Asec≃ _ g (Equiv.ε (→-ap O≃ A≃) g) e⁻¹) ∙e
-      Π-ap-cod λ Hg → Bsec≃ _ (Equiv.to (→-ap A≃ B≃) f ⊙ g) $ ext λ x →
-        let g-sec : is-conc-section A (Equiv.from (→-ap O≃ A≃) g)
-            g-sec = Equiv.from (Asec≃ _ g (Equiv.ε (→-ap O≃ A≃) g)) Hg
-        in
-        ap (Equiv.to B≃ ⊙ f) $
-          ap fst (Equiv.ε (section≃conc-section A) (_ , g-sec)) $ₚ Equiv.from O≃ x ∙
-          ap (Equiv.from A≃ ⊙ g) (Equiv.ε O≃ x)
+  Cpsh-hom≃Cpsh-hom' O≃ {A} {B} A≃ B≃ Asec≃ Bsec≃ =
+    Iso→Equiv Cpsh-hom-record-iso ∙e Σ-ap (→-ap A≃ B≃) λ f →
+      is-cpsh-hom≃is-cpsh-hom' O≃ {A} {B} A≃ B≃ Asec≃ Bsec≃ f _ refl
 
 
   -- Representable presheaves are concrete
@@ -280,7 +292,7 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
 
   ⊗-sec-equiv
     : ∀ {U} {A B : CPSh.Ob} (f : ob∣ U ∣ → A ʻ ⋆ × B ʻ ⋆)
-    → is-conc-section (A ⊗₀ B) f ≃ (is-conc-section A (fst ⊙ f) × is-conc-section B (snd ⊙ f))
+    → is-conc-section (A ⊗₀ B) U f ≃ (is-conc-section A U (fst ⊙ f) × is-conc-section B U (snd ⊙ f))
   ⊗-sec-equiv f .fst = λ ((au , bu) , Hf) → (au , ap (fst ⊙_) Hf) , (bu , ap (snd ⊙_) Hf)
   ⊗-sec-equiv f .snd = is-iso→is-equiv $
     iso (λ ((au , Hfl) , (bu , Hfr)) → (au , bu) , funext λ _ → Hfl $ₚ _ ,ₚ Hfr $ₚ _)
@@ -291,28 +303,29 @@ module _ {o ℓ} {C : Precategory o ℓ} (Conc : Conc-category C) where
     module ip {n} (F : Fin n → CPSh.Ob) =
       Indexed-product
         (Cartesian→standard-finite-products ConcPSh-terminal ConcPSh-products F)
-
-  Π-underlying : ∀ {n} (F : Fin n → CPSh.Ob) → ip.ΠF F ʻ ⋆ ≃ ∀ i → F i ʻ ⋆
-  Π-underlying {zero} F = is-contr→≃ (⋆-is-terminal ⋆) (Π-dom-empty-is-contr λ ())
-  Π-underlying {suc zero} F =
-    Σ-contr-snd (λ _ → Π-dom-empty-is-contr λ ()) e⁻¹ ∙e Fin-suc-Π e⁻¹
-  Π-underlying {suc (suc n)} F =
-    Σ-ap-snd (λ _ → Π-underlying (F ⊙ fsuc)) ∙e Fin-suc-Π e⁻¹
-
-  Π-sec-equiv
-    : ∀ {n} {U} (F : Fin n → CPSh.Ob)
-    → is-conc-section (ip.ΠF F) {U} ≃[ →-ap id≃ (Π-underlying F) ]
-      (λ f → ∀ i → is-conc-section (F i) (λ x → f x i))
-  Π-sec-equiv {zero} F _ _ _ =
-    Σ-contr-fst (⋆-is-terminal _) ∙e
-    is-contr→≃
-      (is-prop→pathp-is-contr (λ _ → Π-is-hlevel 1 λ _ → !-unique₂) _ _)
-      (Π-dom-empty-is-contr λ ())
-  Π-sec-equiv {suc zero} F = over-left→over (→-ap id≃ (Π-underlying F)) λ f →
-    Σ-contr-snd (λ _ → Π-dom-empty-is-contr λ ()) e⁻¹ ∙e Fin-suc-Π e⁻¹
-  Π-sec-equiv {suc (suc n)} F = over-left→over (→-ap id≃ (Π-underlying F)) λ f →
-    ⊗-sec-equiv {A = F fzero} {ip.ΠF (F ⊙ fsuc)} f ∙e
-    Σ-ap-snd (λ _ → Π-sec-equiv (F ⊙ fsuc) _ _ refl) ∙e Fin-suc-Π e⁻¹
+  
+  opaque
+    Π-underlying : ∀ {n} (F : Fin n → CPSh.Ob) → ip.ΠF F ʻ ⋆ ≃ ∀ i → F i ʻ ⋆
+    Π-underlying {zero} F = is-contr→≃ (⋆-is-terminal ⋆) (Π-dom-empty-is-contr λ ())
+    Π-underlying {suc zero} F =
+      Σ-contr-snd (λ _ → Π-dom-empty-is-contr λ ()) e⁻¹ ∙e Fin-suc-Π e⁻¹
+    Π-underlying {suc (suc n)} F =
+      Σ-ap-snd (λ _ → Π-underlying (F ⊙ fsuc)) ∙e Fin-suc-Π e⁻¹
+  
+    Π-sec-equiv
+      : ∀ {n} {U} (F : Fin n → CPSh.Ob)
+      → is-conc-section (ip.ΠF F) U ≃[ →-ap id≃ (Π-underlying F) ]
+        (λ f → ∀ i → is-conc-section (F i) U (λ x → f x i))
+    Π-sec-equiv {zero} F _ _ _ =
+      Σ-contr-fst (⋆-is-terminal _) ∙e
+      is-contr→≃
+        (is-prop→pathp-is-contr (λ _ → Π-is-hlevel 1 λ _ → !-unique₂) _ _)
+        (Π-dom-empty-is-contr λ ())
+    Π-sec-equiv {suc zero} F = over-left→over (→-ap id≃ (Π-underlying F)) λ f →
+      Σ-contr-snd (λ _ → Π-dom-empty-is-contr λ ()) e⁻¹ ∙e Fin-suc-Π e⁻¹
+    Π-sec-equiv {suc (suc n)} F = over-left→over (→-ap id≃ (Π-underlying F)) λ f →
+      ⊗-sec-equiv {A = F fzero} {ip.ΠF (F ⊙ fsuc)} f ∙e
+      Σ-ap-snd (λ _ → Π-sec-equiv (F ⊙ fsuc) _ _ refl) ∙e Fin-suc-Π e⁻¹
 
 
   module _ {o' ℓ'} {D : Precategory o' ℓ'} (ConcD : Conc-category D) where
@@ -390,27 +403,29 @@ module _ {ℓ} {C : Precategory ℓ ℓ} (Conc : Conc-category C) where
   open Monoidal-category (Cartesian-monoidal (ConcPSh-cartesian Conc))
   open Cartesian-closed ConcPSh-closed
 
-  ⇒-underlying : {A B : CPSh.Ob} → [ A , B ] ʻ ⋆ ≃ CPSh.Hom A B
-  ⇒-underlying {A} {B} = _∘nt λ→ {A} ,
-    CPSh.invertible-precomp-equiv {A} {Unit ⊗ A} {B} (CPSh.iso→invertible λ≅)
+  opaque
+    ⇒-underlying : {A B : CPSh.Ob} → [ A , B ] ʻ ⋆ ≃ Cpsh-hom Conc A B
+    ⇒-underlying {A} {B} = eqv ∙e Hom≃Cpsh-hom Conc {A = A} {B} where
+      eqv : [ A , B ] ʻ ⋆ ≃ CPSh.Hom A B
+      eqv = _∘nt λ→ {A} ,
+        CPSh.invertible-precomp-equiv {A} {Unit ⊗ A} {B} (CPSh.iso→invertible λ≅)
 
-  open Cpsh-hom
+    open Cpsh-hom
 
-  ⇒-sec-equiv
-    : ∀ {U} (A B : CPSh.Ob)
-    → is-conc-section Conc [ A , B ] {U} ≃[ →-ap id≃ (⇒-underlying {A} {B} ∙e Hom≃Cpsh-hom Conc {A = A} {B}) ]
-      is-cpsh-hom Conc (Conc-よ₀ Conc U ⊗ A) B ⊙ uncurry ⊙ (to ⊙_)
-  ⇒-sec-equiv {U} A B = prop-over-ext
-    (→-ap id≃ (⇒-underlying {A} {B} ∙e Hom≃Cpsh-hom Conc))
-    (λ {b} → is-conc-section-prop Conc [ A , B ] b)
-    (λ {b} → is-cpsh-hom-prop Conc (Conc-よ₀ Conc U ⊗ A) B (uncurry (to ⊙ b)))
-    (λ f (abu , p) {V} (uv , av) → abu .η _ (uv , av) , ext λ v →
-      ap (λ f → f (uv C.∘ v) .η ⋆ _) p ∙
-      ap (λ g → abu .η ⋆ g) (C.elimr (!-unique₂ _ _) ,ₚ refl) ∙
-      abu .is-natural _ _ _ $ₚ _)
-    (λ f Hf → Cpsh-hom→Hom Conc {A = Conc-よ₀ Conc U ⊗ A} {B}
-      (conc-hom (uncurry (to ⊙ f)) λ au → Hf au) ,
-      ext λ u V x av → B .snd $ ext λ z →
-        sym (f u .is-hom av .snd) $ₚ z ∙
-        ap (λ u → f u .to _) (C.insertr (!-unique₂ _ _)) ∙
-        Hf (u C.∘ x , av) .snd $ₚ z)
+    ⇒-sec-equiv
+      : ∀ {U} (A B : CPSh.Ob)
+      → is-conc-section Conc [ A , B ] U ≃[ →-ap id≃ (⇒-underlying {A} {B}) ]
+        is-cpsh-hom Conc (Conc-よ₀ Conc U ⊗ A) B ⊙ uncurry ⊙ (to ⊙_)
+    ⇒-sec-equiv {U} A B = prop-over-ext (→-ap id≃ (⇒-underlying {A} {B}))
+      (λ {b} → is-conc-section-prop Conc [ A , B ] b)
+      (λ {b} → is-cpsh-hom-prop Conc (Conc-よ₀ Conc U ⊗ A) B (uncurry (to ⊙ b)))
+      (λ f (abu , p) {V} (uv , av) → abu .η _ (uv , av) , ext λ v →
+        ap (λ f → f (uv C.∘ v) .η ⋆ _) p ∙
+        ap (λ g → abu .η ⋆ g) (C.elimr (!-unique₂ _ _) ,ₚ refl) ∙
+        abu .is-natural _ _ _ $ₚ _)
+      (λ f Hf → Cpsh-hom→Hom Conc {A = Conc-よ₀ Conc U ⊗ A} {B}
+        (conc-hom (uncurry (to ⊙ f)) λ au → Hf au) ,
+        ext λ u V x av → B .snd $ ext λ z →
+          sym (f u .is-hom av .snd) $ₚ z ∙
+          ap (λ u → f u .to _) (C.insertr (!-unique₂ _ _)) ∙
+          Hf (u C.∘ x , av) .snd $ₚ z)

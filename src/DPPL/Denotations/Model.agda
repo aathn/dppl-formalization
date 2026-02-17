@@ -30,6 +30,7 @@ import Cat.Reasoning as Cr
 
 open Reals R using (ℝ)
 open SyntaxVars
+open VectorSyntax using () renaming (_∷_ to _∷ᵛ_)
 
 open Reg↓≤ using (_≤_)
 open is-lattice Reg↓-lattice hiding (! ; top ; _∪_)
@@ -76,15 +77,15 @@ record is-DPPL-model {o ℓ} (𝔇 : Precategory o ℓ) : Type (o ⊔ ℓ) where
       : (cs : Coeff ^ n) (_ : ∀ i → P↓ ≤ cs i)
       → Hom 𝔇ℝ'[ make {n = 1} P↓ ++ (cs ++ cs) ] 𝔇ℝ'[ cs ]
     𝔇-diff
-      : ∀ n m → c ≡ A↓ ⊎ c ≡ P↓ → Hom
-        (□⟨ P↓ ⟩ .F₀ (𝔇ℝ'[ make {n = n} c ] ⇒ 𝔇ℝ'[ make {n = m} c ]) ⊗₀ 𝔇ℝ'[ make {n = n} c ])
-        (𝔇ℝ'[ make {n = n} A↓ ] ⇒ 𝔇ℝ'[ make {n = m} A↓ ])
+      : ∀ m n → c ≡ A↓ ⊎ c ≡ P↓ → Hom
+        (□⟨ P↓ ⟩ .F₀ (𝔇ℝ'[ make {n = m} c ] ⇒ 𝔇ℝ'[ make {n = n} c ]) ⊗₀ 𝔇ℝ'[ make {n = m} c ] ⊗₀ 𝔇ℝ'[ make {n = m} A↓ ])
+        𝔇ℝ'[ make {n = n} A↓ ]
     𝔇-solve
       : ∀ n → c ≡ A↓ ⊎ c ≡ C↓ → Hom
-        (□⟨ C↓ ⟩ .F₀ (𝔇ℝ[ 1 , c ] ⊗₀ 𝔇ℝ'[ make {n = n} A↓ ] ⇒ 𝔇ℝ'[ make {n = n} A↓ ])
-         ⊗₀ (𝔇ℝ[ 1 , c ] ⊗₀ 𝔇ℝ'[ make {n = n} A↓ ])
+        (□⟨ C↓ ⟩ .F₀ (𝔇ℝ'[ c ∷ᵛ make {n = n} A↓ ] ⇒ 𝔇ℝ'[ make {n = n} A↓ ])
+         ⊗₀ 𝔇ℝ'[ c ∷ᵛ make {n = n} A↓ ]
          ⊗₀ 𝔇ℝ[ 1 , c ∩ PC↓ ])
-        (𝔇ℝ[ 1 , A↓ ] ⊗₀ 𝔇ℝ'[ make {n = n} A↓ ])
+        𝔇ℝ'[ make {n = 1 + n} A↓ ]
 
   □-pres-ip
     : ∀ (F : Fin n → Ob) → □⟨ c ⟩ .F₀ (𝔇-ip.ΠF F) ≅ 𝔇-ip.ΠF λ i → □⟨ c ⟩ .F₀ (F i)
@@ -180,9 +181,9 @@ module Denotations {o} {l} (model : DPPL-model o l) where
     𝔇-cond cs H≤ ∘ if-distr ∘ ⟨ Tm-denot Hty , ⟨ Tm-denot Hty₁ , Tm-denot Hty₂ ⟩ ⟩
     where
       if-distr = 𝔇ℝ'-⊗ (make {n = 1} P↓) (cs ++ cs) .to ∘ id ⊗₁ 𝔇ℝ'-⊗ cs cs .to
-  Tm-denot (tinfer _)                          = !
-  Tm-denot (tdiff {n = n} {m = m} Hty Hty₁ Hc) =
-    □⟨A⟩-Id .from .η _ ∘ 𝔇-diff n m Hc ∘ ⟨ Tm-denot Hty , Tm-denot Hty₁ ⟩
+  Tm-denot (tinfer _)                               = !
+  Tm-denot (tdiff {m = m} {n = n} Hty Hty₁ Hty₂ Hc) =
+    𝔇-diff m n Hc ∘ ⟨ Tm-denot Hty , ⟨ Tm-denot Hty₁ , Tm-denot Hty₂ ⟩ ⟩
   Tm-denot (tsolve {n = n} Hty Hty₁ Hty₂ Hc) =
     𝔇-solve n Hc ∘ ⟨ Tm-denot Hty , ⟨ Tm-denot Hty₁ , Tm-denot Hty₂ ⟩ ⟩
 
