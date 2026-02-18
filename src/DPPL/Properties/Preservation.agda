@@ -14,12 +14,12 @@ open import Lib.Data.Finset
 open import Lib.Data.Vector
 open import Lib.LocallyNameless.Unfinite
 open import Lib.LocallyNameless.BindingSignature
-open import Lib.Syntax.Env
+open import Lib.Syntax.Env hiding (_∷_)
 open import Lib.Syntax.EvalCtx
 open import Lib.Syntax.Substitution
 
 open import Data.Bool.Order using (lift)
-open import Data.Finset.Base
+open import Data.Finset.Base hiding (_∷_)
 open import Data.Fin.Base hiding (_≤_)
 open import Order.Lattice
 
@@ -29,6 +29,7 @@ open EvalVars
 open is-lattice Reg↓-lattice hiding (_∪_)
 open Reg↓≤
 open FinsetSyntax
+open VectorSyntax
 
 ctx-type-inv :
   {E : Tm → Tm}
@@ -59,7 +60,8 @@ ctx-type-inv (ectx {o} {j = j} _) Hty =
     go (tsample Hty)             = Fin-cases (_ , Hty) λ ()
     go (tweight Hty)             = Fin-cases (_ , Hty) λ ()
     go (tinfer Hty)              = Fin-cases (_ , Hty) λ ()
-    go (tdiff Hty Hty₁ Hc)       = Fin-cases (_ , Hty) $ Fin-cases (_ , Hty₁) λ ()
+    go (tdiff Hty Hty₁ Hty₂ Hc)  =
+      Fin-cases (_ , Hty) $ Fin-cases (_ , Hty₁) $ Fin-cases (_ , Hty₂) λ ()
     go (tsolve Hty Hty₁ Hty₂ Hc) =
       Fin-cases (_ , Hty) $ Fin-cases (_ , Hty₁) $ Fin-cases (_ , Hty₂) λ ()
 
@@ -115,16 +117,17 @@ preservation-ctx {t₁ = t₁} {t₂} (ectx {o} {j = j} {ts} _) Ht₁₂ Hty =
     go (tapp Hty Hty₁) =
       Fin-cases (λ Ht → tapp (Ht Hty) Hty₁)
       $ Fin-cases (λ Ht → tapp Hty (Ht Hty₁)) λ ()
-    go (tprim Hϕ Hty)         = Fin-cases (λ Ht → tprim Hϕ (Ht Hty)) λ ()
-    go (ttup Htys)            = λ j Ht → ttup (updateAt-type j Htys (Ht (Htys j)))
-    go (tproj i Hty)          = Fin-cases (λ Ht → tproj i (Ht Hty)) λ ()
-    go (tif Hty Hty₁ Hty₂ H≤) = Fin-cases (λ Ht → tif (Ht Hty) Hty₁ Hty₂ H≤) λ ()
-    go (tsample Hty)          = Fin-cases (λ Ht → tsample (Ht Hty)) λ ()
-    go (tweight Hty)          = Fin-cases (λ Ht → tweight (Ht Hty)) λ ()
-    go (tinfer Hty)           = Fin-cases (λ Ht → tinfer (Ht Hty)) λ ()
-    go (tdiff Hty Hty₁ Hc)    =
-      Fin-cases (λ Ht → tdiff (Ht Hty) Hty₁ Hc)
-      $ Fin-cases (λ Ht → tdiff Hty (Ht Hty₁) Hc) λ ()
+    go (tprim Hϕ Hty)           = Fin-cases (λ Ht → tprim Hϕ (Ht Hty)) λ ()
+    go (ttup Htys)              = λ j Ht → ttup (updateAt-type j Htys (Ht (Htys j)))
+    go (tproj i Hty)            = Fin-cases (λ Ht → tproj i (Ht Hty)) λ ()
+    go (tif Hty Hty₁ Hty₂ H≤)   = Fin-cases (λ Ht → tif (Ht Hty) Hty₁ Hty₂ H≤) λ ()
+    go (tsample Hty)            = Fin-cases (λ Ht → tsample (Ht Hty)) λ ()
+    go (tweight Hty)            = Fin-cases (λ Ht → tweight (Ht Hty)) λ ()
+    go (tinfer Hty)             = Fin-cases (λ Ht → tinfer (Ht Hty)) λ ()
+    go (tdiff Hty Hty₁ Hty₂ Hc) =
+      Fin-cases (λ Ht → tdiff (Ht Hty) Hty₁ Hty₂ Hc)
+      $ Fin-cases (λ Ht → tdiff Hty (Ht Hty₁) Hty₂ Hc)
+      $ Fin-cases (λ Ht → tdiff Hty Hty₁ (Ht Hty₂) Hc) λ ()
     go (tsolve Hty Hty₁ Hty₂ Hc) =
       Fin-cases (λ Ht → tsolve (Ht Hty) Hty₁ Hty₂ Hc)
       $ Fin-cases (λ Ht → tsolve Hty (Ht Hty₁) Hty₂ Hc)
@@ -137,23 +140,24 @@ module _ (Ax : EvalAssumptions) where
   record PresAssumptions : Type where
     field
       DiffPres :
-        {t₀ t₁ : Tm}
-        (_ : Γ ⊢ t₀ :[ e ] treals n (make c) ⇒[ P↓ , det ] treals m (make c))
-        (_ : Γ ⊢ t₁ :[ e ] treals n (make c))
+        {t₀ t₁ t₂ : Tm}
+        (_ : Γ ⊢ t₀ :[ e ] treals m (make c) ⇒[ P↓ , det ] treals n (make c))
+        (_ : Γ ⊢ t₁ :[ e ] treals m (make c))
+        (_ : Γ ⊢ t₂ :[ e ] treals m (make A↓))
         (_ : c ≡ A↓ ⊎ c ≡ P↓)
-        (v₀ : IsValue (t₀)) (v₁ : IsValue (t₁))
-        → ----------------------------------------------------------------------------------------
-        Γ ⊢ Diff (_ , v₀) (_ , v₁) .fst :[ e ] treals n (make A↓) ⇒[ A↓ , det ] treals m (make A↓)
+        (v₀ : IsValue t₀) (v₁ : IsValue t₁) (v₂ : IsValue t₂)
+        → -------------------------------------------------------------------
+        Γ ⊢ Diff (_ , v₀) (_ , v₁) (_ , v₂) .fst :[ e ] treals n (make A↓)
 
       SolvePres :
         {t₀ t₁ t₂ : Tm}
-        (_ : Γ ⊢ t₀ :[ e ] ttup 2 (pair (treal c) (treals n (make A↓))) ⇒[ C↓ , det ] treals n (make A↓))
-        (_ : Γ ⊢ t₁ :[ e ] ttup 2 (pair (treal c) (treals n (make A↓))))
+        (_ : Γ ⊢ t₀ :[ e ] treals (1 + n) (c ∷ make A↓) ⇒[ C↓ , det ] treals n (make A↓))
+        (_ : Γ ⊢ t₁ :[ e ] treals (1 + n) (c ∷ make A↓))
         (_ : Γ ⊢ t₂ :[ e ] treal (c ∩ PC↓))
         (_ : c ≡ A↓ ⊎ c ≡ C↓)
         (v₀ : IsValue t₀) (v₁ : IsValue t₁) (v₂ : IsValue t₂)
-        → --------------------------------------------------------------------------------------------
-        Γ ⊢ Solve (_ , v₀) (_ , v₁) (_ , v₂) .fst :[ e ] ttup 2 (pair (treal A↓) (treals n (make A↓)))
+        → -----------------------------------------------------------------------
+        Γ ⊢ Solve (_ , v₀) (_ , v₁) (_ , v₂) .fst :[ e ] treals (1 + n) (make A↓)
 
       InferPres :
         (_ : Γ ⊢ t :[ e ] tunit ⇒[ M↓ , rnd ] T)
@@ -196,8 +200,8 @@ module _ (Ax : EvalAssumptions) where
     preservation-det-step (tif Hty Hty₁ Hty₂ H≤) (eif {r} Heq) with is-pos r
     ... | true  = Hty₁
     ... | false = Hty₂
-    preservation-det-step (tdiff Hty Hty₁ Hc) (ediff Hv₀ Hv₁) =
-      DiffPres Hty Hty₁ Hc Hv₀ Hv₁
+    preservation-det-step (tdiff Hty Hty₁ Hty₂ Hc) (ediff Hv₀ Hv₁ Hv₂) =
+      DiffPres Hty Hty₁ Hty₂ Hc Hv₀ Hv₁ Hv₂
     preservation-det-step (tsolve Hty Hty₁ Hty₂ Hc) (esolve Hv₀ Hv₁ Hv₂) =
       SolvePres Hty Hty₁ Hty₂ Hc Hv₀ Hv₁ Hv₂
 

@@ -67,11 +67,14 @@ module Progress (Ax : EvalAssumptions) where
   progress-det (tinfer Hty) with progress-det Hty
   ... | inr (t' , Hstep) = inr $ _ , cong-stepᵈ (λ _ ()) Hstep
   ... | inl Hv           = inl $ vinfer Hv
-  progress-det (tdiff Hty Hty₁ _) = inr $ case (progress-det Hty) of λ where
+  progress-det (tdiff Hty Hty₁ Hty₂ _) = inr $ case (progress-det Hty) of λ where
     (inr (t' , Hstep)) → _ , cong-stepᵈ (λ _ ()) Hstep
     (inl Hv) → case (progress-det Hty₁) of λ where
       (inr (t' , Hstep)) → _ , cong-stepᵈ (λ { ₀ (s≤s 0≤x) → Hv }) Hstep
-      (inl Hv₁) → _ , estep (ediff Hv Hv₁)
+      (inl Hv₁) → case (progress-det Hty₂) of λ where
+        (inr (t' , Hstep)) →
+          _ , cong-stepᵈ (λ { ₀ (s≤s 0≤x) → Hv ; ₁ (s≤s (s≤s 0≤x)) → Hv₁ }) Hstep
+        (inl Hv₂) → _ , estep (ediff Hv Hv₁ Hv₂)
   progress-det (tsolve Hty Hty₁ Hty₂ _) = inr $ case (progress-det Hty) of λ where
     (inr (t' , Hstep)) → _ , cong-stepᵈ (λ _ ()) Hstep
     (inl Hv) → case (progress-det Hty₁) of λ where
@@ -131,11 +134,14 @@ module Progress (Ax : EvalAssumptions) where
   progress-rnd (tinfer Hty) with progress-rnd Hty
   ... | inr (t' , Hstep) = inr $ _ , cong-stepʳ (λ _ ()) Hstep
   ... | inl Hv           = inl $ vinfer Hv
-  progress-rnd (tdiff Hty Hty₁ _) = inr $ case (progress-rnd Hty) of λ where
+  progress-rnd (tdiff Hty Hty₁ Hty₂ _) = inr $ case (progress-rnd Hty) of λ where
     (inr (t' , Hstep)) → _ , cong-stepʳ (λ _ ()) Hstep
     (inl Hv) → case (progress-rnd Hty₁) of λ where
       (inr (t' , Hstep)) → _ , cong-stepʳ (λ { ₀ (s≤s 0≤x) → Hv }) Hstep
-      (inl Hv₁) → _ , estep (edet (ediff Hv Hv₁))
+      (inl Hv₁) → case (progress-rnd Hty₂) of λ where
+        (inr (t' , Hstep)) →
+          _ , cong-stepʳ (λ { ₀ (s≤s 0≤x) → Hv ; ₁ (s≤s (s≤s 0≤x)) → Hv₁ }) Hstep
+        (inl Hv₂) → _ , estep (edet (ediff Hv Hv₁ Hv₂))
   progress-rnd (tsolve Hty Hty₁ Hty₂ _) = inr $ case (progress-rnd Hty) of λ where
     (inr (t' , Hstep)) → _ , cong-stepʳ (λ _ ()) Hstep
     (inl Hv) → case (progress-rnd Hty₁) of λ where

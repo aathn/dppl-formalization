@@ -183,9 +183,9 @@ data _⊢_:[_]_ : TyEnv → Tm → Eff → Ty → Type where
 
   tsolve :
     {ts : Tm ^ 3}
-    (_ : Γ ⊢ ts ₀ :[ e ] (treals (1 + n) (c ∷ᵛ make A↓)) ⇒[ C↓ , det ] treals n (make A↓))
-    (_ : Γ ⊢ ts ₁ :[ e ] (treals (1 + n) (c ∷ᵛ make A↓)))
+    (_ : Γ ⊢ ts ₀ :[ e ] treals (1 + n) (c ∷ᵛ make A↓) ⇒[ C↓ , det ] treals n (make A↓))
+    (_ : Γ ⊢ ts ₁ :[ e ] treals (1 + n) (c ∷ᵛ make A↓))
     (_ : Γ ⊢ ts ₂ :[ e ] treal (c ∩ PC↓))
     (_ : c ≡ A↓ ⊎ c ≡ C↓)
-    → -----------------------------------------------------------------
-    Γ ⊢ solve ▸ ts :[ e ] (treals (1 + n) (make A↓))
+    → ----------------------------------------------------------------------------------
+    Γ ⊢ solve ▸ ts :[ e ] treals (1 + n) (make A↓)

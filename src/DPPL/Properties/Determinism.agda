@@ -32,8 +32,12 @@ module _ (Ax : EvalAssumptions) where
   →ᵈ-deterministic (eproj _ Heq _) (eproj _ Heq' _) = op-inj' (sym Heq ∙ Heq') $ₚ _
   →ᵈ-deterministic (eif Heq) (eif Heq') =
     ap (λ r → if is-pos r then _ else _) (real-inj $ sym Heq ∙ Heq')
-  →ᵈ-deterministic (ediff Hv₀ Hv₁) (ediff Hv₀' Hv₁') i =
-    Diff (_ , IsValue-is-prop Hv₀ Hv₀' i) (_ , IsValue-is-prop Hv₁ Hv₁' i) .fst
+  →ᵈ-deterministic (ediff Hv₀ Hv₁ Hv₂) (ediff Hv₀' Hv₁' Hv₂') i =
+    Diff
+      (_ , IsValue-is-prop Hv₀ Hv₀' i)
+      (_ , IsValue-is-prop Hv₁ Hv₁' i)
+      (_ , IsValue-is-prop Hv₂ Hv₂' i)
+      .fst
   →ᵈ-deterministic (esolve Hv₀ Hv₁ Hv₂) (esolve Hv₀' Hv₁' Hv₂') i =
     Solve
       (_ , IsValue-is-prop Hv₀ Hv₀' i)
@@ -59,9 +63,11 @@ module _ (Ax : EvalAssumptions) where
     Ht (subst IsValue (sym Heq) (vtup Hvs))
   DetCtx-cannot-step (ectx {j = j} _) Ht (eif Heq) with zero ← fin-view j =
     Ht (subst IsValue (sym Heq) vreal)
-  DetCtx-cannot-step (ectx {j = j} _) Ht (ediff Hv₀ Hv₁) with fin-view j
+  DetCtx-cannot-step (ectx {j = j} _) Ht (ediff Hv₀ Hv₁ Hv₂) with fin-view j
   ... | zero                         = Ht Hv₀
-  ... | suc i with zero ← fin-view i = Ht Hv₁
+  ... | suc i with fin-view i
+  ... | zero                         = Ht Hv₁
+  ... | suc i with zero ← fin-view i = Ht Hv₂
   DetCtx-cannot-step (ectx {j = j} _) Ht (esolve Hv₀ Hv₁ Hv₂) with fin-view j
   ... | zero = Ht Hv₀
   ... | suc i with fin-view i

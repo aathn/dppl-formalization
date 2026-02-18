@@ -68,9 +68,10 @@ tsub-refl {tdist T}        = sdist tsub-refl
 ∉-dom-fv (tsample {t = t} Hty) H∉ = ∉⋃' (fv ∘ t) $ Fin-cases (∉-dom-fv Hty H∉) λ ()
 ∉-dom-fv (tweight {t = t} Hty) H∉ = ∉⋃' (fv ∘ t) $ Fin-cases (∉-dom-fv Hty H∉) λ ()
 ∉-dom-fv (tinfer {t = t} Hty) H∉  = ∉⋃' (fv ∘ t) $ Fin-cases (∉-dom-fv Hty H∉) λ ()
-∉-dom-fv (tdiff {ts = ts} Hty Hty₁ Hc) H∉ = ∉⋃' (fv ∘ ts)
+∉-dom-fv (tdiff {ts = ts} Hty Hty₁ Hty₂ Hc) H∉ = ∉⋃' (fv ∘ ts)
   $ Fin-cases (∉-dom-fv Hty H∉)
-  $ Fin-cases (∉-dom-fv Hty₁ H∉) λ ()
+  $ Fin-cases (∉-dom-fv Hty₁ H∉)
+  $ Fin-cases (∉-dom-fv Hty₂ H∉) λ ()
 ∉-dom-fv (tsolve {ts = ts} Hty Hty₁ Hty₂ Hc) H∉ = ∉⋃' (fv ∘ ts)
   $ Fin-cases (∉-dom-fv Hty H∉)
   $ Fin-cases (∉-dom-fv Hty₁ H∉)
@@ -99,9 +100,10 @@ well-typed→lc tuniform      = lc-at-op λ ()
 well-typed→lc (tsample Hty) = lc-at-op $ Fin-cases (well-typed→lc Hty) λ ()
 well-typed→lc (tweight Hty) = lc-at-op $ Fin-cases (well-typed→lc Hty) λ ()
 well-typed→lc (tinfer Hty)  = lc-at-op $ Fin-cases (well-typed→lc Hty) λ ()
-well-typed→lc (tdiff Hty Hty₁ Hc) = lc-at-op
+well-typed→lc (tdiff Hty Hty₁ Hty₂ Hc) = lc-at-op
   $ Fin-cases (well-typed→lc Hty)
-  $ Fin-cases (well-typed→lc Hty₁) λ ()
+  $ Fin-cases (well-typed→lc Hty₁)
+  $ Fin-cases (well-typed→lc Hty₂) λ ()
 well-typed→lc (tsolve Hty Hty₁ Hty₂ Hc) = lc-at-op
   $ Fin-cases (well-typed→lc Hty)
   $ Fin-cases (well-typed→lc Hty₁)
@@ -125,8 +127,8 @@ weaken-typing tuniform H⊆            = tuniform
 weaken-typing (tsample Hty) H⊆       = tsample (weaken-typing Hty H⊆)
 weaken-typing (tweight Hty) H⊆       = tweight (weaken-typing Hty H⊆)
 weaken-typing (tinfer Hty) H⊆        = tinfer (weaken-typing Hty H⊆)
-weaken-typing (tdiff Hty Hty₁ Hc) H⊆ =
-  tdiff (weaken-typing Hty H⊆) (weaken-typing Hty₁ H⊆) Hc
+weaken-typing (tdiff Hty Hty₁ Hty₂ Hc) H⊆ =
+  tdiff (weaken-typing Hty H⊆) (weaken-typing Hty₁ H⊆) (weaken-typing Hty₂ H⊆) Hc
 weaken-typing (tsolve Hty Hty₁ Hty₂ Hc) H⊆ =
   tsolve (weaken-typing Hty H⊆) (weaken-typing Hty₁ H⊆) (weaken-typing Hty₂ H⊆) Hc
 
@@ -190,8 +192,11 @@ subst-pres-typing HΓ Hu tuniform            = tuniform
 subst-pres-typing HΓ Hu (tsample Hty)       = tsample (subst-pres-typing HΓ Hu Hty)
 subst-pres-typing HΓ Hu (tweight Hty)       = tweight (subst-pres-typing HΓ Hu Hty)
 subst-pres-typing HΓ Hu (tinfer Hty)        = tinfer (subst-pres-typing HΓ Hu Hty)
-subst-pres-typing HΓ Hu (tdiff Hty Hty₁ Hc) =
-  tdiff (subst-pres-typing HΓ Hu Hty) (subst-pres-typing HΓ Hu Hty₁) Hc
+subst-pres-typing HΓ Hu (tdiff Hty Hty₁ Hty₂ Hc) = tdiff
+  (subst-pres-typing HΓ Hu Hty)
+  (subst-pres-typing HΓ Hu Hty₁)
+  (subst-pres-typing HΓ Hu Hty₂)
+  Hc
 subst-pres-typing HΓ Hu (tsolve Hty Hty₁ Hty₂ Hc) = tsolve
   (subst-pres-typing HΓ Hu Hty)
   (subst-pres-typing HΓ Hu Hty₁)
