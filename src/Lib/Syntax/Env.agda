@@ -460,13 +460,20 @@ opaque
   env-sub-cons
     : ⦃ _ : H-Level X 2 ⦄ {Γ Γ' : Env X} {x y : 𝔸 × X}
     → x ≡ᵢ y → fst y ∉ env-dom Γ' → Γ ⊆ Γ' → env-cons x Γ ⊆ env-cons y Γ'
-  env-sub-cons {X = X} {Γ = Γ} {Γ'} {x} {y} = pres Γ Γ' where
+  env-sub-cons {Γ = Γ} {Γ'} {x} {y} = pres Γ Γ' where
     pres
       : ∀ Γ Γ' → x ≡ᵢ y → fst y ∉ env-dom Γ' → Γ ⊆ Γ' → env-cons x Γ ⊆ env-cons y Γ'
     pres = env-case λ _ → env-case λ _ → sub-cons
 
   env-sub-nil-inv : ⦃ _ : H-Level X 2 ⦄ (Γ : Env X) → Γ ⊆ ε → Γ ≡ ε
   env-sub-nil-inv = env-case {C = λ Γ → Γ ⊆ ε → Γ ≡ ε} λ _ → ap inc ∘ raw-sub-nil-inv
+
+  env-sub-consr
+    : ⦃ _ : H-Level X 2 ⦄ {Γ Γ' : Env X} {x : 𝔸 × X}
+    → Γ ⊆ Γ' → Γ ⊆ env-cons x Γ'
+  env-sub-consr {Γ = Γ} {Γ'} {x} = consr Γ Γ' where
+    consr : ∀ Γ Γ' → Γ ⊆ Γ' → Γ ⊆ env-cons x Γ'
+    consr = env-case λ _ → env-case λ _ → raw-sub-consr
 
   env-sub-&r
     : ⦃ _ : H-Level X 2 ⦄ {Γ Γ' : Env X} {a : 𝔸} {T : X}
