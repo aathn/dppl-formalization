@@ -16,10 +16,12 @@ import Cat.Functor.Bifunctor as Bifunctor
 
 open Cr._≅_
 open Cr.Inverses
+open _=>_
+open Functor
 
 private variable
   o h : Level
-  C D : Precategory o h
+  B C D : Precategory o h
 
 _,Iso_
   : {A A' : ⌞ C ⌟} {B B' : ⌞ D ⌟} → Cr._≅_ C A A' → Cr._≅_ D B B'
@@ -29,6 +31,18 @@ _,Iso_
 (iA ,Iso iB) .inverses = λ where
   .invl → iA .invl ,ₚ iB .invl
   .invr → iA .invr ,ₚ iB .invr
+
+_nt,_
+  : {F G : Functor B C} {H K : Functor B D}
+  → F => G → H => K → Cat⟨ F , H ⟩ => Cat⟨ G , K ⟩
+_nt,_ α β .η c              = α .η c , β .η c
+_nt,_ α β .is-natural _ _ f = α .is-natural _ _ f ,ₚ β .is-natural _ _ f
+
+×ᶜ-op : Functor (C ^op ×ᶜ D ^op) ((C ×ᶜ D) ^op)
+×ᶜ-op .F₀ x    = x
+×ᶜ-op .F₁ f    = f
+×ᶜ-op .F-id    = refl
+×ᶜ-op .F-∘ _ _ = refl
 
 module ProdIso {o ℓ} {C : Precategory o ℓ} (Cart : Cartesian-category C) where
   open Cartesian-category Cart
