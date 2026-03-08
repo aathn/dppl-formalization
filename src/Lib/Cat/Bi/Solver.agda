@@ -257,49 +257,49 @@ module Reflection where
   build-expr₁ (“⊗” f g) = con (quote NbE.Expr₁._`⊗_) (build-expr₁ f v∷ build-expr₁ g v∷ [])
   build-expr₁ f         = con (quote NbE.Expr₁._↑) (f v∷ [])
 
-  build-expr₂ : Term → TC Term
-  build-expr₂ (“id₂” f) = do
+  build-expr₂ : Term → Term → TC Term
+  build-expr₂ cat (“id₂” f) = do
     let ef = build-expr₁ f
-    pure $ con (quote NbE.Expr₂.`id) (infer-hidden 6 $ ef h∷ [])
-  build-expr₂ (“∘” α β) = do
-    eα ← build-expr₂ α
-    eβ ← build-expr₂ β
+    pure $ con (quote NbE.Expr₂.`id) (infer-hidden 3 $ cat h∷ infer-hidden 2 (ef h∷ []))
+  build-expr₂ cat (“∘” α β) = do
+    eα ← build-expr₂ cat α
+    eβ ← build-expr₂ cat β
     pure $ con (quote NbE.Expr₂._`∘_) (eα v∷ eβ v∷ [])
-  build-expr₂ (“◆” α β) = do
-    eα ← build-expr₂ α
-    eβ ← build-expr₂ β
+  build-expr₂ cat (“◆” α β) = do
+    eα ← build-expr₂ cat α
+    eβ ← build-expr₂ cat β
     pure $ con (quote NbE.Expr₂._`◆_) (eα v∷ eβ v∷ [])
-  build-expr₂ (“λ→” f) = do
+  build-expr₂ cat (“λ→” f) = do
     let ef = build-expr₁ f
     pure $ con (quote NbE.Expr₂.`λ→) (ef v∷ [])
-  build-expr₂ (“λ←” f) = do
+  build-expr₂ cat (“λ←” f) = do
     let ef = build-expr₁ f
     pure $ con (quote NbE.Expr₂.`λ←) (ef v∷ [])
-  build-expr₂ (“ρ→” f) = do
+  build-expr₂ cat (“ρ→” f) = do
     let ef = build-expr₁ f
     pure $ con (quote NbE.Expr₂.`ρ→) (ef v∷ [])
-  build-expr₂ (“ρ←” f) = do
+  build-expr₂ cat (“ρ←” f) = do
     let ef = build-expr₁ f
     pure $ con (quote NbE.Expr₂.`ρ←) (ef v∷ [])
-  build-expr₂ (“α→” f g h) = do
+  build-expr₂ cat (“α→” f g h) = do
     let
       ef = build-expr₁ f
       eg = build-expr₁ g
       eh = build-expr₁ h
     pure $ con (quote NbE.Expr₂.`α→) (ef v∷ eg v∷ eh v∷ [])
-  build-expr₂ (“α←” f g h) = do
+  build-expr₂ cat (“α←” f g h) = do
     let
       ef = build-expr₁ f
       eg = build-expr₁ g
       eh = build-expr₁ h
     pure $ con (quote NbE.Expr₂.`α←) (ef v∷ eg v∷ eh v∷ [])
-  build-expr₂ f = do
+  build-expr₂ cat f = do
     “⇒” lhs rhs ← infer-type f >>= normalise
       where ty → typeError [ "Expected 2-cell, found " , termErr ty ]
     let
       elhs = build-expr₁ lhs
       erhs = build-expr₁ rhs  
-    pure $ con (quote NbE.Expr₂._↑) (infer-hidden 6 $ elhs h∷ erhs h∷ f v∷ [])
+    pure $ con (quote NbE.Expr₂._↑) (infer-hidden 3 $ cat h∷ infer-hidden 2 (elhs h∷ erhs h∷ f v∷ []))
 
   dont-reduce : List Name
   dont-reduce =
@@ -318,19 +318,28 @@ module Reflection where
     , quote Functor.F₁
     ]
 
-macro
-  bicat! : ∀ {o ℓ ℓ'} → Prebicategory o ℓ ℓ' → Term → TC ⊤
-  bicat! C hole =
-    withNormalisation false $
-    withReduceDefs (false , Reflection.dont-reduce) $ do
-    `C ← quoteTC C
-    goal ← infer-type hole >>= reduce
-    just (lhs , rhs) ← get-boundary goal
-      where nothing → typeError $ strErr "Can't determine boundary: " ∷
-                                  termErr goal ∷ []
-    elhs ← normalise lhs >>= Reflection.build-expr₂
-    erhs ← normalise rhs >>= Reflection.build-expr₂
-    unify hole (Reflection.“solve” `C elhs erhs) <|> solver-failed elhs erhs
+  bicat-solver : Term → SimpleSolver
+  bicat-solver cat .SimpleSolver.dont-reduce       = dont-reduce
+  bicat-solver cat .SimpleSolver.build-expr        = build-expr₂ cat
+  bicat-solver cat .SimpleSolver.invoke-solver     = “solve” cat
+  bicat-solver cat .SimpleSolver.invoke-normaliser = “nf₂” cat
+
+module _ {o ℓ ℓ'} (C : Prebicategory o ℓ ℓ') where
+  macro
+    bicat! : Term → TC ⊤
+    bicat! hole = do
+      `C ← quoteTC C
+      mk-simple-solver (Reflection.bicat-solver `C) hole
+
+    bicat-simp! : Term → Term → TC ⊤
+    bicat-simp! tm hole = do
+      `C ← quoteTC C
+      mk-simple-normalise (Reflection.bicat-solver `C) tm hole
+
+    bicat-repr! : Term → Term → TC ⊤
+    bicat-repr! tm _ = do
+      `C ← quoteTC C
+      mk-simple-repr (Reflection.bicat-solver `C) tm
 
 private module _ {o ℓ ℓ'} {C : Prebicategory o ℓ ℓ'} where
   open Br C
