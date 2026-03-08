@@ -1,8 +1,8 @@
 module Lib.Cat.Bi.Construction where
 
 open import Lib.Cat.Product
+open import Lib.Cat.Bi.Solver
 import Lib.Cat.Bi.Reasoning as Br
-import Lib.Cat.Bi.Solver as Solver
 
 open import Cat.Prelude
 open import Cat.Bi.Base
@@ -176,7 +176,6 @@ module _ {o h ℓ} (C : Prebicategory o h ℓ) where
 module _ {o h ℓ} {C : Prebicategory o h ℓ} where
   open Br C
   open Hom hiding (Ob ; Hom ; id ; _∘_)
-  open Solver C
   private
     module Cat = Prebicategory (Cat h ℓ)
 
@@ -212,10 +211,6 @@ module _ {o h ℓ} {C : Prebicategory o h ℓ} where
       lf .P₁            = Hom-from-bi₁
       lf .compositor    = Hom-compositor
       lf .unitor        = Hom-unitor
-      lf .hexagon f g h = ext λ u → solve
-        (`α→ _ (g ↑) (h ↑) `◀ u ↑ `∘ `α← _ _ _ `∘ (`id `◆ `id) `∘ `α← _ _ _)
-        (`α← _ _ _ `∘ (f ↑ `▶ `α← _ _ _ `∘ `id) `∘ `id) refl
-      lf .right-unit f = ext λ h → solve
-        (`ρ← (f ↑) `◀ h ↑ `∘ `α← _ _ _ `∘ _ `▶ `λ→ _ `∘ `id) `id refl
-      lf .left-unit f = ext λ h → solve
-        (`λ← (f ↑) `◀ h ↑ `∘ `α← _ _ _ `∘ (`id `◆ `id) `∘ `λ→ _) `id refl
+      lf .hexagon f g h = ext λ _ → bicat! C
+      lf .right-unit f  = ext λ _ → bicat! C
+      lf .left-unit f   = ext λ _ → bicat! C
