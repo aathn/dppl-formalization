@@ -231,12 +231,12 @@ module Reflection where
 
   pattern “◆” α β = “F₁” “compose” (“,” α β)
 
-  pattern “λ→” f     = “η” (“to” “unitor-l”) f
   pattern “λ←” f     = “η” (“from” “unitor-l”) f
-  pattern “ρ→” f     = “η” (“to” “unitor-r”) f
+  pattern “λ→” f     = “η” (“to” “unitor-l”) f
   pattern “ρ←” f     = “η” (“from” “unitor-r”) f
-  pattern “α→” f g h = “η” (“to” “associator”) (“,” f (“,” g h))
+  pattern “ρ→” f     = “η” (“to” “unitor-r”) f
   pattern “α←” f g h = “η” (“from” “associator”) (“,” f (“,” g h))
+  pattern “α→” f g h = “η” (“to” “associator”) (“,” f (“,” g h))
 
   pattern “⇒” f g =
     def (quote Precategory.Hom) (category-args “Hom” (f v∷ g v∷ []))
@@ -258,64 +258,52 @@ module Reflection where
   build-expr₁ f         = con (quote NbE.Expr₁._↑) (f v∷ [])
 
   build-expr₂ : Term → Term → TC Term
-  build-expr₂ cat (“id₂” f) = do
-    let ef = build-expr₁ f
-    pure $ con (quote NbE.Expr₂.`id) (infer-hidden 3 $ cat h∷ infer-hidden 2 (ef h∷ []))
-  build-expr₂ cat (“∘” α β) = do
-    eα ← build-expr₂ cat α
-    eβ ← build-expr₂ cat β
-    pure $ con (quote NbE.Expr₂._`∘_) (eα v∷ eβ v∷ [])
-  build-expr₂ cat (“◆” α β) = do
-    eα ← build-expr₂ cat α
-    eβ ← build-expr₂ cat β
-    pure $ con (quote NbE.Expr₂._`◆_) (eα v∷ eβ v∷ [])
-  build-expr₂ cat (“λ→” f) = do
-    let ef = build-expr₁ f
-    pure $ con (quote NbE.Expr₂.`λ→) (ef v∷ [])
-  build-expr₂ cat (“λ←” f) = do
-    let ef = build-expr₁ f
-    pure $ con (quote NbE.Expr₂.`λ←) (ef v∷ [])
-  build-expr₂ cat (“ρ→” f) = do
-    let ef = build-expr₁ f
-    pure $ con (quote NbE.Expr₂.`ρ→) (ef v∷ [])
-  build-expr₂ cat (“ρ←” f) = do
-    let ef = build-expr₁ f
-    pure $ con (quote NbE.Expr₂.`ρ←) (ef v∷ [])
-  build-expr₂ cat (“α→” f g h) = do
-    let
-      ef = build-expr₁ f
-      eg = build-expr₁ g
-      eh = build-expr₁ h
-    pure $ con (quote NbE.Expr₂.`α→) (ef v∷ eg v∷ eh v∷ [])
-  build-expr₂ cat (“α←” f g h) = do
-    let
-      ef = build-expr₁ f
-      eg = build-expr₁ g
-      eh = build-expr₁ h
-    pure $ con (quote NbE.Expr₂.`α←) (ef v∷ eg v∷ eh v∷ [])
-  build-expr₂ cat f = do
-    “⇒” lhs rhs ← infer-type f >>= normalise
-      where ty → typeError [ "Expected 2-cell, found " , termErr ty ]
-    let
-      elhs = build-expr₁ lhs
-      erhs = build-expr₁ rhs  
-    pure $ con (quote NbE.Expr₂._↑) (infer-hidden 3 $ cat h∷ infer-hidden 2 (elhs h∷ erhs h∷ f v∷ []))
+  build-expr₂ cat = build where
+    build-binop : Name → Term → Term → TC Term
+    build-binop n α β = do
+      eα ← build-expr₂ cat α
+      eβ ← build-expr₂ cat β
+      pure $ con n (eα v∷ eβ v∷ [])
+    build-unitor : Name → Term → TC Term
+    build-unitor n f = do
+      let ef = build-expr₁ f
+      pure $ con n (ef v∷ [])
+    build-associator : Name → Term → Term → Term → TC Term
+    build-associator n f g h = do
+      let
+        ef = build-expr₁ f
+        eg = build-expr₁ g
+        eh = build-expr₁ h
+      pure $ con n (ef v∷ eg v∷ eh v∷ [])
+
+    build : Term → TC Term
+    build (“id₂” f) = do
+      let ef = build-expr₁ f
+      pure $ con (quote NbE.Expr₂.`id) (infer-hidden 3 $ cat h∷ infer-hidden 2 (ef h∷ []))
+    build (“∘” α β)    = build-binop (quote NbE.Expr₂._`∘_) α β
+    build (“◆” α β)    = build-binop (quote NbE.Expr₂._`◆_) α β
+    build (“λ←” f)     = build-unitor (quote NbE.Expr₂.`λ←) f
+    build (“λ→” f)     = build-unitor (quote NbE.Expr₂.`λ→) f
+    build (“ρ←” f)     = build-unitor (quote NbE.Expr₂.`ρ←) f
+    build (“ρ→” f)     = build-unitor (quote NbE.Expr₂.`ρ→) f
+    build (“α←” f g h) = build-associator (quote NbE.Expr₂.`α←) f g h
+    build (“α→” f g h) = build-associator (quote NbE.Expr₂.`α→) f g h
+    build α            = do
+      “⇒” f g ← infer-type α >>= normalise
+        where ty → typeError [ "Expected 2-cell, found " , termErr ty ]
+      let
+        ef = build-expr₁ f
+        eg = build-expr₁ g
+      pure $ con (quote NbE.Expr₂._↑) (infer-hidden 3 $ cat h∷ infer-hidden 2 (ef h∷ eg h∷ α v∷ []))
 
   dont-reduce : List Name
   dont-reduce =
-    [ quote Precategory.id
-    , quote Precategory._∘_
-    , quote Prebicategory.id
+    [ quote Prebicategory.id
     , quote Prebicategory.compose
     , quote Prebicategory.unitor-l
     , quote Prebicategory.unitor-r
     , quote Prebicategory.associator
     , quote Prebicategory.Hom
-    , quote Cm._≅_.to
-    , quote Cm._≅_.from
-    , quote _=>_.η
-    , quote Functor.F₀
-    , quote Functor.F₁
     ]
 
   bicat-solver : Term → SimpleSolver
@@ -325,21 +313,22 @@ module Reflection where
   bicat-solver cat .SimpleSolver.invoke-normaliser = “nf₂” cat
 
 module _ {o ℓ ℓ'} (C : Prebicategory o ℓ ℓ') where
+  open Reflection
   macro
     bicat! : Term → TC ⊤
     bicat! hole = do
       `C ← quoteTC C
-      mk-simple-solver (Reflection.bicat-solver `C) hole
+      mk-simple-solver (bicat-solver `C) hole
 
     bicat-simp! : Term → Term → TC ⊤
     bicat-simp! tm hole = do
       `C ← quoteTC C
-      mk-simple-normalise (Reflection.bicat-solver `C) tm hole
+      mk-simple-normalise (bicat-solver `C) tm hole
 
     bicat-repr! : Term → Term → TC ⊤
     bicat-repr! tm _ = do
       `C ← quoteTC C
-      mk-simple-repr (Reflection.bicat-solver `C) tm
+      mk-simple-repr (bicat-solver `C) tm
 
 private module _ {o ℓ ℓ'} {C : Prebicategory o ℓ ℓ'} where
   open Br C
