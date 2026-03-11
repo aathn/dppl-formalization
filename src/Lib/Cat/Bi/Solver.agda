@@ -6,6 +6,7 @@ open import 1Lab.Reflection
 
 open import Cat.Prelude
 open import Cat.Bi.Base
+import Cat.Solver as Cs
 import Cat.Morphism as Cm
 
 module NbE {o ℓ ℓ'} (C : Prebicategory o ℓ ℓ') where
@@ -46,8 +47,8 @@ module NbE {o ℓ ℓ'} (C : Prebicategory o ℓ ℓ') where
       → Expr₂ ((f `⊗ g) `⊗ h) (f `⊗ (g `⊗ h))
 
   infix  50 _↑
+  infixr 40 _`∘_
   infixr 30 _`⊗_
-  infixr 30 _`∘_
   infix 30 _`◆_
 
   _`▶_
@@ -103,64 +104,76 @@ module NbE {o ℓ ℓ'} (C : Prebicategory o ℓ ℓ') where
   nf₁-sound : {A B : Ob} (e : Expr₁ A B) → nf₁ e Hom.≅ ⟦ e ⟧
   nf₁-sound e = eval₁-sound e id Hom.∙Iso ρ≅ Hom.Iso⁻¹
 
-  data Nf₂ {A B : Ob} : (f g : A ↦ B) → Type (o ⊔ ℓ ⊔ ℓ') where
-    idN  : {f : A ↦ B} → Nf₂ f f
-    _∘N_ : {f g h : A ↦ B} → (g ⇒ h) → Nf₂ f g → Nf₂ f h
+  Nf₂ : {A B : Ob} → (A ↦ B) → (A ↦ B) → Type (ℓ ⊔ ℓ')
+  Nf₂ {A} {B} = Cs.NbE.Expr (Hom A B)
 
-  Nf₂-comp : {A B : Ob} {f g h : A ↦ B} → Nf₂ g h → Nf₂ f g → Nf₂ f h
-  Nf₂-comp idN       ys = ys
-  Nf₂-comp (x ∘N xs) ys = x ∘N Nf₂-comp xs ys
+  open Cs.NbE using (`id ; _↑ ; _`∘_)
 
   Nf₂-whisker
     : {A B C : Ob} (f : Expr₁ B C) {h₁ h₂ : A ↦ B}
     → Nf₂ h₁ h₂ → Nf₂ (eval₁ f h₁) (eval₁ f h₂)
-  Nf₂-whisker f idN           = idN
-  Nf₂-whisker (f ↑) (α ∘N xs) = (f ▶ α) ∘N Nf₂-whisker (f ↑) xs
-  Nf₂-whisker `id xs          = xs
-  Nf₂-whisker (f₁ `⊗ f₂) xs   = Nf₂-whisker f₁ (Nf₂-whisker f₂ xs)
+  Nf₂-whisker f `id            = `id
+  Nf₂-whisker (f ↑) (α ↑)      = (f ▶ α) ↑
+  Nf₂-whisker (f ↑) (xs `∘ ys) = Nf₂-whisker (f ↑) xs `∘ Nf₂-whisker (f ↑) ys
+  Nf₂-whisker `id xs           = xs
+  Nf₂-whisker (f₁ `⊗ f₂) xs    = Nf₂-whisker f₁ (Nf₂-whisker f₂ xs)
+
+  Nf₂-eval₁-sound-to
+    : {A B C : Ob} (g : Expr₁ B C) {f : A ↦ B} → Nf₂ (eval₁ g f) (⟦ g ⟧ ⊗ f)
+  Nf₂-eval₁-sound-to (g ↑)     = `id
+  Nf₂-eval₁-sound-to `id {f}   = λ→ f ↑
+  Nf₂-eval₁-sound-to (g `⊗ g₁) =
+    α← _ _ _ ↑ `∘ Nf₂-eval₁-sound-to g `∘ Nf₂-whisker g (Nf₂-eval₁-sound-to g₁)
+
+  Nf₂-eval₁-sound-from
+    : {A B C : Ob} (g : Expr₁ B C) {f : A ↦ B} → Nf₂ (⟦ g ⟧ ⊗ f) (eval₁ g f)
+  Nf₂-eval₁-sound-from (g ↑)     = `id
+  Nf₂-eval₁-sound-from `id {f}   = λ← f ↑
+  Nf₂-eval₁-sound-from (g `⊗ g₁) =
+    Nf₂-whisker g (Nf₂-eval₁-sound-from g₁) `∘ Nf₂-eval₁-sound-from g `∘ α→ _ _ _ ↑
 
   eval₂
-    : {A B C : Ob} {f : A ↦ C} {g h : Expr₁ B C} {k : A ↦ B}
-    → Expr₂ g h → Nf₂ f (eval₁ g k) → Nf₂ f (eval₁ h k)
-  eval₂ {g = g} {h} {k} (α ↑) γ = (eval₁-sound h k .from ∘ α ◀ k ∘ eval₁-sound g k .to) ∘N γ
-  eval₂ `id γ                   = γ
-  eval₂ (α `∘ β) γ              = eval₂ α (eval₂ β γ)
-  eval₂ (_`◆_ {f₁ = f₁} α β) γ  = eval₂ α (Nf₂-comp (Nf₂-whisker f₁ (eval₂ β idN)) γ)
-  eval₂ (`λ← f) γ               = γ
-  eval₂ (`λ→ f) γ               = γ
-  eval₂ (`ρ← f) γ               = γ
-  eval₂ (`ρ→ f) γ               = γ
-  eval₂ (`α← f g h) γ           = γ
-  eval₂ (`α→ f g h) γ           = γ
+    : {A B C : Ob} {g h : Expr₁ B C} {k : A ↦ B}
+    → Expr₂ g h → Nf₂ (eval₁ g k) (eval₁ h k)
+  eval₂ {g = g} {h} {k} (α ↑) =
+    Nf₂-eval₁-sound-from h `∘ (α ◀ k) ↑ `∘ Nf₂-eval₁-sound-to g
+  eval₂ `id                  = `id
+  eval₂ (α `∘ β)             = eval₂ α `∘ eval₂ β
+  eval₂ (_`◆_ {f₁ = f₁} α β) = eval₂ α `∘ Nf₂-whisker f₁ (eval₂ β)
+  eval₂ (`λ← _)              = `id
+  eval₂ (`λ→ _)              = `id
+  eval₂ (`ρ← _)              = `id
+  eval₂ (`ρ→ _)              = `id
+  eval₂ (`α← _ _ _)          = `id
+  eval₂ (`α→ _ _ _)          = `id
 
-  extract : {A B : Ob} {f g : A ↦ B} → Nf₂ f g → f ⇒ g
-  extract idN       = Hom.id
-  extract (x ∘N xs) = x ∘ extract xs
+  extract : {A B : Ob} {f g h : A ↦ B} → Nf₂ g h → f ⇒ g → f ⇒ h
+  extract {A} {B} = Cs.NbE.eval (Hom A B)
 
   nf₂ : {A B : Ob} {f g : Expr₁ A B} → Expr₂ f g → nf₁ f ⇒ nf₁ g
-  nf₂ α = extract (eval₂ α idN)
+  nf₂ {A} {B} α = Cs.NbE.nf (Hom A B) (eval₂ α)
 
   postulate
     eval₂-sound
       : {A B C : Ob} {f : A ↦ C} {g h : Expr₁ B C} {k : A ↦ B}
-      → (α : Expr₂ g h) (γ : Nf₂ f (eval₁ g k))
-      → extract (eval₂ α γ) ≡ eval₁-sound h k .from ∘ ⟦ α ⟧ ◀ k ∘ eval₁-sound g k .to ∘ extract γ
-  -- eval₂-sound (` x) γ = {!!}
-  -- eval₂-sound {g = g} `id γ = {!!}
-  -- eval₂-sound (α `∘ β) γ = {!!}
-  -- eval₂-sound (α `◆ β) γ = {!!}
-  -- eval₂-sound (`λ← f) γ = {!!}
-  -- eval₂-sound (`λ→ f) γ = {!!}
-  -- eval₂-sound (`ρ← f) γ = {!!}
-  -- eval₂-sound (`ρ→ f) γ = {!!}
-  -- eval₂-sound (`α← f g h) γ = {!!}
-  -- eval₂-sound (`α→ f g h) γ = {!!}
+      → (α : Expr₂ g h) (γ : f ⇒ eval₁ g k)
+      → extract (eval₂ α) γ ≡ eval₁-sound h k .from ∘ ⟦ α ⟧ ◀ k ∘ eval₁-sound g k .to ∘ γ
+--   -- eval₂-sound (` x) γ = {!!}
+--   -- eval₂-sound {g = g} `id γ = {!!}
+--   -- eval₂-sound (α `∘ β) γ = {!!}
+--   -- eval₂-sound (α `◆ β) γ = {!!}
+--   -- eval₂-sound (`λ← f) γ = {!!}
+--   -- eval₂-sound (`λ→ f) γ = {!!}
+--   -- eval₂-sound (`ρ← f) γ = {!!}
+--   -- eval₂-sound (`ρ→ f) γ = {!!}
+--   -- eval₂-sound (`α← f g h) γ = {!!}
+--   -- eval₂-sound (`α→ f g h) γ = {!!}
 
   nf₂-sound
     : {A B : Ob} {f g : Expr₁ A B} (α : Expr₂ f g)
     → nf₂ α ≡ nf₁-sound g .from ∘ ⟦ α ⟧ ∘ nf₁-sound f .to
   nf₂-sound {A} {B} {f} {g} α =
-    nf₂ α                                                                         ≡⟨ eval₂-sound α idN ⟩
+    nf₂ α                                                                         ≡⟨ eval₂-sound α Hom.id ⟩
     eval₁-sound g id .from ∘ ⟦ α ⟧ ◀ id ∘ eval₁-sound f id .to ∘ Hom.id           ≡⟨ refl⟩∘⟨ ap₂ _∘_ (Hom.intror (ρ≅ .invl) ∙ Hom.extendl (sym $ ρ→nat _)) (idr _) ⟩
     eval₁-sound g id .from ∘ (ρ→ ⟦ g ⟧ ∘ ⟦ α ⟧ ∘ ρ← ⟦ f ⟧) ∘ eval₁-sound f id .to ≡⟨ cat! (Hom A B) ⟩
     (eval₁-sound g id .from ∘ ρ→ ⟦ g ⟧) ∘ ⟦ α ⟧ ∘ ρ← ⟦ f ⟧ ∘ eval₁-sound f id .to ∎
@@ -325,19 +338,19 @@ private module _ {o ℓ ℓ'} {C : Prebicategory o ℓ ℓ'} where
     f g h i : A ↦ B
     α β : f ⇒ g
 
-  -- test-distrib-▶ : f ▶ (α ∘ β) ≡ f ▶ α ∘ f ▶ β
-  -- test-distrib-▶ = bicat! C
+  test-distrib-▶ : f ▶ (α ∘ β) ≡ f ▶ α ∘ f ▶ β
+  test-distrib-▶ = bicat! C
 
-  -- test-distrib-◀ : (α ∘ β) ◀ f ≡ α ◀ f ∘ β ◀ f
-  -- test-distrib-◀ = bicat! C
+  test-distrib-◀ : (α ∘ β) ◀ f ≡ α ◀ f ∘ β ◀ f
+  test-distrib-◀ = bicat! C
 
-  -- test-pentagon-α→
-  --   : (f ▶ α→ g h i) ∘ α→ f (g ⊗ h) i ∘ (α→ f g h ◀ i)
-  --   ≡ α→ f g (h ⊗ i) ∘ α→ (f ⊗ g) h i
-  -- test-pentagon-α→ = bicat! C
+  test-pentagon-α→
+    : (f ▶ α→ g h i) ∘ α→ f (g ⊗ h) i ∘ (α→ f g h ◀ i)
+    ≡ α→ f g (h ⊗ i) ∘ α→ (f ⊗ g) h i
+  test-pentagon-α→ = bicat! C
 
-  -- test-triangle-ρ← : ρ← (f ⊗ g) ∘ α← f g id ≡ f ▶ ρ← g
-  -- test-triangle-ρ← = bicat! C
+  test-triangle-ρ← : ρ← (f ⊗ g) ∘ α← f g id ≡ f ▶ ρ← g
+  test-triangle-ρ← = bicat! C
 
-  -- test-triangle-λ← : λ← (f ⊗ g) ∘ α→ id f g ≡ λ← f ◀ g
-  -- test-triangle-λ← = bicat! C
+  test-triangle-λ← : λ← (f ⊗ g) ∘ α→ id f g ≡ λ← f ◀ g
+  test-triangle-λ← = bicat! C
