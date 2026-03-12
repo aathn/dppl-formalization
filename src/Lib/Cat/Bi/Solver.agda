@@ -12,7 +12,9 @@ import Cat.Morphism as Cm
 module NbE {o ℓ ℓ'} (C : Prebicategory o ℓ ℓ') where
 
   open Br C
-  open Hom._≅_
+  open Cm._≅_
+  open Hom hiding (Hom ; Ob ; id ; _∘_ ; invr ; invl)
+  open _=>_
 
   data Expr₁ : Ob → Ob → Type (o ⊔ ℓ) where
     _↑   : {A B : Ob} → A ↦ B → Expr₁ A B
@@ -93,53 +95,54 @@ module NbE {o ℓ ℓ'} (C : Prebicategory o ℓ ℓ') where
   nf₁ : {A B : Ob} → Expr₁ A B → A ↦ B
   nf₁ e = eval₁ e id
 
-  eval₁-sound : {A B C : Ob} (e : Expr₁ B C) (f : A ↦ B) → eval₁ e f Hom.≅ ⟦ e ⟧ ⊗ f
-  eval₁-sound (f ↑) g    = Hom.id-iso
+  eval₁-sound : {A B C : Ob} (e : Expr₁ B C) (f : A ↦ B) → eval₁ e f ≅ ⟦ e ⟧ ⊗ f
+  eval₁-sound (f ↑) g    = id-iso
   eval₁-sound `id f      = λ≅
   eval₁-sound (f `⊗ g) h =
-    eval₁-sound f (eval₁ g h) Hom.∙Iso
-    ▶.F-map-iso (eval₁-sound g h) Hom.∙Iso
-    α≅ Hom.Iso⁻¹
+    eval₁-sound f (eval₁ g h) ∙Iso
+    ▶.F-map-iso (eval₁-sound g h) ∙Iso
+    α≅ Iso⁻¹
 
-  nf₁-sound : {A B : Ob} (e : Expr₁ A B) → nf₁ e Hom.≅ ⟦ e ⟧
-  nf₁-sound e = eval₁-sound e id Hom.∙Iso ρ≅ Hom.Iso⁻¹
-
-  Nf₂ : {A B : Ob} → (A ↦ B) → (A ↦ B) → Type (ℓ ⊔ ℓ')
-  Nf₂ {A} {B} = Cs.NbE.Expr (Hom A B)
+  nf₁-sound : {A B : Ob} (e : Expr₁ A B) → nf₁ e ≅ ⟦ e ⟧
+  nf₁-sound e = eval₁-sound e id ∙Iso ρ≅ Iso⁻¹
 
   open Cs.NbE using (`id ; _↑ ; _`∘_)
+  module Nf₂ {A} {B} = Cs.NbE (Hom A B)
 
-  Nf₂-whisker
+  Nf₂ : {A B : Ob} → (A ↦ B) → (A ↦ B) → Type (ℓ ⊔ ℓ')
+  Nf₂ = Nf₂.Expr
+
+  `whisker
     : {A B C : Ob} (f : Expr₁ B C) {h₁ h₂ : A ↦ B}
     → Nf₂ h₁ h₂ → Nf₂ (eval₁ f h₁) (eval₁ f h₂)
-  Nf₂-whisker f `id            = `id
-  Nf₂-whisker (f ↑) (α ↑)      = (f ▶ α) ↑
-  Nf₂-whisker (f ↑) (xs `∘ ys) = Nf₂-whisker (f ↑) xs `∘ Nf₂-whisker (f ↑) ys
-  Nf₂-whisker `id xs           = xs
-  Nf₂-whisker (f₁ `⊗ f₂) xs    = Nf₂-whisker f₁ (Nf₂-whisker f₂ xs)
+  `whisker `id xs           = xs
+  `whisker (f₁ `⊗ f₂) xs    = `whisker f₁ (`whisker f₂ xs)
+  `whisker (f ↑) `id        = `id
+  `whisker (f ↑) (α ↑)      = (f ▶ α) ↑
+  `whisker (f ↑) (xs `∘ ys) = `whisker (f ↑) xs `∘ `whisker (f ↑) ys
 
-  Nf₂-eval₁-sound-to
+  `eval₁-sound-to
     : {A B C : Ob} (g : Expr₁ B C) {f : A ↦ B} → Nf₂ (eval₁ g f) (⟦ g ⟧ ⊗ f)
-  Nf₂-eval₁-sound-to (g ↑)     = `id
-  Nf₂-eval₁-sound-to `id {f}   = λ→ f ↑
-  Nf₂-eval₁-sound-to (g `⊗ g₁) =
-    α← _ _ _ ↑ `∘ Nf₂-eval₁-sound-to g `∘ Nf₂-whisker g (Nf₂-eval₁-sound-to g₁)
+  `eval₁-sound-to (g ↑)     = `id
+  `eval₁-sound-to `id {f}   = λ→ f ↑
+  `eval₁-sound-to (g `⊗ g₁) =
+    α← _ _ _ ↑ `∘ `eval₁-sound-to g `∘ `whisker g (`eval₁-sound-to g₁)
 
-  Nf₂-eval₁-sound-from
+  `eval₁-sound-from
     : {A B C : Ob} (g : Expr₁ B C) {f : A ↦ B} → Nf₂ (⟦ g ⟧ ⊗ f) (eval₁ g f)
-  Nf₂-eval₁-sound-from (g ↑)     = `id
-  Nf₂-eval₁-sound-from `id {f}   = λ← f ↑
-  Nf₂-eval₁-sound-from (g `⊗ g₁) =
-    Nf₂-whisker g (Nf₂-eval₁-sound-from g₁) `∘ Nf₂-eval₁-sound-from g `∘ α→ _ _ _ ↑
+  `eval₁-sound-from (g ↑)     = `id
+  `eval₁-sound-from `id {f}   = λ← f ↑
+  `eval₁-sound-from (g `⊗ g₁) =
+    `whisker g (`eval₁-sound-from g₁) `∘ `eval₁-sound-from g `∘ α→ _ _ _ ↑
 
   eval₂
     : {A B C : Ob} {g h : Expr₁ B C} {k : A ↦ B}
     → Expr₂ g h → Nf₂ (eval₁ g k) (eval₁ h k)
   eval₂ {g = g} {h} {k} (α ↑) =
-    Nf₂-eval₁-sound-from h `∘ (α ◀ k) ↑ `∘ Nf₂-eval₁-sound-to g
+    `eval₁-sound-from h `∘ (α ◀ k) ↑ `∘ `eval₁-sound-to g
   eval₂ `id                  = `id
   eval₂ (α `∘ β)             = eval₂ α `∘ eval₂ β
-  eval₂ (_`◆_ {f₁ = f₁} α β) = eval₂ α `∘ Nf₂-whisker f₁ (eval₂ β)
+  eval₂ (_`◆_ {f₁ = f₁} α β) = eval₂ α `∘ `whisker f₁ (eval₂ β)
   eval₂ (`λ← _)              = `id
   eval₂ (`λ→ _)              = `id
   eval₂ (`ρ← _)              = `id
@@ -147,44 +150,120 @@ module NbE {o ℓ ℓ'} (C : Prebicategory o ℓ ℓ') where
   eval₂ (`α← _ _ _)          = `id
   eval₂ (`α→ _ _ _)          = `id
 
-  extract : {A B : Ob} {f g h : A ↦ B} → Nf₂ g h → f ⇒ g → f ⇒ h
-  extract {A} {B} = Cs.NbE.eval (Hom A B)
-
   nf₂ : {A B : Ob} {f g : Expr₁ A B} → Expr₂ f g → nf₁ f ⇒ nf₁ g
-  nf₂ {A} {B} α = Cs.NbE.nf (Hom A B) (eval₂ α)
+  nf₂ = Nf₂.nf ⊙ eval₂
 
-  postulate
-    eval₂-sound
-      : {A B C : Ob} {f : A ↦ C} {g h : Expr₁ B C} {k : A ↦ B}
-      → (α : Expr₂ g h) (γ : f ⇒ eval₁ g k)
-      → extract (eval₂ α) γ ≡ eval₁-sound h k .from ∘ ⟦ α ⟧ ◀ k ∘ eval₁-sound g k .to ∘ γ
---   -- eval₂-sound (` x) γ = {!!}
---   -- eval₂-sound {g = g} `id γ = {!!}
---   -- eval₂-sound (α `∘ β) γ = {!!}
---   -- eval₂-sound (α `◆ β) γ = {!!}
---   -- eval₂-sound (`λ← f) γ = {!!}
---   -- eval₂-sound (`λ→ f) γ = {!!}
---   -- eval₂-sound (`ρ← f) γ = {!!}
---   -- eval₂-sound (`ρ→ f) γ = {!!}
---   -- eval₂-sound (`α← f g h) γ = {!!}
---   -- eval₂-sound (`α→ f g h) γ = {!!}
+  `whisker-sound
+    : {A B C : Ob} (f : Expr₁ B C) {h₁ h₂ : A ↦ B} (α : Nf₂ h₁ h₂)
+    → eval₁-sound f h₂ .to ∘ ⟦ `whisker f α ⟧ ≡ ⟦ f ⟧ ▶ ⟦ α ⟧ ∘ eval₁-sound f h₁ .to
+  `whisker-sound `id xs                    = λ→nat _
+  `whisker-sound {A} {_} {C} (f₁ `⊗ f₂) xs =
+    eval₁-sound (f₁ `⊗ f₂) _ .to ∘ ⟦ `whisker (f₁ `⊗ f₂) xs ⟧                         ≡⟨ cat! (Hom A C) ⟩
+    α← _ _ _ ∘ _ ∘ eval₁-sound f₁ (eval₁ f₂ _) .to ∘ ⟦ `whisker f₁ (`whisker f₂ xs) ⟧ ≡⟨ refl⟩∘⟨ refl⟩∘⟨ `whisker-sound f₁ (`whisker f₂ xs) ⟩
+    α← _ _ _ ∘ ⟦ f₁ ⟧ ▶ eval₁-sound f₂ _ .to ∘ ⟦ f₁ ⟧ ▶ ⟦ `whisker f₂ xs ⟧ ∘ _        ≡⟨ refl⟩∘⟨ ▶.extendl (`whisker-sound f₂ xs) ⟩
+    α← _ _ _ ∘ ⟦ f₁ ⟧ ▶ (⟦ f₂ ⟧ ▶ ⟦ xs ⟧) ∘ ⟦ f₁ ⟧ ▶ eval₁-sound f₂ _ .to ∘ _         ≡⟨ extendl (▶-assoc .from .is-natural _ _ _) ⟩
+    (⟦ f₁ ⟧ ⊗ ⟦ f₂ ⟧) ▶ ⟦ xs ⟧ ∘ α← _ _ _ ∘ ⟦ f₁ ⟧ ▶ eval₁-sound f₂ _ .to ∘ _         ≡⟨ refl⟩∘⟨ assoc _ _ _ ⟩
+    (⟦ f₁ ⟧ ⊗ ⟦ f₂ ⟧) ▶ ⟦ xs ⟧ ∘ (α← _ _ _ ∘ ⟦ f₁ ⟧ ▶ eval₁-sound f₂ _ .to) ∘ _       ∎
+  `whisker-sound (f ↑) `id        = ▶.intro refl ⟩∘⟨refl
+  `whisker-sound (f ↑) (α ↑)      = id-comm-sym
+  `whisker-sound (f ↑) (xs `∘ ys) =
+    Hom.id ∘ ⟦ `whisker (f ↑) xs ⟧ ∘ ⟦ `whisker (f ↑) ys ⟧ ≡⟨ extendl (`whisker-sound (f ↑) xs) ⟩
+    f ▶ ⟦ xs ⟧ ∘ Hom.id ∘ ⟦ `whisker (f ↑) ys ⟧            ≡⟨ refl⟩∘⟨ `whisker-sound (f ↑) ys ⟩
+    f ▶ ⟦ xs ⟧ ∘ f ▶ ⟦ ys ⟧ ∘ Hom.id                       ≡⟨ ▶.pulll refl ⟩
+    f ▶ (⟦ xs ⟧ ∘ ⟦ ys ⟧) ∘ Hom.id                         ∎
+
+  `eval₁-sound-to-sound
+    : {A B C : Ob} (g : Expr₁ B C) {f : A ↦ B}
+    → ⟦ `eval₁-sound-to g ⟧ ≡ eval₁-sound g f .to
+  `eval₁-sound-to-sound (g ↑)         = refl
+  `eval₁-sound-to-sound `id           = refl
+  `eval₁-sound-to-sound (g `⊗ g₁) {f} =
+    _ ∘ ⟦ `eval₁-sound-to g ⟧ ∘ ⟦ `whisker g (`eval₁-sound-to g₁) ⟧ ≡⟨ refl⟩∘⟨ `eval₁-sound-to-sound g ⟩∘⟨refl ⟩
+    _ ∘ eval₁-sound g _ .to ∘ ⟦ `whisker g (`eval₁-sound-to g₁) ⟧   ≡⟨ refl⟩∘⟨ `whisker-sound g (`eval₁-sound-to g₁) ⟩
+    _ ∘ ⟦ g ⟧ ▶ ⟦ `eval₁-sound-to g₁ ⟧ ∘ eval₁-sound g _ .to        ≡⟨ pulll (refl⟩∘⟨ ▶.⟨ `eval₁-sound-to-sound g₁ ⟩) ⟩
+    eval₁-sound (g `⊗ g₁) f .to                                     ∎
+
+  `eval₁-sound-from-sound
+    : {A B C : Ob} (g : Expr₁ B C) {f : A ↦ B}
+    → ⟦ `eval₁-sound-from g ⟧ ≡ eval₁-sound g f .from
+  `eval₁-sound-from-sound (g ↑)         = refl
+  `eval₁-sound-from-sound `id           = refl
+  `eval₁-sound-from-sound (g `⊗ g₁) {f} =
+    ⟦ `whisker g (`eval₁-sound-from g₁) ⟧ ∘ ⟦ `eval₁-sound-from g ⟧ ∘ _ ≡⟨ refl⟩∘⟨ `eval₁-sound-from-sound g ⟩∘⟨refl ⟩
+    ⟦ `whisker g (`eval₁-sound-from g₁) ⟧ ∘ eval₁-sound g _ .from ∘ _   ≡⟨ extendl `whisker-sound' ⟩
+    eval₁-sound g _ .from ∘ ⟦ g ⟧ ▶ ⟦ `eval₁-sound-from g₁ ⟧ ∘ _        ≡⟨ refl⟩∘⟨ ▶.⟨ `eval₁-sound-from-sound g₁ ⟩ ⟩∘⟨refl ⟩
+    eval₁-sound (g `⊗ g₁) f .from                                       ∎
+    where `whisker-sound' = sym $ swizzle
+            (sym $ `whisker-sound g (`eval₁-sound-from g₁))
+            (eval₁-sound g _ .invl) (eval₁-sound g _ .invr)
+
+  eval₂-sound
+    : {A B C : Ob} {g h : Expr₁ B C} (α : Expr₂ g h) {k : A ↦ B}
+    → eval₁-sound h k .to ∘ ⟦ eval₂ α ⟧ ≡ ⟦ α ⟧ ◀ k ∘ eval₁-sound g k .to
+  eval₂-sound {g = g} {h} (α ↑) {k} =
+    eval₁-sound h k .to ∘ ⟦ `eval₁-sound-from h ⟧ ∘ α ◀ k ∘ ⟦ `eval₁-sound-to g ⟧ ≡⟨ refl⟩∘⟨ `eval₁-sound-from-sound h ⟩∘⟨refl ⟩
+    eval₁-sound h k .to ∘ eval₁-sound h k .from ∘ α ◀ k ∘ ⟦ `eval₁-sound-to g ⟧   ≡⟨ cancell (eval₁-sound h _ .invl) ⟩
+    α ◀ k ∘ ⟦ `eval₁-sound-to g ⟧                                                 ≡⟨ refl⟩∘⟨ `eval₁-sound-to-sound g ⟩
+    (α ◀ k) ∘ eval₁-sound g k .to                                                 ∎
+  eval₂-sound `id                            = idr _ ∙ ◀.introl refl
+  eval₂-sound (_`∘_ {f = f} {g} {h} α β) {k} =
+    eval₁-sound h k .to ∘ ⟦ eval₂ α ⟧ ∘ ⟦ eval₂ β ⟧ ≡⟨ extendl (eval₂-sound α) ⟩
+    ⟦ α ⟧ ◀ k ∘ eval₁-sound g k .to ∘ ⟦ eval₂ β ⟧   ≡⟨ refl⟩∘⟨ eval₂-sound β ⟩
+    ⟦ α ⟧ ◀ k ∘ ⟦ β ⟧ ◀ k ∘ eval₁-sound f k .to     ≡⟨ ◀.pulll refl ⟩
+    (⟦ α ⟧ ∘ ⟦ β ⟧) ◀ k ∘ eval₁-sound f k .to       ∎
+  eval₂-sound {A} {_} {C} (_`◆_ {f₁ = f₁} {f₂} α {g₁} {g₂} β) {k} =
+    eval₁-sound (f₂ `⊗ g₂) k .to ∘ ⟦ eval₂ α ⟧ ∘ ⟦ `whisker f₁ (eval₂ β) ⟧            ≡⟨ cat! (Hom A C) ⟩
+    _ ∘ _ ∘ eval₁-sound f₂ (eval₁ g₂ k) .to ∘ ⟦ eval₂ α ⟧ ∘ ⟦ `whisker f₁ (eval₂ β) ⟧ ≡⟨ refl⟩∘⟨ refl⟩∘⟨ extendl (eval₂-sound α) ∙ ap (⟦ α ⟧ ◀ _ ∘_) (`whisker-sound f₁ (eval₂ β)) ⟩
+    _ ∘ ⟦ f₂ ⟧ ▶ eval₁-sound g₂ k .to ∘ ⟦ α ⟧ ◀ eval₁ g₂ k ∘ ⟦ f₁ ⟧ ▶ ⟦ eval₂ β ⟧ ∘ _ ≡⟨ refl⟩∘⟨ ⊗.extendl (id-comm-sym ,ₚ id-comm) ⟩
+    _ ∘ _ ∘ ⟦ f₁ ⟧ ▶ eval₁-sound g₂ k .to ∘ ⟦ f₁ ⟧ ▶ ⟦ eval₂ β ⟧ ∘ _                  ≡⟨ refl⟩∘⟨ refl⟩∘⟨ ▶.extendl (eval₂-sound β) ⟩
+    α← _ _ _ ∘ ⟦ α ⟧ ◀ (⟦ g₂ ⟧ ⊗ k) ∘ ⟦ f₁ ⟧ ▶ (⟦ β ⟧ ◀ k) ∘ _                        ≡⟨ extendl (◀-assoc .to .is-natural _ _ _) ⟩
+    (⟦ α ⟧ ◀ ⟦ g₂ ⟧) ◀ k ∘ α← _ _ _ ∘ ⟦ f₁ ⟧ ▶ (⟦ β ⟧ ◀ k) ∘ _                        ≡⟨ refl⟩∘⟨ extendl (◀-▶-comm .from .is-natural _ _ _) ⟩
+    (⟦ α ⟧ ◀ ⟦ g₂ ⟧) ◀ k ∘ (⟦ f₁ ⟧ ▶ ⟦ β ⟧) ◀ k ∘ α← _ _ _ ∘ _                        ≡⟨ ◀.pulll (⊗.collapse (idr _ ,ₚ idl _)) ⟩
+    (⟦ α ⟧ ◆ ⟦ β ⟧) ◀ k ∘ α← _ _ _ ∘ _                                                ≡⟨ refl ⟩∘⟨ assoc _ _ _ ⟩
+    (⟦ α ⟧ ◆ ⟦ β ⟧) ◀ k ∘ eval₁-sound (f₁ `⊗ g₁) k .to                                ∎
+  eval₂-sound (`λ← f) {k} =
+    eval₁-sound f k .to ∘ Hom.id                          ≡⟨ idr _ ∙ intror (λ≅ .invr) ∙ extendl (sym $ λ←nat _) ⟩
+    λ← _ ∘ id ▶ eval₁-sound f k .to ∘ λ→ _                ≡⟨ pushl (sym (rswizzle (sym triangle-λ←) (α≅ .invl))) ⟩
+    λ← _ ◀ k ∘ α← _ _ _ ∘ id ▶ eval₁-sound f k .to ∘ λ→ _ ≡⟨ refl⟩∘⟨ assoc _ _ _ ⟩
+    λ← _ ◀ k ∘ eval₁-sound (`id `⊗ f) k .to               ∎
+  eval₂-sound (`λ→ f) {k} =
+    eval₁-sound (`id `⊗ f) k .to ∘ Hom.id   ≡⟨ idr _ ∙ extendr (sym $ λ→nat _) ⟩
+    (α← _ _ _ ∘ λ→ _) ∘ eval₁-sound f k .to ≡⟨ lswizzle triangle-λ→ (α≅ .invr) ⟩∘⟨refl ⟩
+    λ→ _ ◀ k ∘ eval₁-sound f k .to          ∎
+  eval₂-sound (`ρ← f) =
+    idr _ ∙ insertl (pulll (triangle _ _) ∙ ▶.annihilate (λ≅ .invr))
+  eval₂-sound (`ρ→ f) {k} = idr _ ∙ ap (_∘ eval₁-sound f k .to) triangle-inv
+  eval₂-sound {A} {_} {C} (`α← f g h) {k} =
+    eval₁-sound ((f `⊗ g) `⊗ h) k .to ∘ Hom.id                                       ≡⟨ cat! (Hom A C) ⟩
+    α← _ _ _ ∘ (⟦ f ⟧ ⊗ ⟦ g ⟧) ▶ eval₁-sound h k .to ∘ α← _ _ _ ∘ _                  ≡⟨ refl⟩∘⟨ extendl (sym $ ▶-assoc .from .is-natural _ _ _) ⟩
+    α← _ _ _ ∘ α← _ _ _ ∘ ⟦ f ⟧ ▶ (⟦ g ⟧ ▶ eval₁-sound h k .to) ∘ _                  ≡⟨ extendl (sym $ pentagon _ _ _ _) ⟩
+    α← _ _ _ ◀ k ∘ (α← _ _ _ ∘ ⟦ f ⟧ ▶ α← _ _ _) ∘ ⟦ f ⟧ ▶ _ ∘ ⟦ f ⟧ ▶ _ ∘ _         ≡˘⟨ refl⟩∘⟨ assoc _ _ _ ⟩
+    _ ∘ _ ∘ ⟦ f ⟧ ▶ α← _ _ _ ∘ ⟦ f ⟧ ▶ (⟦ g ⟧ ▶ eval₁-sound h k .to) ∘ ⟦ f ⟧ ▶ _ ∘ _ ≡⟨ refl⟩∘⟨ refl⟩∘⟨ ▶.pulll refl ∙ ▶.pulll refl ⟩
+    α← _ _ _ ◀ k ∘ α← _ _ _ ∘ ⟦ f ⟧ ▶ _ ∘ _                                          ≡⟨ refl⟩∘⟨ assoc _ _ _ ⟩
+    α← _ _ _ ◀ k ∘ eval₁-sound (f `⊗ g `⊗ h) k .to                                   ∎
+  eval₂-sound {A} {_} {C} (`α→ f g h) {k} =
+    eval₁-sound (f `⊗ (g `⊗ h)) k .to ∘ Hom.id                                       ≡⟨ cat! (Hom A C) ⟩
+    α← _ _ _ ∘ ⟦ f ⟧ ▶ ((α← _ _ _ ∘ ⟦ g ⟧ ▶ eval₁-sound h k .to) ∘ _) ∘ _            ≡⟨ refl⟩∘⟨ ▶.pushl refl ∙ ▶.pushl refl ⟩
+    α← _ _ _ ∘ ⟦ f ⟧ ▶ α← _ _ _ ∘ ⟦ f ⟧ ▶ (⟦ g ⟧ ▶ eval₁-sound h k .to) ∘ _          ≡⟨ extendl (sym $ lswizzle (sym $ pentagon _ _ _ _) (◀.annihilate (α≅ .invl))) ⟩
+    α→ _ _ _ ◀ k ∘ (α← _ _ _ ∘ α← _ _ _) ∘ ⟦ f ⟧ ▶ (⟦ g ⟧ ▶ eval₁-sound h k .to) ∘ _ ≡˘⟨ refl⟩∘⟨ assoc _ _ _ ⟩
+    α→ _ _ _ ◀ k ∘ α← _ _ _ ∘ α← _ _ _ ∘ ⟦ f ⟧ ▶ (⟦ g ⟧ ▶ eval₁-sound h k .to) ∘ _   ≡⟨ refl⟩∘⟨ refl⟩∘⟨ extendl (▶-assoc .from .is-natural _ _ _) ⟩
+    α→ _ _ _ ◀ k ∘ α← _ _ _ ∘ (⟦ f ⟧ ⊗ ⟦ g ⟧) ▶ eval₁-sound h k .to ∘ α← _ _ _ ∘ _   ≡⟨ cat! (Hom A C) ⟩
+    α→ _ _ _ ◀ k ∘ eval₁-sound ((f `⊗ g) `⊗ h) k .to                                 ∎
 
   nf₂-sound
     : {A B : Ob} {f g : Expr₁ A B} (α : Expr₂ f g)
-    → nf₂ α ≡ nf₁-sound g .from ∘ ⟦ α ⟧ ∘ nf₁-sound f .to
+    → nf₁-sound g .to ∘ nf₂ α ≡ ⟦ α ⟧ ∘ nf₁-sound f .to
   nf₂-sound {A} {B} {f} {g} α =
-    nf₂ α                                                                         ≡⟨ eval₂-sound α Hom.id ⟩
-    eval₁-sound g id .from ∘ ⟦ α ⟧ ◀ id ∘ eval₁-sound f id .to ∘ Hom.id           ≡⟨ refl⟩∘⟨ ap₂ _∘_ (Hom.intror (ρ≅ .invl) ∙ Hom.extendl (sym $ ρ→nat _)) (idr _) ⟩
-    eval₁-sound g id .from ∘ (ρ→ ⟦ g ⟧ ∘ ⟦ α ⟧ ∘ ρ← ⟦ f ⟧) ∘ eval₁-sound f id .to ≡⟨ cat! (Hom A B) ⟩
-    (eval₁-sound g id .from ∘ ρ→ ⟦ g ⟧) ∘ ⟦ α ⟧ ∘ ρ← ⟦ f ⟧ ∘ eval₁-sound f id .to ∎
-    where open Hom using (refl⟩∘⟨_ ; idr)
+    nf₁-sound g .to ∘ nf₂ α                      ≡⟨ refl⟩∘⟨ Nf₂.eval-sound (eval₂ α) ⟩
+    nf₁-sound g .to ∘ ⟦ eval₂ α ⟧                ≡⟨ extendr (eval₂-sound α) ∙ sym (assoc _ _ _) ⟩
+    ρ← ⟦ g ⟧ ∘ ⟦ α ⟧ ◀ id ∘ eval₁-sound f id .to ≡⟨ extendl (ρ←nat _) ⟩
+    ⟦ α ⟧ ∘ nf₁-sound f .to                      ∎
 
   abstract
     solve : {A B : Ob} {f g : Expr₁ A B} (α β : Expr₂ f g) → nf₂ α ≡ nf₂ β → ⟦ α ⟧ ≡ ⟦ β ⟧
     solve {f = f} {g} α β p =
-      Hom.iso→epic (nf₁-sound f) _ _ $
-      Hom.iso→monic (nf₁-sound g Hom.Iso⁻¹) _ _ $
-      sym (nf₂-sound α) ∙ p ∙ nf₂-sound β
+      iso→epic (nf₁-sound f) _ _ $
+      sym (nf₂-sound α) ∙ ap (nf₁-sound g .to ∘_) p ∙ nf₂-sound β
 
 
 module Reflection where

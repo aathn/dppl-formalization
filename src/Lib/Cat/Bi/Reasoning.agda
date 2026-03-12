@@ -69,6 +69,11 @@ module Lib.Cat.Bi.Reasoning {o ℓ ℓ'} (C : Prebicategory o ℓ ℓ') where
   -- Several proofs below taken from Cat.Monoidal.Base.
 
   opaque
+    triangle-inv : α← f id g ∘ f ▶ λ→ g ≡ ρ→ f ◀ g
+    triangle-inv {f = f} {g = g} = rswizzle
+      (sym $ lswizzle (sym $ triangle f g) (◀.F-map-iso ρ≅ .invl))
+      (▶.F-map-iso λ≅ .invr)
+
     triangle-α→ : (f ▶ λ← g) ∘ α→ _ _ _ ≡ ρ← f ◀ g
     triangle-α→ = rswizzle (sym $ triangle _ _) (α≅ .invr)
 
@@ -137,7 +142,7 @@ module Lib.Cat.Bi.Reasoning {o ℓ ℓ'} (C : Prebicategory o ℓ ℓ') where
   opaque
     triangle-ρ← : ρ← (f ⊗ g) ∘ α← f g id ≡ f ▶ ρ← g
     triangle-ρ← {f = f} {g = g} = push-eqⁿ (unitor-r ni⁻¹) $
-      ◀.F-∘ _ _ ∙ ap to (Iso-prism base sq1 sq2 sq3)
+      ◀-distribl ∙ ap to (Iso-prism base sq1 sq2 sq3)
       where open triangle-ρ←-helpers
 
     triangle-ρ→ : ρ→ (f ⊗ g) ≡ α← f g id ∘ f ▶ ρ→ g
@@ -149,7 +154,7 @@ module Lib.Cat.Bi.Reasoning {o ℓ ℓ'} (C : Prebicategory o ℓ ℓ') where
 
     triangle-λ← : λ← (f ⊗ g) ∘ α→ id f g ≡ λ← f ◀ g
     triangle-λ← {f = f} {g = g} = push-eqⁿ (unitor-l ni⁻¹) $
-      ▶.F-∘ _ _ ∙ ap to (Iso-prism base sq1 sq2 sq3)
+      ▶-distribr ∙ ap to (Iso-prism base sq1 sq2 sq3)
       where open triangle-λ←-helpers
 
     triangle-λ→ : λ→ (f ⊗ g) ≡ α→ id f g ∘ λ→ f ◀ g
