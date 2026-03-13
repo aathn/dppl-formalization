@@ -3,7 +3,7 @@ module Lib.Data.Fin where
 open import 1Lab.Prelude
 open import Data.Fin.Base
 open import Data.Sum.Base using (_⊎_ ; inl ; inr ; ⊎-map)
-open import Data.Nat using (s≤s)
+open import Data.Nat using (≤-peel)
 open import Data.Nat.Properties using (+-≤l)
 
 private variable
@@ -23,8 +23,8 @@ Fin-search-⊎ {suc n} f with f fzero | Fin-search-⊎ (f ∘ fsuc)
   zero    → Ha
   (suc i) → Has i
 ... | inl Ha | inr (j , Hb , Has) = inr $ _ , Hb , λ i → case fin-view i of λ where
-  zero _           → Ha
-  (suc i) (s≤s H≤) → Has i H≤
+  zero _      → Ha
+  (suc i) i≤j → Has i (≤-peel i≤j)
 
 split-+-inl
   : {i : Fin (m + n)} {j : Fin m}
