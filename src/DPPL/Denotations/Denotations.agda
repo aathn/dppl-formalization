@@ -152,10 +152,10 @@ module _ (Ax : DenotAssumptions) where
     ; □⟨A⟩-Id     = □⟨A⟩-Id
     ; 𝔇ℝ[_]       = 𝔇ℝ[_]
     ; □-𝔇ℝ        = super-iso→sub-iso _ (adjunct-hom-iso-into μ⊣ν _)
-    ; 𝔇-real      = λ r → よ₁ ℛ (ℛ-const (make r))
+    ; 𝔇-real      = λ r → よ ℛ .F₁ (ℛ-const (make r))
     ; 𝔇-prim      = λ Hϕ → Equiv.from (Hom≃Cpsh-hom ℛ-conc ∙e 𝔇ℝ'-hom≃⟨∥⟩-reg) (Prim-denot _ , Prim-reg Hϕ)
     ; 𝔇-cond      = λ cs H≤ → Equiv.from (Hom≃Cpsh-hom ℛ-conc ∙e 𝔇ℝ'-hom≃⟨∥⟩-reg) (cond-denot , cond-reg cs H≤)
-    ; 𝔇-sub       = λ H≤ → よ₁ ℛ (ℛ-id≤ H≤)
+    ; 𝔇-sub       = λ H≤ → よ ℛ .F₁ (ℛ-id≤ H≤)
     ; 𝔇-diff      = diff-hom
     ; 𝔇-solve     = solve-hom
     }

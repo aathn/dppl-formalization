@@ -41,13 +41,13 @@ record Conc-category {o ℓ} (C : Precategory o ℓ) : Type (o ⊔ ℓ) where
   open Terminal terminal public renaming (top to ⋆ ; has⊤ to ⋆-is-terminal)
 
   field
-    ⋆-hom-faithful : is-faithful Hom[ ⋆ ,-]
+    ⋆-hom-faithful : is-faithful (Hom-from ⋆)
 
   ob∣_∣ : Ob → Type ℓ
-  ob∣ c ∣ = Hom[ ⋆ ,-] ʻ c
+  ob∣ c ∣ = (Hom-from ⋆) ʻ c
 
   hom∣_∣ : {o₁ o₂ : ⌞ C ⌟} → Hom o₁ o₂ → ob∣ o₁ ∣ → ob∣ o₂ ∣
-  hom∣_∣ = Hom[ ⋆ ,-] .F₁
+  hom∣_∣ = (Hom-from ⋆) .F₁
 
   is-conc-hom : (U V : Ob) → (ob∣ U ∣ → ob∣ V ∣) → Type ℓ
   is-conc-hom U V f = Σ[ g ∈ Hom U V ] f ≡ hom∣ g ∣
@@ -407,7 +407,7 @@ module _ {ℓ} {C : Precategory ℓ ℓ} (Conc : Conc-category C) where
     ⇒-underlying : {A B : CPSh.Ob} → [ A , B ] ʻ ⋆ ≃ Cpsh-hom Conc A B
     ⇒-underlying {A} {B} = eqv ∙e Hom≃Cpsh-hom Conc {A = A} {B} where
       eqv : [ A , B ] ʻ ⋆ ≃ CPSh.Hom A B
-      eqv = _∘nt λ→ {A} ,
+      eqv = _∘nt λ→ A ,
         CPSh.invertible-precomp-equiv {A} {Unit ⊗ A} {B} (CPSh.iso→invertible λ≅)
 
     open Cpsh-hom

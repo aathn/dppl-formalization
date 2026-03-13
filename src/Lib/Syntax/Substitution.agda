@@ -9,6 +9,8 @@ open import Lib.LocallyNameless.oc-Sets
 open import Lib.LocallyNameless.LocalClosedness
 open import Lib.LocallyNameless.BindingSignature
 
+open NatOrd
+
 module _ {Σ : Sig} where
 
   Subst : Type

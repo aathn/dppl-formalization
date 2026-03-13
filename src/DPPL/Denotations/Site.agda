@@ -88,7 +88,7 @@ open ℛ⊤ public using () renaming (top to ⋆)
 ℛ-conc .Conc-category.⋆-hom-faithful = ⋆-hom-faithful where
   open Hom ℛ
   opaque
-    ⋆-hom-faithful : is-faithful Hom[ ⋆ ,-]
+    ⋆-hom-faithful : is-faithful (Hom-from ⋆)
     ⋆-hom-faithful H≡ =
       ℛ-hom-path $ funext (λ z → ap fst (H≡ $ₚ ℛ-const z) $ₚ make 0r)
 

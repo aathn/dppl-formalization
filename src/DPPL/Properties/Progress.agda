@@ -41,7 +41,7 @@ module Progress (Ax : EvalAssumptions) where
   progress-det (tapp Hty Hty₁)         = inr $ case (progress-det Hty) of λ where
     (inr (t' , Hstep)) → _ , cong-stepᵈ (λ _ ()) Hstep
     (inl Hv) → case (progress-det Hty₁) of λ where
-      (inr (t' , Hstep)) → _ , cong-stepᵈ (λ { ₀ (s≤s 0≤x) → Hv }) Hstep
+      (inr (t' , Hstep)) → _ , cong-stepᵈ (Fin-cases (λ _ → Hv) λ _ ()) Hstep
       (inl Hv₁) →
         let _ , t , Heq = canonical-⇒ Hty Hv reflᵢ
         in  _ , estep (eapp Heq Hv₁)
@@ -71,18 +71,18 @@ module Progress (Ax : EvalAssumptions) where
   progress-det (tdiff Hty Hty₁ Hty₂ _) = inr $ case (progress-det Hty) of λ where
     (inr (t' , Hstep)) → _ , cong-stepᵈ (λ _ ()) Hstep
     (inl Hv) → case (progress-det Hty₁) of λ where
-      (inr (t' , Hstep)) → _ , cong-stepᵈ (λ { ₀ (s≤s 0≤x) → Hv }) Hstep
+      (inr (t' , Hstep)) → _ , cong-stepᵈ (Fin-cases (λ _ → Hv) λ _ ()) Hstep
       (inl Hv₁) → case (progress-det Hty₂) of λ where
         (inr (t' , Hstep)) →
-          _ , cong-stepᵈ (λ { ₀ (s≤s 0≤x) → Hv ; ₁ (s≤s (s≤s 0≤x)) → Hv₁ }) Hstep
+          _ , cong-stepᵈ (Fin-cases (λ _ → Hv) $ Fin-cases (λ _ → Hv₁) λ _ ()) Hstep
         (inl Hv₂) → _ , estep (ediff Hv Hv₁ Hv₂)
   progress-det (tsolve Hty Hty₁ Hty₂ _) = inr $ case (progress-det Hty) of λ where
     (inr (t' , Hstep)) → _ , cong-stepᵈ (λ _ ()) Hstep
     (inl Hv) → case (progress-det Hty₁) of λ where
-      (inr (t' , Hstep)) → _ , cong-stepᵈ (λ { ₀ (s≤s 0≤x) → Hv }) Hstep
+      (inr (t' , Hstep)) → _ , cong-stepᵈ (Fin-cases (λ _ → Hv) λ _ ()) Hstep
       (inl Hv₁) → case (progress-det Hty₂) of λ where
         (inr (t' , Hstep)) →
-          _ , cong-stepᵈ (λ { ₀ (s≤s 0≤x) → Hv ; ₁ (s≤s (s≤s 0≤x)) → Hv₁ }) Hstep
+          _ , cong-stepᵈ (Fin-cases (λ _ → Hv) $ Fin-cases (λ _ → Hv₁) λ _ ()) Hstep
         (inl Hv₂) → _ , estep (esolve Hv Hv₁ Hv₂)
   progress-det (tsub {e = det} Hty _ _) = progress-det Hty
   progress-det (tpromote {Γ} Hty _ H⊆)
@@ -97,7 +97,7 @@ module Progress (Ax : EvalAssumptions) where
   progress-rnd (tapp Hty Hty₁) = inr $ case (progress-rnd Hty) of λ where
     (inr (t' , Hstep)) → _ , cong-stepʳ (λ _ ()) Hstep
     (inl Hv) → case (progress-rnd Hty₁) of λ where
-      (inr (t' , Hstep)) → _ , cong-stepʳ (λ { ₀ (s≤s 0≤x) → Hv }) Hstep
+      (inr (t' , Hstep)) → _ , cong-stepʳ (Fin-cases (λ _ → Hv) λ _ ()) Hstep
       (inl Hv₁) →
         let _ , t , Heq = canonical-⇒ Hty Hv reflᵢ
         in  _ , estep (edet (eapp Heq Hv₁))
@@ -138,18 +138,18 @@ module Progress (Ax : EvalAssumptions) where
   progress-rnd (tdiff Hty Hty₁ Hty₂ _) = inr $ case (progress-rnd Hty) of λ where
     (inr (t' , Hstep)) → _ , cong-stepʳ (λ _ ()) Hstep
     (inl Hv) → case (progress-rnd Hty₁) of λ where
-      (inr (t' , Hstep)) → _ , cong-stepʳ (λ { ₀ (s≤s 0≤x) → Hv }) Hstep
+      (inr (t' , Hstep)) → _ , cong-stepʳ (Fin-cases (λ _ → Hv) λ _ ()) Hstep
       (inl Hv₁) → case (progress-rnd Hty₂) of λ where
         (inr (t' , Hstep)) →
-          _ , cong-stepʳ (λ { ₀ (s≤s 0≤x) → Hv ; ₁ (s≤s (s≤s 0≤x)) → Hv₁ }) Hstep
+          _ , cong-stepʳ (Fin-cases (λ _ → Hv) $ Fin-cases (λ _ → Hv₁) λ _ ()) Hstep
         (inl Hv₂) → _ , estep (edet (ediff Hv Hv₁ Hv₂))
   progress-rnd (tsolve Hty Hty₁ Hty₂ _) = inr $ case (progress-rnd Hty) of λ where
     (inr (t' , Hstep)) → _ , cong-stepʳ (λ _ ()) Hstep
     (inl Hv) → case (progress-rnd Hty₁) of λ where
-      (inr (t' , Hstep)) → _ , cong-stepʳ (λ { ₀ (s≤s 0≤x) → Hv }) Hstep
+      (inr (t' , Hstep)) → _ , cong-stepʳ (Fin-cases (λ _ → Hv) λ _ ()) Hstep
       (inl Hv₁) → case (progress-rnd Hty₂) of λ where
         (inr (t' , Hstep)) →
-          _ , cong-stepʳ (λ { ₀ (s≤s 0≤x) → Hv ; ₁ (s≤s (s≤s 0≤x)) → Hv₁ }) Hstep
+          _ , cong-stepʳ (Fin-cases (λ _ → Hv) $ Fin-cases (λ _ → Hv₁) λ _ ()) Hstep
         (inl Hv₂) → _ , estep (edet (esolve Hv Hv₁ Hv₂))
   progress-rnd (tsub {e = rnd} Hty _ _) = progress-rnd Hty
   progress-rnd (tsub {e = det} Hty _ _) with progress-det Hty

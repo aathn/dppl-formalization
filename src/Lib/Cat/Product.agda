@@ -12,7 +12,6 @@ open import Cat.Monoidal.Base
 open import Cat.Monoidal.Instances.Cartesian
 open import Data.Fin.Base
 import Cat.Reasoning as Cr
-import Cat.Functor.Bifunctor as Bifunctor
 
 open Cr._≅_
 open Cr.Inverses
@@ -54,7 +53,7 @@ module ProdIso {o ℓ} {C : Precategory o ℓ} (Cart : Cartesian-category C) whe
   Π-++ {zero} F1 F2 =
     λ≅ Iso⁻¹ ∙Iso path→iso (ap ip.ΠF (++-split 0 (F1 ++ F2)))
   Π-++ {suc m} F1 F2 =
-    ip.ΠF F1 ⊗ ip.ΠF F2                  ≅⟨ F-map-iso (Bifunctor.Left -⊗- (ip.ΠF F2)) (Π-cons F1) ∙Iso α≅ ⟩
-    head F1 ⊗ ip.ΠF (tail F1) ⊗ ip.ΠF F2 ≅⟨ F-map-iso (Bifunctor.Right -⊗- (head F1)) (Π-++ (tail F1) F2 ∙Iso path→iso (ap ip.ΠF (sym (++-tail F1 F2)))) ⟩
+    ip.ΠF F1 ⊗ ip.ΠF F2                  ≅⟨ F-map-iso (-⊗-.Left (ip.ΠF F2)) (Π-cons F1) ∙Iso α≅ ⟩
+    head F1 ⊗ ip.ΠF (tail F1) ⊗ ip.ΠF F2 ≅⟨ F-map-iso (-⊗-.Right (head F1)) (Π-++ (tail F1) F2 ∙Iso path→iso (ap ip.ΠF (sym (++-tail F1 F2)))) ⟩
     head F1 ⊗ ip.ΠF (tail (F1 ++ F2))    ≅˘⟨ Π-cons (F1 ++ F2) ⟩
     ip.ΠF (F1 ++ F2)                     ≅∎

@@ -314,7 +314,7 @@ module LambdaTerm where
   fis₂ i (lam t) p = lc-at-lam (fis₂ (suc i) t i+1≻t)
     where
     i+1≻t : suc i ≻ t
-    i+1≻t _ ⦃ s≤s q ⦄ with (a , e) ← p _ ⦃ q ⦄ = (a , lam-inj e)
+    i+1≻t (suc j) ⦃ q ⦄ with (a , e) ← p _ ⦃ ≤-peel q ⦄ = (a , lam-inj e)
   fis₂ i (app(t , t')) p = lc-at-app (fis₂ i t i≻t) (fis₂ i t' i≻t')
     where
     i≻t : i ≻ t
