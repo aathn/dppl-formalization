@@ -106,6 +106,9 @@ module NbE {o ℓ ℓ'} (C : Prebicategory o ℓ ℓ') where
   nf₁-sound : {A B : Ob} (e : Expr₁ A B) → nf₁ e ≅ ⟦ e ⟧
   nf₁-sound e = eval₁-sound e id ∙Iso ρ≅ Iso⁻¹
 
+  --------------------------------------------------------------------------------
+  -- Evaluation
+
   open Cs.NbE using (`id ; _↑ ; _`∘_)
   module Nf₂ {A} {B} = Cs.NbE (Hom A B)
 
@@ -152,6 +155,9 @@ module NbE {o ℓ ℓ'} (C : Prebicategory o ℓ ℓ') where
 
   nf₂ : {A B : Ob} {f g : Expr₁ A B} → Expr₂ f g → nf₁ f ⇒ nf₁ g
   nf₂ = Nf₂.nf ⊙ eval₂
+
+  --------------------------------------------------------------------------------
+  -- Soundness
 
   `whisker-sound
     : {A B C : Ob} (f : Expr₁ B C) {h₁ h₂ : A ↦ B} (α : Nf₂ h₁ h₂)
@@ -415,7 +421,7 @@ private module _ {o ℓ ℓ'} {C : Prebicategory o ℓ ℓ'} where
   variable
     A B : Ob
     f g h i : A ↦ B
-    α β : f ⇒ g
+    α β γ δ : f ⇒ g
 
   test-distrib-▶ : f ▶ (α ∘ β) ≡ f ▶ α ∘ f ▶ β
   test-distrib-▶ = bicat! C
@@ -433,3 +439,8 @@ private module _ {o ℓ ℓ'} {C : Prebicategory o ℓ ℓ'} where
 
   test-triangle-λ← : λ← (f ⊗ g) ∘ α→ id f g ≡ λ← f ◀ g
   test-triangle-λ← = bicat! C
+
+  -- TODO: Use Reflection.Variables to introduce an ordering on leaf nodes so that
+  -- we can solve goals involving interchange
+  -- test-interchange : (α ∘ β) ◆ (γ ∘ δ) ≡ (α ◆ γ) ∘ (β ◆ δ)
+  -- test-interchange = bicat! C
