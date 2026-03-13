@@ -7,6 +7,8 @@ open import Cat.Cartesian
 open import Cat.Diagram.Product.Finite
 open import Cat.Diagram.Product.Indexed
 open import Cat.Functor.Base
+open import Cat.Functor.Naturality
+open import Cat.Functor.Naturality.Reflection
 open import Cat.Instances.Product
 open import Cat.Monoidal.Base
 open import Cat.Monoidal.Instances.Cartesian
@@ -21,7 +23,7 @@ open Functor
 
 private variable
   o h : Level
-  B C D : Precategory o h
+  B B' C C' D D' : Precategory o h
 
 _,Iso_
   : {A A' : ⌞ C ⌟} {B B' : ⌞ D ⌟} → Cr._≅_ C A A' → Cr._≅_ D B B'
@@ -43,6 +45,12 @@ _nt,_ α β .is-natural _ _ f = α .is-natural _ _ f ,ₚ β .is-natural _ _ f
 ×ᶜ-op .F₁ f    = f
 ×ᶜ-op .F-id    = refl
 ×ᶜ-op .F-∘ _ _ = refl
+
+F×-interchange
+  : {F : Functor C D} {G : Functor C' D'}
+  → {H : Functor B C} {K : Functor B' C'}
+  → ((F F∘ H) F× (G F∘ K)) ≅ⁿ (F F× G) F∘ (H F× K)
+F×-interchange = trivial-isoⁿ!
 
 module ProdIso {o ℓ} {C : Precategory o ℓ} (Cart : Cartesian-category C) where
   open Cartesian-category Cart

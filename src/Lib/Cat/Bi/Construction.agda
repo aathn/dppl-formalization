@@ -1,11 +1,8 @@
-module Lib.Cat.Bi.Construction where
-
 open import Lib.Cat.Product
-open import Lib.Cat.Bi.Solver
-import Lib.Cat.Bi.Reasoning as Br
 
 open import Cat.Prelude
 open import Cat.Bi.Base
+open import Cat.Bi.Solver
 open import Cat.Functor.Base
 open import Cat.Functor.Compose hiding (_◆_)
 open import Cat.Functor.Constant
@@ -13,7 +10,10 @@ open import Cat.Functor.FullSubcategory
 open import Cat.Functor.Naturality
 open import Cat.Instances.Discrete
 open import Cat.Instances.Product
+import Cat.Bi.Reasoning as Br
 import Cat.Reasoning as Cr
+
+module Lib.Cat.Bi.Construction where
 
 open Functor
 open _=>_ hiding (op)
@@ -198,7 +198,7 @@ module _ {o h ℓ} {C : Prebicategory o h ℓ} where
       Hom-compositor .η (f , g) .is-natural _ _ h =
         ▶-assoc .from .is-natural _ _ _
       Hom-compositor .is-natural _ _ (α , β) = ext λ h →
-        α← _ _ _ ∘ (_ ▶ (β ◀ _)) ∘ (α ◀ _) ≡⟨ refl⟩∘⟨ ⊗.collapse (ap₂ _,_ (idl _) (idr _)) ⟩
+        α← _ _ _ ∘ (_ ▶ (β ◀ _)) ∘ (α ◀ _) ≡⟨ refl⟩∘⟨ ⊗.collapse (idl _ ,ₚ idr _) ⟩
         α← _ _ _ ∘ (α ◆ (β ◀ _))           ≡⟨ α←nat _ _ _ ⟩
         ((α ◆ β) ◀ _) ∘ α← _ _ _           ∎
 
