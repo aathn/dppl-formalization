@@ -13,6 +13,7 @@ open import Cat.Instances.Product
 open import Lib.Cat.Bi.Lax-transfor
 open import Lib.Cat.Bi.Modification
 
+import Cat.Functor.Bifunctor as Bi
 import Cat.Bi.Reasoning as Br
 import Cat.Reasoning as Cr
 
@@ -21,11 +22,11 @@ module Lib.Cat.Bi.Construction where
 open Functor
 open _=>_ hiding (op)
 
+private module Pb = Prebicategory
+
 module _ {o h ℓ} (C : Prebicategory o h ℓ) where
   open Br C
   open Hom hiding (Ob ; Hom ; id ; _∘_)
-  private
-    module Pb = Prebicategory
 
   open Cr._≅_
   open Cr.Inverses
@@ -149,10 +150,11 @@ module _ {o h ℓ} {C : Prebicategory o h ℓ} where
       open Cr._≅_
       open Cr.Inverses
 
-      Hom-compositor : ∀ {A B C} → Cat.compose F∘ (Hom-from-bi₁ {B} {C} F× Hom-from-bi₁ {A} {B}) => Hom-from-bi₁ F∘ compose
+      Hom-compositor
+        : ∀ {A B C}
+        → Cat.compose F∘ (Hom-from-bi₁ {B} {C} F× Hom-from-bi₁ {A} {B}) => Hom-from-bi₁ F∘ compose
       Hom-compositor .η (f , g) .η x              = α← (f , g , x)
-      Hom-compositor .η (f , g) .is-natural _ _ h =
-        C.▶-assoc .from .is-natural _ _ _
+      Hom-compositor .η (f , g) .is-natural _ _ h = C.▶-assoc .from .is-natural _ _ _
       Hom-compositor .is-natural _ _ (α , β) = ext λ h →
         α← _ ∘ (_ ▶ (β ◀ _)) ∘ (α ◀ _) ≡⟨ CH.refl⟩∘⟨ C.⊗.collapse (CH.idl _ ,ₚ CH.idr _) ⟩
         α← _ ∘ (α ◆ (β ◀ _))           ≡⟨ α←nat _ _ _ ⟩
@@ -192,17 +194,83 @@ module _ {o o' h h' ℓ ℓ'} {B : Prebicategory o h ℓ} {C : Prebicategory o' 
   Lax-compose
     : {F G H : Lax-functor B C} → Functor (Lax[ G , H ] ×ᶜ Lax[ F , G ]) Lax[ F , H ]
   Lax-compose .F₀ (α , β) = α ∘lx β
-  Lax-compose .F₁ (f , g) = let foo = _◆md_ in {!!}
-  Lax-compose .F-id       = {!!} -- ext λ _ → C.⊗.F-id
-  Lax-compose .F-∘ f g    = {!!} -- ext λ _ → C.⊗.F-∘ _ _
+  Lax-compose .F₁ (f , g) = f ◆md g
+  Lax-compose .F-id       = ext λ _ → C.⊗.F-id
+  Lax-compose .F-∘ f g    = ext λ _ → C.⊗.F-∘ _ _
 
-  -- Lax : Prebicategory (o₁ ⊔ h₁ ⊔ ℓ₁ ⊔ o₂ ⊔ h₂ ⊔ ℓ₂) (o₁ ⊔ h₁ ⊔ ℓ₁ ⊔ h₂ ⊔ ℓ₂) (o₁ ⊔ h₁ ⊔ ℓ₂)
-  -- Lax .Prebicategory.Ob         = Lax-functor B C
-  -- Lax .Prebicategory.Hom        = Lax[_,_]
-  -- Lax .Prebicategory.id         = idlx
-  -- Lax .Prebicategory.compose    = Lax-compose
-  -- Lax .Prebicategory.unitor-l   = {!!}
-  -- Lax .Prebicategory.unitor-r   = {!!}
-  -- Lax .Prebicategory.associator = {!!}
-  -- Lax .Prebicategory.triangle   = {!!}
-  -- Lax .Prebicategory.pentagon   = {!!}
+  Lax : Prebicategory _ _ _
+  Lax = pb module Lax where
+    open Lax-transfor
+    open Modification
+    open Cr._≅_
+    open Cr.Inverses
+
+    unitor-l : ∀ {F G} → Id ≅ⁿ Bi.Right (Lax-compose {F = F} {G}) idlx
+    unitor-l = to-natural-iso ni where
+      ni : make-natural-iso _ _
+      ni .make-natural-iso.eta x .Γ a        = C.λ→ (σ x a)
+      ni .make-natural-iso.eta x .is-natural = bicat! C
+      ni .make-natural-iso.inv x .Γ a        = C.λ← (σ x a)
+      ni .make-natural-iso.inv x .is-natural = bicat! C
+      ni .make-natural-iso.eta∘inv x         = ext λ _ → C.λ≅ .invl
+      ni .make-natural-iso.inv∘eta x         = ext λ _ → C.λ≅ .invr
+      ni .make-natural-iso.natural _ _ _     = ext λ _ → sym $ C.λ→nat _
+
+    unitor-r : ∀ {F G} → Id ≅ⁿ Bi.Left (Lax-compose {G = F} {G}) idlx
+    unitor-r = to-natural-iso ni where
+      ni : make-natural-iso _ _
+      ni .make-natural-iso.eta x .Γ a        = C.ρ→ (σ x a)
+      ni .make-natural-iso.eta x .is-natural = bicat! C
+      ni .make-natural-iso.inv x .Γ a        = C.ρ← (σ x a)
+      ni .make-natural-iso.inv x .is-natural = bicat! C
+      ni .make-natural-iso.eta∘inv x         = ext λ _ → C.ρ≅ .invl
+      ni .make-natural-iso.inv∘eta x         = ext λ _ → C.ρ≅ .invr
+      ni .make-natural-iso.natural _ _ _     = ext λ _ → sym $ C.ρ→nat _
+
+    associator :
+      ∀ {F G H I}
+      → compose-assocˡ Lax-compose {A = F} {G} {H} {I}
+      ≅ⁿ compose-assocʳ Lax-compose {A = F} {G} {H} {I}
+    associator = to-natural-iso ni where
+      ni : make-natural-iso _ _
+      ni .make-natural-iso.eta x .Γ a        = C.α→ _
+      ni .make-natural-iso.eta x .is-natural = bicat! C
+      ni .make-natural-iso.inv x .Γ a        = C.α← _
+      ni .make-natural-iso.inv x .is-natural = bicat! C
+      ni .make-natural-iso.eta∘inv x         = ext λ _ → C.α≅ .invl
+      ni .make-natural-iso.inv∘eta x         = ext λ _ → C.α≅ .invr
+      ni .make-natural-iso.natural _ _ _     = ext λ _ → sym $ C.α→nat _ _ _
+
+    pb : Prebicategory _ _ _
+    pb .Pb.Ob                         = Lax-functor B C
+    pb .Pb.Hom                        = Lax[_,_]
+    pb .Pb.id                         = idlx
+    pb .Pb.compose                    = Lax-compose
+    pb .Pb.unitor-l                   = unitor-l
+    pb .Pb.unitor-r                   = unitor-r
+    pb .Pb.associator {F} {G} {H} {I} = associator {F} {G} {H} {I}
+    pb .Pb.triangle f g     = ext λ _ → C.triangle (σ f _) (σ g _)
+    pb .Pb.pentagon f g h i = ext λ _ → C.pentagon (σ f _) (σ g _) (σ h _) (σ i _)
+
+  Pseudo-lax : Prebicategory _ _ _
+  Pseudo-lax = pb where
+    open Lax-transfor
+    open Pseudofunctor
+    open Cr._≅_
+    open Cr.Inverses
+    pb : Prebicategory _ _ _
+    pb .Pb.Ob         = Pseudofunctor B C
+    pb .Pb.Hom F G    = Lax[ F .lax , G .lax ]
+    pb .Pb.id         = idlx
+    pb .Pb.compose    = Lax-compose
+    pb .Pb.unitor-l   = Lax.unitor-l
+    pb .Pb.unitor-r   = Lax.unitor-r
+    pb .Pb.associator = to-natural-iso ni where
+      ni : make-natural-iso _ _
+      ni .make-natural-iso.eta           = Lax.associator .to .η
+      ni .make-natural-iso.inv           = Lax.associator .from .η
+      ni .make-natural-iso.eta∘inv _     = ext λ _ → C.α≅ .invl
+      ni .make-natural-iso.inv∘eta _     = ext λ _ → C.α≅ .invr
+      ni .make-natural-iso.natural _ _ _ = sym $ Lax.associator .to .is-natural _ _ _
+    pb .Pb.triangle f g     = ext λ _ → C.triangle (σ f _) (σ g _)
+    pb .Pb.pentagon f g h i = ext λ _ → C.pentagon (σ f _) (σ g _) (σ h _) (σ i _)
