@@ -16,17 +16,20 @@ private variable
 open Cr._≅_
 open Cr.Inverses
 open _=>_
+open Lax-transfor
+open Pseudonatural
 
 idlx : {F : Lax-functor B C} → F =>ₗ F
-idlx {C = C} {F} = record where
+idlx {C = C} = lx where
   open Prebicategory C
-  σ a              = id
-  naturator        = (unitor-l .to ∘nt unitor-r .from) ◂ _
-  ν-compositor f g = bicat! C
-  ν-unitor         = bicat! C
+  lx : _ =>ₗ _
+  lx .σ a              = id
+  lx .naturator        = (unitor-l .to ∘nt unitor-r .from) ◂ _
+  lx .ν-compositor f g = bicat! C
+  lx .ν-unitor         = bicat! C
 
 _∘lx_ : {F G H : Lax-functor B C} → G =>ₗ H → F =>ₗ G → F =>ₗ H
-_∘lx_ {B = B} {C = C} {F} {G} {H} α β = record where
+_∘lx_ {B = B} {C = C} {F} {G} {H} α β = lx where
   open Prebicategory C
   module B = Prebicategory B
   module C = Br C
@@ -43,9 +46,10 @@ _∘lx_ {B = B} {C = C} {F} {G} {H} α β = record where
     nat-assoc-from (preaction C (β.σ b) ▸ α.naturator) ∘nt
     (C.◀-assoc .to ◂ H.P₁)
 
-  σ x                              = α.σ x ⊗ β.σ x
-  naturator                        = ν
-  ν-compositor {a = a} {b} {c} f g =
+  lx : _ =>ₗ _
+  lx .σ x                              = α.σ x ⊗ β.σ x
+  lx .naturator                        = ν
+  lx .ν-compositor {a = a} {b} {c} f g =
     ν .η (f B.⊗ g) ∘ H.γ→ _ ◀ (α.σ a ⊗ β.σ a)
       ≡⟨ bicat! C ⟩
       α← _ ∘ α.σ c ▶ β.ν→ (f B.⊗ g) ∘ α→ _
@@ -64,8 +68,8 @@ _∘lx_ {B = B} {C = C} {F} {G} {H} α β = record where
       ≡⟨ bicat! C ⟩
     (α.σ c ⊗ β.σ c) ▶ F.γ→ _ ∘ α→ _ ∘ ν .η f ◀ F.₁ g ∘ α← _ ∘ H.₁ f ▶ ν .η g ∘ α→ _
       ∎
-  ν-unitor {a} =
-    ν .η B.id ∘ H.υ→ ◀ σ a
+  lx .ν-unitor {a} =
+    ν .η B.id ∘ H.υ→ ◀ _
       ≡⟨ bicat! C ⟩
     α← _ ∘ α.σ a ▶ β.ν→ _ ∘ α→ _ ∘ ⌜ α.ν→ _ ∘ H.υ→ ◀ α.σ a ⌝ ◀ β.σ a ∘ α← _
       ≡⟨ ap! α.ν-unitor ⟩
@@ -79,19 +83,21 @@ _∘lx_ {B = B} {C = C} {F} {G} {H} α β = record where
       ∎
 
 idpx : {F : Lax-functor B C} → F =>ₚ F
-idpx {C = C} {F} = record where
+idpx {C = C} = px where
   open Br C
-  lax             = idlx
-  naturator-inv f = Hom.invertible-∘ (Hom.inverses→invertible (λ≅ .inverses))
+  px : _ =>ₚ _
+  px .lax             = idlx
+  px .naturator-inv f = Hom.invertible-∘ (Hom.inverses→invertible (λ≅ .inverses))
     (Hom.is-invertible.op (Hom.inverses→invertible (ρ≅ .inverses)))
 
 _∘px_ : {F G H : Lax-functor B C} → G =>ₚ H → F =>ₚ G → F =>ₚ H
-_∘px_ {C = C} {F} {G} {H} α β = record where
+_∘px_ {C = C} α β = px where
   open Br C
   module α = Pseudonatural α
   module β = Pseudonatural β
-  lax             = α.lax ∘lx β.lax
-  naturator-inv f = Hom.invertible-∘
+  px : _ =>ₚ _
+  px .lax             = α.lax ∘lx β.lax
+  px .naturator-inv f = Hom.invertible-∘
     (Hom.is-invertible.op (Hom.inverses→invertible (α≅ .inverses)))
     $ Hom.invertible-∘ (▶.F-map-invertible (β.naturator-inv f))
     $ Hom.invertible-∘ (Hom.inverses→invertible (α≅ .inverses))

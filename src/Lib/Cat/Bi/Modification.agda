@@ -88,7 +88,7 @@ module _
 _◆md_
   : {F G H : Lax-functor B C} {α α' : G =>ₗ H} {β β' : F =>ₗ G}
   → Modification α α' → Modification β β' → Modification (α ∘lx β) (α' ∘lx β')
-_◆md_ {C = C} {F} {G} {H} {α} {α'} {β} {β'} f g = record where
+_◆md_ {C = C} {F} {G} {H} {α} {α'} {β} {β'} f g = md where
   module C  = Prebicategory C
   module F  = Lax-functor F
   module G  = Lax-functor G
@@ -99,8 +99,9 @@ _◆md_ {C = C} {F} {G} {H} {α} {α'} {β} {β'} f g = record where
   module β' = Lax-transfor β'
   module f  = Modification f
   module g  = Modification g
-  Γ x                    = f .Γ x C.◆ g .Γ x
-  is-natural {a} {b} {x} =
+  md : Modification _ _
+  md .Γ x                    = f .Γ x C.◆ g .Γ x
+  md .is-natural {a} {b} {x} =
         (C.α← _ C.∘ α'.σ b C.▶ β'.ν→ x C.∘ C.α→ _ C.∘ α'.ν→ x C.◀ β'.σ a C.∘ C.α← _)
     C.∘ H.₁ x C.▶ (f.Γ a C.◆ g.Γ a)
       ≡⟨ bicat! C ⟩

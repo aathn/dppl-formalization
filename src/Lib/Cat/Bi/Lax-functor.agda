@@ -40,39 +40,41 @@ module Reasoning
   ◀-comp .is-natural _ _ α =
     ap (λ f → γ→ _ C.∘ (₂ α C.◆ f)) (sym P₁.F-id) ∙ γ→nat _ _
 
+open Lax-functor
+open Pseudofunctor
+
 IdL : Lax-functor B B
-IdL {B = B} = record where
+IdL {B = B} = lf where
   open Br B
-  P₀ z       = z
-  P₁         = Id
-  compositor = record
-    { η          = λ x     → Hom.id
-    ; is-natural = λ _ _ _ → Hom.id-comm-sym
-    }
-  unitor        = Hom.id
-  hexagon f g h = Hom.elimr (Hom.idl _ ∙ ⊗.F-id) ∙ Hom.insertl (Hom.idl _ ∙ ⊗.F-id)
-  right-unit f  = Hom.elimr (Hom.idl _ ∙ ⊗.F-id)
-  left-unit f   = Hom.elimr (Hom.idl _ ∙ ⊗.F-id)
+  lf : Lax-functor _ _
+  lf .P₀ z                         = z
+  lf .P₁                           = Id
+  lf .compositor .η x              = Hom.id
+  lf .compositor .is-natural _ _ _ = Hom.id-comm-sym
+  lf .unitor                       = Hom.id
+  lf .hexagon f g h =
+    Hom.elimr (Hom.idl _ ∙ ⊗.F-id) ∙ Hom.insertl (Hom.idl _ ∙ ⊗.F-id)
+  lf .right-unit f = Hom.elimr (Hom.idl _ ∙ ⊗.F-id)
+  lf .left-unit f  = Hom.elimr (Hom.idl _ ∙ ⊗.F-id)
 
 _L∘_ : Lax-functor C D → Lax-functor B C → Lax-functor B D
-_L∘_ {C = C} {D = D} {B = B} F G = record where
+_L∘_ {C = C} {D = D} {B = B} F G = lf where
   module B = Prebicategory B
   module C = Prebicategory C
   module D = Br D
   module DH = D.Hom
   module F = Reasoning F
   module G = Lax-functor G
-  P₀ = F.P₀ ⊙ G.P₀
-  P₁ = F.P₁ F∘ G.P₁
-  compositor = record
-    { η          = λ (x , y) → F.₂ (G.γ→ (x , y)) D.∘ F.γ→ (G.₁ x , G.₁ y)
-    ; is-natural = λ (x , y) (x' , y') (f , g) →
-      (F.₂ (G.γ→ _) D.∘ F.γ→ _) D.∘ (F.₂ (G.₂ f) D.◆ F.₂ (G.₂ g)) ≡⟨ DH.extendr (F.γ→nat (G.₂ f) (G.₂ g)) ⟩
-      (F.₂ (G.γ→ _) D.∘ F.₂ (G.₂ f C.◆ G.₂ g)) D.∘ F.γ→ _         ≡⟨ DH.pushl (F.P₁.weave (G.γ→nat f g)) ⟩
-      F.₂ (G.₂ (f B.◆ g)) D.∘ F.₂ (G.γ→ _) D.∘ F.γ→ _             ∎
-    }
-  unitor        = F.₂ G.υ→ D.∘ F.υ→
-  hexagon f g h =
+  lf : Lax-functor _ _
+  lf .P₀ = F.P₀ ⊙ G.P₀
+  lf .P₁ = F.P₁ F∘ G.P₁
+  lf .compositor .η (x , y) = F.₂ (G.γ→ (x , y)) D.∘ F.γ→ (G.₁ x , G.₁ y)
+  lf .compositor .is-natural (x , y) (x' , y') (f , g) =
+    (F.₂ (G.γ→ _) D.∘ F.γ→ _) D.∘ (F.₂ (G.₂ f) D.◆ F.₂ (G.₂ g)) ≡⟨ DH.extendr (F.γ→nat (G.₂ f) (G.₂ g)) ⟩
+    (F.₂ (G.γ→ _) D.∘ F.₂ (G.₂ f C.◆ G.₂ g)) D.∘ F.γ→ _         ≡⟨ DH.pushl (F.P₁.weave (G.γ→nat f g)) ⟩
+    F.₂ (G.₂ (f B.◆ g)) D.∘ F.₂ (G.γ→ _) D.∘ F.γ→ _             ∎
+  lf .unitor        = F.₂ G.υ→ D.∘ F.υ→
+  lf .hexagon f g h =
         F.₂ (G.₂ (B.α→ _)) D.∘ (F.₂ (G.γ→ _) D.∘ F.γ→ _)
     D.∘ (F.₂ (G.γ→ _) D.∘ F.γ→ _) D.◀ F.₁ (G.₁ h)
       ≡˘⟨ DH.refl⟩∘⟨ DH.pushr (DH.extendl (sym $ F.◀-comp .is-natural _ _ _) ∙ ap (F.γ→ _ D.∘_) (sym D.◀-distribl)) ⟩
@@ -91,7 +93,7 @@ _L∘_ {C = C} {D = D} {B = B} F G = record where
         (F.₂ (G.γ→ (f , g B.⊗ h)) D.∘ F.γ→ (G.₁ f , G.₁ (g B.⊗ h)))
     D.∘ F.₁ (G.₁ f) D.▶ (F.₂ (G.γ→ (g , h)) D.∘ F.γ→ (G.₁ g , G.₁ h)) D.∘ D.α→ _
       ∎
-  right-unit f =
+  lf .right-unit f =
         F.₂ (G.₂ (B.ρ← f)) D.∘ (F.₂ (G.γ→ (f , B.id)) D.∘ F.γ→ (G.₁ f , G.₁ B.id))
     D.∘ F.₁ (G.₁ f) D.▶ (F.₂ G.υ→ D.∘ F.υ→)
       ≡˘⟨ DH.refl⟩∘⟨ DH.pushr (DH.extendl (sym $ F.▶-comp .is-natural _ _ _) ∙ ap (F.γ→ _ D.∘_) (sym D.▶-distribr)) ⟩
@@ -102,7 +104,7 @@ _L∘_ {C = C} {D = D} {B = B} F G = record where
       ≡⟨ F.right-unit (G.₁ f) ⟩
     D.ρ← (F.₁ (G.₁ f))
       ∎
-  left-unit f =
+  lf .left-unit f =
         F.₂ (G.₂ (B.λ← f)) D.∘ (F.₂ (G.γ→ (B.id , f)) D.∘ F.γ→ (G.₁ B.id , G.₁ f))
     D.∘ (F.₂ G.υ→ D.∘ F.υ→) D.◀ F.₁ (G.₁ f)
       ≡˘⟨ DH.refl⟩∘⟨ DH.pushr (DH.extendl (sym $ F.◀-comp .is-natural _ _ _) ∙ ap (F.γ→ _ D.∘_) (sym D.◀-distribl)) ⟩
@@ -115,19 +117,21 @@ _L∘_ {C = C} {D = D} {B = B} F G = record where
       ∎
 
 IdP : Pseudofunctor B B
-IdP {B = B} = record where
+IdP {B = B} = pf where
   open Prebicategory B
-  lax              = IdL
-  unitor-inv       = Cr.id-invertible (Hom _ _)
-  compositor-inv _ = Cr.id-invertible (Hom _ _)
+  pf : Pseudofunctor _ _
+  pf .lax              = IdL
+  pf .unitor-inv       = Cr.id-invertible (Hom _ _)
+  pf .compositor-inv _ = Cr.id-invertible (Hom _ _)
 
 _P∘_ : Pseudofunctor C D → Pseudofunctor B C → Pseudofunctor B D
-_P∘_ {C = C} {D = D} {B = B} F G = record where
+_P∘_ {C = C} {D = D} {B = B} F G = pf where
   open Prebicategory D
   module F = Pseudofunctor F
   module G = Pseudofunctor G
-  lax        = F.lax L∘ G.lax
-  unitor-inv = Cr.invertible-∘ (Hom _ _)
+  pf : Pseudofunctor _ _
+  pf .lax        = F.lax L∘ G.lax
+  pf .unitor-inv = Cr.invertible-∘ (Hom _ _)
     (F-iso.F-map-invertible F.P₁ G.unitor-inv) F.unitor-inv
-  compositor-inv _ = Cr.invertible-∘ (Hom _ _)
+  pf .compositor-inv _ = Cr.invertible-∘ (Hom _ _)
     (F-iso.F-map-invertible F.P₁ (G.compositor-inv _)) (F.compositor-inv _)
