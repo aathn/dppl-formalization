@@ -1,0 +1,99 @@
+open import Cat.Prelude
+open import Cat.Bi.Base
+open import Cat.Bi.Solver
+open import Cat.Functor.Base
+open import Cat.Functor.Coherence hiding (_◆_)
+
+import Cat.Bi.Reasoning as Br
+import Cat.Reasoning as Cr
+
+module Lib.Cat.Bi.Lax-transfor where
+
+private variable
+  o h ℓ : Level
+  B C D : Prebicategory o h ℓ
+
+open Cr._≅_
+open Cr.Inverses
+open _=>_
+
+idlx : {F : Lax-functor B C} → F =>ₗ F
+idlx {C = C} {F} = record where
+  open Prebicategory C
+  σ a              = id
+  naturator        = (unitor-l .to ∘nt unitor-r .from) ◂ _
+  ν-compositor f g = bicat! C
+  ν-unitor         = bicat! C
+
+_∘lx_ : {F G H : Lax-functor B C} → G =>ₗ H → F =>ₗ G → F =>ₗ H
+_∘lx_ {B = B} {C = C} {F} {G} {H} α β = record where
+  open Prebicategory C
+  module B = Prebicategory B
+  module C = Br C
+  module F = Lax-functor F
+  module G = Lax-functor G
+  module H = Lax-functor H
+  module α = Lax-transfor α
+  module β = Lax-transfor β
+  ν : ∀ {a b} → preaction C (α.σ b ⊗ β.σ b) F∘ H.P₁ => postaction C (α.σ a ⊗ β.σ a) F∘ F.P₁
+  ν {a} {b} =
+    (C.▶-assoc .from ◂ F.P₁) ∘nt
+    nat-assoc-to (postaction C (α.σ a) ▸ β.naturator) ∘nt
+    (nat-unassoc-to ⊙ nat-unassoc-from) (C.◀-▶-comm .to ◂ G.P₁) ∘nt
+    nat-assoc-from (preaction C (β.σ b) ▸ α.naturator) ∘nt
+    (C.◀-assoc .to ◂ H.P₁)
+
+  σ x                              = α.σ x ⊗ β.σ x
+  naturator                        = ν
+  ν-compositor {a = a} {b} {c} f g =
+    ν .η (f B.⊗ g) ∘ H.γ→ _ ◀ (α.σ a ⊗ β.σ a)
+      ≡⟨ bicat! C ⟩
+      α← _ ∘ α.σ c ▶ β.ν→ (f B.⊗ g) ∘ α→ _
+    ∘ ⌜ α.ν→ (f B.⊗ g) ∘ H.γ→ _ ◀ α.σ a ⌝ ◀ β.σ a ∘ α← _
+      ≡⟨ ap! (α.ν-compositor f g) ⟩
+      α← _ ∘ α.σ c ▶ β.ν→ (f B.⊗ g) ∘ α→ _ ∘ (α.σ c ▶ G.γ→ _ ∘ α→ _
+    ∘ α.ν→ f ◀ G.₁ g ∘ α← _ ∘ H.₁ f ▶ α.ν→ g ∘ α→ _) ◀ β.σ a ∘ α← _
+      ≡⟨ bicat! C ⟩
+      α← _ ∘ α.σ c ▶ ⌜ β.ν→ (f B.⊗ g) ∘ G.γ→ _ ◀ β.σ a ⌝ ∘ α→ _ ∘ α→ _ ◀ β.σ a
+    ∘ (α.ν→ f ◀ G.₁ g) ◀ β.σ a ∘ α← _ ◀ β.σ a ∘ (H.₁ f ▶ α.ν→ g) ◀ β.σ a
+    ∘ α→ _ ◀ β.σ a ∘ α← _
+      ≡⟨ ap! (β.ν-compositor f g) ⟩
+    α← _ ∘ α.σ c ▶ (β.σ c ▶ F.γ→ _ ∘ α→ _ ∘ β.ν→ f ◀ F.₁ g ∘ α← _ ∘ G.₁ f ▶ β.ν→ g ∘ α→ _)
+    ∘ α→ _ ∘ α→ _ ◀ β.σ a ∘ (α.ν→ f ◀ G.₁ g) ◀ β.σ a ∘ α← _ ◀ β.σ a
+    ∘ (H.₁ f ▶ α.ν→ g) ◀ β.σ a ∘ α→ _ ◀ β.σ a ∘ α← _
+      ≡⟨ bicat! C ⟩
+    (α.σ c ⊗ β.σ c) ▶ F.γ→ _ ∘ α→ _ ∘ ν .η f ◀ F.₁ g ∘ α← _ ∘ H.₁ f ▶ ν .η g ∘ α→ _
+      ∎
+  ν-unitor {a} =
+    ν .η B.id ∘ H.υ→ ◀ σ a
+      ≡⟨ bicat! C ⟩
+    α← _ ∘ α.σ a ▶ β.ν→ _ ∘ α→ _ ∘ ⌜ α.ν→ _ ∘ H.υ→ ◀ α.σ a ⌝ ◀ β.σ a ∘ α← _
+      ≡⟨ ap! α.ν-unitor ⟩
+    α← _ ∘ α.σ a ▶ β.ν→ _ ∘ α→ _ ∘ (α.σ a ▶ G.υ→ ∘ ρ→ _ ∘ λ← _) ◀ β.σ a ∘ α← _
+      ≡⟨ bicat! C ⟩
+    α← _ ∘ α.σ a ▶ ⌜ β.ν→ _ ∘ G.υ→ ◀ β.σ a ⌝ ∘ α→ _ ∘ ρ→ _ ◀ β.σ a ∘ λ← _ ◀ β.σ a ∘ α← _
+      ≡⟨ ap! β.ν-unitor ⟩
+    α← _ ∘ α.σ a ▶ (β.σ a ▶ F.υ→ ∘ ρ→ _ ∘ λ← _) ∘ α→ _ ∘ ρ→ _ ◀ β.σ a ∘ λ← _ ◀ β.σ a ∘ α← _
+      ≡⟨ bicat! C ⟩
+    (α.σ a ⊗ β.σ a) ▶ F.υ→ ∘ ρ→ (α.σ a ⊗ β.σ a) ∘ λ← (α.σ a ⊗ β.σ a)
+      ∎
+
+idpx : {F : Lax-functor B C} → F =>ₚ F
+idpx {C = C} {F} = record where
+  open Br C
+  lax             = idlx
+  naturator-inv f = Hom.invertible-∘ (Hom.inverses→invertible (λ≅ .inverses))
+    (Hom.is-invertible.op (Hom.inverses→invertible (ρ≅ .inverses)))
+
+_∘px_ : {F G H : Lax-functor B C} → G =>ₚ H → F =>ₚ G → F =>ₚ H
+_∘px_ {C = C} {F} {G} {H} α β = record where
+  open Br C
+  module α = Pseudonatural α
+  module β = Pseudonatural β
+  lax             = α.lax ∘lx β.lax
+  naturator-inv f = Hom.invertible-∘
+    (Hom.is-invertible.op (Hom.inverses→invertible (α≅ .inverses)))
+    $ Hom.invertible-∘ (▶.F-map-invertible (β.naturator-inv f))
+    $ Hom.invertible-∘ (Hom.inverses→invertible (α≅ .inverses))
+    $ Hom.invertible-∘ (◀.F-map-invertible (α.naturator-inv f))
+    $ Hom.is-invertible.op (Hom.inverses→invertible (α≅ .inverses))

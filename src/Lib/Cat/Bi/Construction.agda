@@ -1,68 +1,25 @@
-module Lib.Cat.Bi.Construction where
-
 open import Lib.Cat.Product
-open import Lib.Cat.Bi.Solver
-import Lib.Cat.Bi.Reasoning as Br
 
 open import Cat.Prelude
 open import Cat.Bi.Base
+open import Cat.Bi.Solver
 open import Cat.Functor.Base
 open import Cat.Functor.Compose hiding (_◆_)
 open import Cat.Functor.Constant
 open import Cat.Functor.FullSubcategory
 open import Cat.Functor.Naturality
-open import Cat.Instances.Discrete
 open import Cat.Instances.Product
+
+open import Lib.Cat.Bi.Lax-transfor
+open import Lib.Cat.Bi.Modification
+
+import Cat.Bi.Reasoning as Br
 import Cat.Reasoning as Cr
+
+module Lib.Cat.Bi.Construction where
 
 open Functor
 open _=>_ hiding (op)
-
-cat→bicat : ∀ {o ℓ} → Precategory o ℓ → Prebicategory o ℓ ℓ
-cat→bicat C = pb where
-  module C = Precategory C
-  open Prebicategory
-
-  HomCat[_,_] : C.Ob → C.Ob → Precategory _ _
-  HomCat[ a , b ] = Disc' (el (C.Hom a b) (C.Hom-set a b))
-
-  Hom-compose : {a b c : C.Ob} → Functor (HomCat[ b , c ] ×ᶜ HomCat[ a , b ]) HomCat[ a , c ]
-  Hom-compose = record
-    { F₀   = λ (f , g) → f C.∘ g
-    ; F₁   = λ (p , q) → ap₂ C._∘_ p q
-    ; F-id = refl
-    ; F-∘  = λ _ _ → C.Hom-set _ _ _ _ _ _
-    }
-
-  pb : Prebicategory _ _ _
-  pb .Ob       = C.Ob
-  pb .Hom      = HomCat[_,_]
-  pb .id       = C.id
-  pb .compose  = Hom-compose
-  pb .unitor-l = to-natural-iso record
-    { eta = sym ⊙ C.idl
-    ; inv = C.idl
-    ; eta∘inv = λ _ → C.Hom-set _ _ _ _ _ _
-    ; inv∘eta = λ _ → C.Hom-set _ _ _ _ _ _
-    ; natural = λ _ _ _ → C.Hom-set _ _ _ _ _ _
-    }
-  pb .unitor-r = to-natural-iso record
-    { eta = sym ⊙ C.idr
-    ; inv = C.idr
-    ; eta∘inv = λ _ → C.Hom-set _ _ _ _ _ _
-    ; inv∘eta = λ _ → C.Hom-set _ _ _ _ _ _
-    ; natural = λ _ _ _ → C.Hom-set _ _ _ _ _ _
-    }
-  pb .associator = to-natural-iso record
-    { eta = λ _ → sym $ C.assoc _ _ _
-    ; inv = λ _ → C.assoc _ _ _
-    ; eta∘inv = λ _ → C.Hom-set _ _ _ _ _ _
-    ; inv∘eta = λ _ → C.Hom-set _ _ _ _ _ _
-    ; natural = λ _ _ _ → C.Hom-set _ _ _ _ _ _
-    }
-  pb .triangle _ _     = C.Hom-set _ _ _ _ _ _
-  pb .pentagon _ _ _ _ = C.Hom-set _ _ _ _ _ _
-
 
 module _ {o h ℓ} (C : Prebicategory o h ℓ) where
   open Br C
@@ -194,13 +151,13 @@ module _ {o h ℓ} {C : Prebicategory o h ℓ} where
     Hom-from-bi = lf where
 
       Hom-compositor : ∀ {A B C} → Cat.compose F∘ (Hom-from-bi₁ {B} {C} F× Hom-from-bi₁ {A} {B}) => Hom-from-bi₁ F∘ compose
-      Hom-compositor .η (f , g) .η x              = α← f g x
+      Hom-compositor .η (f , g) .η x              = α← (f , g , x)
       Hom-compositor .η (f , g) .is-natural _ _ h =
         ▶-assoc .from .is-natural _ _ _
       Hom-compositor .is-natural _ _ (α , β) = ext λ h →
-        α← _ _ _ ∘ (_ ▶ (β ◀ _)) ∘ (α ◀ _) ≡⟨ refl⟩∘⟨ ⊗.collapse (ap₂ _,_ (idl _) (idr _)) ⟩
-        α← _ _ _ ∘ (α ◆ (β ◀ _))           ≡⟨ α←nat _ _ _ ⟩
-        ((α ◆ β) ◀ _) ∘ α← _ _ _           ∎
+        α← _ ∘ (_ ▶ (β ◀ _)) ∘ (α ◀ _) ≡⟨ refl⟩∘⟨ ⊗.collapse (idl _ ,ₚ idr _) ⟩
+        α← _ ∘ (α ◆ (β ◀ _))           ≡⟨ α←nat _ _ _ ⟩
+        ((α ◆ β) ◀ _) ∘ α← _           ∎
 
       Hom-unitor : ∀ {A} → Cat.id => Hom-from-bi₁ {A} {A} .F₀ id
       Hom-unitor .η                = λ→
@@ -214,3 +171,38 @@ module _ {o h ℓ} {C : Prebicategory o h ℓ} where
       lf .hexagon f g h = ext λ _ → bicat! C
       lf .right-unit f  = ext λ _ → bicat! C
       lf .left-unit f   = ext λ _ → bicat! C
+
+
+module _ {o o' h h' ℓ ℓ'} {B : Prebicategory o h ℓ} {C : Prebicategory o' h' ℓ'} where
+  module C  = Br C
+  module CH = C.Hom
+
+  Lax[_,_] : Lax-functor B C → Lax-functor B C → Precategory _ _
+  Lax[ F , G ] = record
+    { Ob      = F =>ₗ G
+    ; Hom     = Modification
+    ; Hom-set = λ _ _ → Mod-is-set
+    ; id      = idmd
+    ; _∘_     = _∘md_
+    ; idr     = λ _ → ext λ _ → CH.idr _
+    ; idl     = λ _ → ext λ _ → CH.idl _
+    ; assoc   = λ _ _ _ → ext λ _ → CH.assoc _ _ _
+    }
+
+  Lax-compose
+    : {F G H : Lax-functor B C} → Functor (Lax[ G , H ] ×ᶜ Lax[ F , G ]) Lax[ F , H ]
+  Lax-compose .F₀ (α , β) = α ∘lx β
+  Lax-compose .F₁ (f , g) = let foo = _◆md_ in {!!}
+  Lax-compose .F-id       = {!!} -- ext λ _ → C.⊗.F-id
+  Lax-compose .F-∘ f g    = {!!} -- ext λ _ → C.⊗.F-∘ _ _
+
+  -- Lax : Prebicategory (o₁ ⊔ h₁ ⊔ ℓ₁ ⊔ o₂ ⊔ h₂ ⊔ ℓ₂) (o₁ ⊔ h₁ ⊔ ℓ₁ ⊔ h₂ ⊔ ℓ₂) (o₁ ⊔ h₁ ⊔ ℓ₂)
+  -- Lax .Prebicategory.Ob         = Lax-functor B C
+  -- Lax .Prebicategory.Hom        = Lax[_,_]
+  -- Lax .Prebicategory.id         = idlx
+  -- Lax .Prebicategory.compose    = Lax-compose
+  -- Lax .Prebicategory.unitor-l   = {!!}
+  -- Lax .Prebicategory.unitor-r   = {!!}
+  -- Lax .Prebicategory.associator = {!!}
+  -- Lax .Prebicategory.triangle   = {!!}
+  -- Lax .Prebicategory.pentagon   = {!!}
