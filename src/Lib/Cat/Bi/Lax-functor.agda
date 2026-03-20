@@ -1,6 +1,8 @@
 open import Cat.Prelude
 open import Cat.Bi.Base
 open import Cat.Functor.Base
+open import Cat.Functor.Naturality
+open import Cat.Instances.Product
 
 import Cat.Functor.Reasoning as Fr
 import Cat.Bi.Reasoning as Br
@@ -14,7 +16,7 @@ private variable
 
 open _=>_
 
-module Reasoning
+module Lf-reasoning
   {B : Prebicategory o h ℓ} {C : Prebicategory o' h' ℓ'}
   (F : Lax-functor B C) where
 
@@ -23,7 +25,7 @@ module Reasoning
     module C = Prebicategory C
 
   module P₁ {A} {B} = Fr (Lax-functor.P₁ F {A} {B})
-  
+
   open Lax-functor F hiding (module P₁) public
 
   ▶-comp
@@ -39,6 +41,70 @@ module Reasoning
   ◀-comp .η x              = γ→ (x , _)
   ◀-comp .is-natural _ _ α =
     ap (λ f → γ→ _ C.∘ (₂ α C.◆ f)) (sym P₁.F-id) ∙ γ→nat _ _
+
+module Pf-reasoning
+  {B : Prebicategory o h ℓ} {C : Prebicategory o' h' ℓ'}
+  (F : Pseudofunctor B C) where
+
+  private
+    module B = Prebicategory B
+    module C = Br C
+
+  module P₁ {A} {B} = Fr (Pseudofunctor.P₁ F {A} {B})
+
+  open Pseudofunctor F hiding (module P₁) public
+
+  open Cr._≅_
+  open Cr.Inverses
+
+  υ≅ : ∀ {A} → C.id C.Hom.≅ ₁ (B.id {A})
+  υ≅ .to       = υ→
+  υ≅ .from     = υ←
+  υ≅ .inverses = Cr.is-invertible.inverses unitor-inv
+
+  compositor-ni :
+    ∀ {A B C} → C.compose F∘ (P₁ {B} {C} F× P₁ {A} {B}) ≅ⁿ P₁ F∘ B.compose
+  compositor-ni = to-natural-iso ni where
+    ni : make-natural-iso _ _
+    ni .make-natural-iso.eta       = γ→
+    ni .make-natural-iso.inv       = γ←
+    ni .make-natural-iso.eta∘inv _ =
+      Cr.is-invertible.inverses (compositor-inv _) .invl
+    ni .make-natural-iso.inv∘eta _ =
+      Cr.is-invertible.inverses (compositor-inv _) .invr
+    ni .make-natural-iso.natural _ _ _ = sym $ γ→nat _ _
+
+  γ≅ : ∀ {A B C} {f : B B.↦ C} {g : A B.↦ B} → ₁ f C.⊗ ₁ g C.Hom.≅ ₁ (f B.⊗ g)
+  γ≅ = isoⁿ→iso compositor-ni _
+
+  ▶-comp
+    : ∀ {X Y Z} {f : Y B.↦ Z}
+    → postaction C (₁ f) F∘ P₁ {X} {Y} ≅ⁿ P₁ F∘ postaction B f
+  ▶-comp = to-natural-iso ni where
+    ni : make-natural-iso _ _
+    ni .make-natural-iso.eta x     = γ→ (_ , x)
+    ni .make-natural-iso.inv x     = γ← (_ , x)
+    ni .make-natural-iso.eta∘inv _ =
+      Cr.is-invertible.inverses (compositor-inv _) .invl
+    ni .make-natural-iso.inv∘eta _ =
+      Cr.is-invertible.inverses (compositor-inv _) .invr
+    ni .make-natural-iso.natural _ _ α =
+      sym $ ap (λ f → γ→ _ C.∘ (f C.◆ ₂ α)) (sym P₁.F-id) ∙ γ→nat _ _
+
+  ◀-comp
+    : ∀ {X Y Z} {f : X B.↦ Y}
+    → preaction C (₁ f) F∘ P₁ {Y} {Z} ≅ⁿ P₁ F∘ preaction B f
+  ◀-comp = to-natural-iso ni where
+    ni : make-natural-iso _ _
+    ni .make-natural-iso.eta x     = γ→ (x , _)
+    ni .make-natural-iso.inv x     = γ← (x , _)
+    ni .make-natural-iso.eta∘inv _ =
+      Cr.is-invertible.inverses (compositor-inv _) .invl
+    ni .make-natural-iso.inv∘eta _ =
+      Cr.is-invertible.inverses (compositor-inv _) .invr
+    ni .make-natural-iso.natural _ _ α =
+      sym $ ap (λ f → γ→ _ C.∘ (₂ α C.◆ f)) (sym P₁.F-id) ∙ γ→nat _ _
+
 
 open Lax-functor
 open Pseudofunctor
@@ -63,7 +129,7 @@ _L∘_ {C = C} {D = D} {B = B} F G = lf where
   module C = Prebicategory C
   module D = Br D
   module DH = D.Hom
-  module F = Reasoning F
+  module F = Lf-reasoning F
   module G = Lax-functor G
   lf : Lax-functor _ _
   lf .P₀ = F.P₀ ⊙ G.P₀
