@@ -7,9 +7,10 @@ open import Cat.Groupoid
 open import Cat.Bi.Base
 open import Cat.Prelude
 
-open import Lib.Cat.Bi.Construction hiding (_^op)
+open import Lib.Cat.Bi.Construction
 open import Lib.Cat.Bi.Equivalence
 open import Lib.Cat.Bi.Lax-functor
+open import Lib.Cat.Bi.Duality hiding (_^op)
 
 import Cat.Functor.Reasoning as Fr
 import Cat.Reasoning as Cr
@@ -28,7 +29,7 @@ module _
 
   is-lax-colim : Pseudofunctor I C → Ob → Type _
   is-lax-colim F L = Equivalenceᵖ (lhs .lax) (rhs .lax) where
-    lhs = Hom-from-bi (Pseudo-oplax I C) (co F) P∘ Const-po
+    lhs = Hom-from-bi (Pseudoₒ I C) (co F) P∘ Const-pseudoₒ
     rhs = Hom-from-bi C L
 
 module _
