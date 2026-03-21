@@ -20,7 +20,7 @@ open Lax-transfor
 open Pseudonatural
 
 idlx : {F : Lax-functor B C} → F =>ₗ F
-idlx {C = C} = lx where
+idlx {C = C} = lx module id-lx where
   open Prebicategory C
   lx : _ =>ₗ _
   lx .σ a              = id
@@ -28,8 +28,10 @@ idlx {C = C} = lx where
   lx .ν-compositor f g = bicat! C
   lx .ν-unitor         = bicat! C
 
+{-# DISPLAY id-lx.lx = idlx #-}
+
 _∘lx_ : {F G H : Lax-functor B C} → G =>ₗ H → F =>ₗ G → F =>ₗ H
-_∘lx_ {B = B} {C = C} {F} {G} {H} α β = lx where
+_∘lx_ {B = B} {C = C} {F} {G} {H} α β = lx module comp-lx where
   open Prebicategory C
   module B = Prebicategory B
   module C = Br C
@@ -82,16 +84,20 @@ _∘lx_ {B = B} {C = C} {F} {G} {H} α β = lx where
     (α.σ a ⊗ β.σ a) ▶ F.υ→ ∘ ρ→ (α.σ a ⊗ β.σ a) ∘ λ← (α.σ a ⊗ β.σ a)
       ∎
 
+{-# DISPLAY comp-lx.lx f g = f ∘lx g #-}
+
 idpx : {F : Lax-functor B C} → F =>ₚ F
-idpx {C = C} = px where
+idpx {C = C} = px module id-px where
   open Br C
   px : _ =>ₚ _
   px .lax             = idlx
   px .naturator-inv f = Hom.invertible-∘ (Hom.inverses→invertible (λ≅ .inverses))
     (Hom.is-invertible.op (Hom.inverses→invertible (ρ≅ .inverses)))
 
+{-# DISPLAY id-px.px = idpx #-}
+
 _∘px_ : {F G H : Lax-functor B C} → G =>ₚ H → F =>ₚ G → F =>ₚ H
-_∘px_ {C = C} α β = px where
+_∘px_ {C = C} α β = px module comp-px where
   open Br C
   module α = Pseudonatural α
   module β = Pseudonatural β
@@ -103,3 +109,5 @@ _∘px_ {C = C} α β = px where
     $ Hom.invertible-∘ (Hom.inverses→invertible (α≅ .inverses))
     $ Hom.invertible-∘ (◀.F-map-invertible (α.naturator-inv f))
     $ Hom.is-invertible.op (Hom.inverses→invertible (α≅ .inverses))
+
+{-# DISPLAY comp-px.px f g = f ∘px g #-}

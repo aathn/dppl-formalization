@@ -6,7 +6,7 @@ open import Cat.Functor.Compose hiding (_◆_)
 open import Cat.Functor.Base
 open import Cat.Bi.Solver
 open import Cat.Bi.Base
-open import Cat.Prelude
+open import Cat.Prelude renaming (_^op to _^opᶜ)
 
 open import Lib.Cat.Bi.Lax-transfor
 open import Lib.Cat.Bi.Modification
@@ -37,10 +37,41 @@ module _ (C : Prebicategory o h ℓ) where
   open Br C
   open Hom hiding (Ob ; Hom ; id ; _∘_)
 
+  infixl 60 _^op
+  {-# TERMINATING #-}
+  _^op : Prebicategory o h ℓ
+  _^op .Pb.Ob      = Ob
+  _^op .Pb.Hom x y = Hom y x
+  _^op .Pb.id      = id
+  _^op .Pb.compose = compose F∘ Swap
+  _^op .Pb.unitor-l = to-natural-iso ni where
+    ni : make-natural-iso _ _
+    ni .make-natural-iso.eta           = ρ→
+    ni .make-natural-iso.inv           = ρ←
+    ni .make-natural-iso.eta∘inv _     = ρ≅ .invl
+    ni .make-natural-iso.inv∘eta _     = ρ≅ .invr
+    ni .make-natural-iso.natural _ _ _ = sym $ ρ→nat _
+  _^op .Pb.unitor-r = to-natural-iso ni where
+    ni : make-natural-iso _ _
+    ni .make-natural-iso.eta           = λ→
+    ni .make-natural-iso.inv           = λ←
+    ni .make-natural-iso.eta∘inv _     = λ≅ .invl
+    ni .make-natural-iso.inv∘eta _     = λ≅ .invr
+    ni .make-natural-iso.natural _ _ _ = sym $ λ→nat _
+  _^op .Pb.associator = to-natural-iso ni where
+    ni : make-natural-iso _ _
+    ni .make-natural-iso.eta _         = α← _
+    ni .make-natural-iso.inv _         = α→ _
+    ni .make-natural-iso.eta∘inv _     = α≅ .invr
+    ni .make-natural-iso.inv∘eta _     = α≅ .invl
+    ni .make-natural-iso.natural _ _ _ = sym $ α←nat _ _ _
+  _^op .Pb.triangle f g     = triangle-α→
+  _^op .Pb.pentagon f g h i = pentagon-α→
+
   infixl 60 _^co
   _^co : Prebicategory o h ℓ
   _^co .Pb.Ob       = Ob
-  _^co .Pb.Hom x y  = Hom x y ^op
+  _^co .Pb.Hom x y  = Hom x y ^opᶜ
   _^co .Pb.id       = id
   _^co .Pb.compose  = op compose F∘ ×ᶜ-op
   _^co .Pb.unitor-l = to-natural-iso ni where
@@ -295,22 +326,83 @@ Lax B C = pb module Lax where
   pb .Pb.triangle f g     = ext λ _ → C.triangle (σ f _) (σ g _)
   pb .Pb.pentagon f g h i = ext λ _ → C.pentagon (σ f _) (σ g _) (σ h _) (σ i _)
 
-Pseudo-oplax : Prebicategory o h ℓ → Prebicategory o' h' ℓ' → Prebicategory _ _ _
-Pseudo-oplax B C = pb where
+Pseudo : Prebicategory o h ℓ → Prebicategory o' h' ℓ' → Prebicategory _ _ _
+Pseudo B C = pb where
   module C = Br C
   pb : Prebicategory _ _ _
   pb .Pb.Ob         = Pseudofunctor B C
-  pb .Pb.Hom F G    = Lax[ co F .lax , co G .lax ]
+  pb .Pb.Hom F G    = Lax[ F .lax , G .lax ]
   pb .Pb.id         = idlx
-  pb .Pb.compose    = Lax.compose (B ^co) (C ^co)
-  pb .Pb.unitor-l   = Lax.unitor-l (B ^co) (C ^co)
-  pb .Pb.unitor-r   = Lax.unitor-r (B ^co) (C ^co)
+  pb .Pb.compose    = Lax.compose B C
+  pb .Pb.unitor-l   = Lax.unitor-l B C
+  pb .Pb.unitor-r   = Lax.unitor-r B C
   pb .Pb.associator = to-natural-iso ni where
     ni : make-natural-iso _ _
-    ni .make-natural-iso.eta           = Lax.associator (B ^co) (C ^co) .to .η
-    ni .make-natural-iso.inv           = Lax.associator (B ^co) (C ^co) .from .η
+    ni .make-natural-iso.eta           = Lax.associator B C .to .η
+    ni .make-natural-iso.inv           = Lax.associator B C .from .η
     ni .make-natural-iso.eta∘inv _     = ext λ _ → C.α≅ .invl
     ni .make-natural-iso.inv∘eta _     = ext λ _ → C.α≅ .invr
-    ni .make-natural-iso.natural _ _ _ = ext λ _ → C.α←nat _ _ _
-  pb .Pb.triangle f g     = ext λ _ → Pb.triangle (C ^co) _ _
-  pb .Pb.pentagon f g h i = ext λ _ → Pb.pentagon (C ^co) _ _ _ _
+    ni .make-natural-iso.natural _ _ _ = ext λ _ → sym $ C.α→nat _ _ _
+  pb .Pb.triangle f g     = ext λ _ → Pb.triangle C _ _
+  pb .Pb.pentagon f g h i = ext λ _ → Pb.pentagon C _ _ _ _
+
+Pseudo-oplax : Prebicategory o h ℓ → Prebicategory o' h' ℓ' → Prebicategory _ _ _
+Pseudo-oplax B C = Pseudo (B ^co) (C ^co) ^co
+
+Const-po : Pseudofunctor C (Pseudo-oplax B C)
+Const-po {C = C} {B = B} = pf where
+  open Prebicategory C
+  open Lax-transfor
+  open Modification
+  Const₁
+    : ∀ {X Y}
+    → Functor (Hom X Y) (Lax[ Constᵖ (C ^co) X {B = B ^co} .lax , Constᵖ (C ^co) Y .lax ] ^opᶜ)
+  Const₁ .F₀ f .σ A                         = f
+  Const₁ .F₀ f .naturator .η _              = λ→ _ ∘ ρ← _
+  Const₁ .F₀ f .naturator .is-natural _ _ _ = bicat! C
+  Const₁ .F₀ f .ν-compositor g h            = bicat! C
+  Const₁ .F₀ f .ν-unitor                    = bicat! C
+  Const₁ .F₁ α .Γ a                         = α
+  Const₁ .F₁ α .is-natural                  = bicat! C
+  Const₁ .F-id                              = ext λ _ → refl
+  Const₁ .F-∘ f g                           = ext λ _ → refl
+
+  Const-compositor
+    : ∀ {X Y Z}
+    → (op (Lax.compose (B ^co) (C ^co)) F∘ ×ᶜ-op) F∘ (Const₁ {Y} {Z} F× Const₁ {X} {Y}) => Const₁ F∘ compose
+  Const-compositor .η _ .Γ _               = Hom.id
+  Const-compositor .η (x , y) .is-natural  = bicat! C
+  Const-compositor .is-natural _ _ (f , g) = ext λ _ → Cr.id-comm-sym (Hom _ _)
+
+  Const-compositor-inv
+    : ∀ {X Y Z} fg
+    → Cr.is-invertible (Lax[ _ , _ ] ^opᶜ) (Const-compositor {X} {Y} {Z} .η fg)
+  Const-compositor-inv (f , g) .inv .Γ _        = Hom.id
+  Const-compositor-inv (f , g) .inv .is-natural = bicat! C
+  Const-compositor-inv (f , g) .inverses .invl  = ext λ _ → Hom.idl _
+  Const-compositor-inv (f , g) .inverses .invr  = ext λ _ → Hom.idr _
+
+  Const-unitor : ∀ {X} → Modification (Const₁ .F₀ (id {X})) idlx
+  Const-unitor .Γ _        = Hom.id
+  Const-unitor .is-natural = bicat! C
+
+  Const-unitor-inv : ∀ {X} → Cr.is-invertible (Lax[ _ , _ ] ^opᶜ) (Const-unitor {X})
+  Const-unitor-inv .inv .Γ _        = Hom.id
+  Const-unitor-inv .inv .is-natural = bicat! C
+  Const-unitor-inv .inverses .invl  = ext λ _ → Hom.idl _
+  Const-unitor-inv .inverses .invr  = ext λ _ → Hom.idr _
+
+  lf : Lax-functor C (Pseudo-oplax B C)
+  lf .P₀ X          = Constᵖ (C ^co) X
+  lf .P₁            = Const₁
+  lf .compositor    = Const-compositor
+  lf .unitor        = Const-unitor
+  lf .hexagon f g h = ext λ _ → Cr.elimr (Hom _ _) (Hom.idl _ ∙ ⊗.F-id)
+    ∙ Cr.insertl (Hom _ _) (Hom.idl _ ∙ ⊗.F-id)
+  lf .right-unit f = ext λ _ → Cr.elimr (Hom _ _) (Hom.idl _ ∙ ⊗.F-id)
+  lf .left-unit f  = ext λ _ → Cr.elimr (Hom _ _) (Hom.idl _ ∙ ⊗.F-id)
+
+  pf : Pseudofunctor _ _
+  pf .lax            = lf
+  pf .unitor-inv     = Const-unitor-inv
+  pf .compositor-inv = Const-compositor-inv
