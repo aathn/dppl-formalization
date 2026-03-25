@@ -1,9 +1,14 @@
+open import Cat.Functor.Equivalence
+  hiding (Equivalence) renaming (is-equivalence to is-equivalenceᶜ)
+open import Cat.Functor.Naturality
+open import Cat.Functor.Adjoint renaming (_⊣_ to _⊣ᶜ_)
 open import Cat.Bi.Base
 open import Cat.Prelude
 
-import Cat.Bi.Reasoning as Br
+open import Lib.Cat.Bi.Adjoint
 
-import Lib.Cat.Bi.Adjoint as Adj
+import Cat.Bi.Reasoning as Br
+import Cat.Reasoning as Cr
 
 module Lib.Cat.Bi.Equivalence where
 
@@ -18,7 +23,7 @@ module _ (C : Prebicategory o h ℓ) where
     module CH = C.Hom
 
   record is-equivalence {A B} (f : A ↦ B) : Type (h ⊔ ℓ) where
-    open Adj C
+    open Adjoint C
     field
       inv : B ↦ A
       inv-adjoint : f ⊣ inv
@@ -46,3 +51,26 @@ record Equivalenceᵖ
   field
     to : F =>ₚ G
     to-equiv : is-equivalenceᵖ to
+
+module _ {C : Precategory o h} {D : Precategory o h} {F : Functor C D} where
+
+  is-equivalenceᶜ→is-equivalence : is-equivalenceᶜ F → is-equivalence (Cat o h) F
+  is-equivalenceᶜ→is-equivalence eqv .is-equivalence.inv = is-equivalenceᶜ.F⁻¹ eqv
+  is-equivalenceᶜ→is-equivalence eqv .is-equivalence.inv-adjoint =
+    adjointᶜ→adjoint (is-equivalenceᶜ.F⊣F⁻¹ eqv)
+  is-equivalenceᶜ→is-equivalence eqv .is-equivalence.unit-iso =
+    invertible→invertibleⁿ
+      (is-equivalenceᶜ.F⊣F⁻¹ eqv ._⊣ᶜ_.unit) (is-equivalenceᶜ.unit-iso eqv)
+  is-equivalenceᶜ→is-equivalence eqv .is-equivalence.counit-iso =
+    invertible→invertibleⁿ
+      (is-equivalenceᶜ.F⊣F⁻¹ eqv ._⊣ᶜ_.counit) (is-equivalenceᶜ.counit-iso eqv)
+
+  is-equivalence→is-equivalenceᶜ : is-equivalence (Cat o h) F → is-equivalenceᶜ F
+  is-equivalence→is-equivalenceᶜ eqv .is-equivalenceᶜ.F⁻¹   = is-equivalence.inv eqv
+  is-equivalence→is-equivalenceᶜ eqv .is-equivalenceᶜ.F⊣F⁻¹ =
+    adjoint→adjointᶜ (is-equivalence.inv-adjoint eqv)
+  is-equivalence→is-equivalenceᶜ eqv .is-equivalenceᶜ.unit-iso =
+    is-invertibleⁿ→is-invertible (is-equivalence.unit-iso eqv)
+  is-equivalence→is-equivalenceᶜ eqv .is-equivalenceᶜ.counit-iso =
+    is-invertibleⁿ→is-invertible (is-equivalence.counit-iso eqv)
+
