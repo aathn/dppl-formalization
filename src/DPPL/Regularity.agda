@@ -1,149 +1,152 @@
-module DPPL.Regularity where
-
-open import Lib.Data.Dec hiding (_≠_)
-open import Lib.Order.Bool
-open import Lib.Order.Monotone
-import Lib.Order.Wide as Wide
-
 open import 1Lab.Prelude
-open import Data.Bool.Base
-open import Data.Bool.Order using (implies→≤)
+
 open import Data.Dec.Base
-open import Data.Fin.Finite
-open import Order.Base
+
+open import Lib.Homotopy.Join
+open import Lib.Order.Meet
+
+open import Order.Instances.Pointwise.Diagrams
+open import Order.Instances.Pointwise
+open import Order.Semilattice.Join
+open import Order.Semilattice.Meet
+open import Order.Instances.Lower renaming (↓ to ↓ˡ)
+open import Order.Diagram.Bottom
 open import Order.Diagram.Join
 open import Order.Diagram.Meet
+open import Order.Diagram.Top
 open import Order.Lattice
-open import Order.Instances.Pointwise
+open import Order.Base
+
+import Lib.Order.Wide as Wide
+
+module DPPL.Regularity where
 
 data Reg : Type where
   A : Reg
   P : Reg
   C : Reg
-  M : Reg
 
-Reg≃Bool×Bool : Reg ≃ (Bool × Bool)
-Reg≃Bool×Bool .fst A = true  , true
-Reg≃Bool×Bool .fst P = true  , false
-Reg≃Bool×Bool .fst C = false , true
-Reg≃Bool×Bool .fst M = false , false
-Reg≃Bool×Bool .snd = is-iso→is-equiv record
-    { from = λ where
-      (true  , true)  → A
-      (true  , false) → P
-      (false , true)  → C
-      (false , false) → M
-    ; rinv = λ where
-      (true  , true)  → refl
-      (true  , false) → refl
-      (false , true)  → refl
-      (false , false) → refl
-    ; linv = λ where
-      A → refl
-      P → refl
-      C → refl
-      M → refl
-    }
-
-instance
-  Listing-Reg : Listing Reg
-  Listing-Reg = Equiv→listing (Equiv.inverse Reg≃Bool×Bool) auto
+private
+  is-A is-P is-C : Reg → Type
+  is-A A = ⊤
+  is-A _ = ⊥
+  is-P P = ⊤
+  is-P _ = ⊥
+  is-C C = ⊤
+  is-C _ = ⊥
 
 instance
   Discrete-Reg : Discrete Reg
-  Discrete-Reg = Listing→Discrete auto
+  Discrete-Reg .decide = go where
+    go : _
+    go A A = yes refl
+    go P P = yes refl
+    go C C = yes refl
+    go A P = no λ p → subst is-A p tt
+    go A C = no λ p → subst is-A p tt
+    go P A = no λ p → subst is-P p tt
+    go P C = no λ p → subst is-P p tt
+    go C A = no λ p → subst is-C p tt
+    go C P = no λ p → subst is-C p tt
 
-Reg-is-set : is-set Reg
-Reg-is-set = Discrete→is-set Discrete-Reg
+abstract
+  Reg-is-set : is-set Reg
+  Reg-is-set = Discrete→is-set Discrete-Reg
 
 instance
   H-Level-Reg : ∀ {n} → H-Level Reg (2 + n)
   H-Level-Reg = basic-instance 2 Reg-is-set
 
-instance
-  Finite-Reg : Finite Reg
-  Finite-Reg = inc auto
-
-A≠M : A ≠ M
-A≠M p = subst (λ {A → ⊤ ; _ → ⊥}) p tt
-
-open Wide A M A≠M using (Wide ; DecOrd-Wide)
-
 Reg-poset : Poset lzero lzero
-Reg-poset = Wide
+Reg-poset = Wide.Wide A
 
 module Reg≤ = Poset Reg-poset
 
-abstract
-  Reg↓-poset : Poset lzero lzero
-  Reg↓-poset = Poset[ Reg-poset ^opp , Bool-poset ]
+Reg↓-poset : Poset lzero lzero
+Reg↓-poset = Lower-sets Reg-poset
 
-  module Reg↓≤ = Poset Reg↓-poset
+module Reg↓ = Poset Reg↓-poset
 
 Reg↓ : Type
-Reg↓ = Reg↓≤.Ob
+Reg↓ = ⌞ Reg↓-poset ⌟
 
-abstract
-  instance
-    Discrete-Reg↓ : Discrete Reg↓
-    Discrete-Reg↓ .decide x y with x .hom ≡? y .hom
-    ... | yes x≡y = yes (ext (x≡y $ₚ_))
-    ... | no  x≠y = no  (x≠y ∘ ap hom)
+Reg⊆-poset : Poset lzero lzero
+Reg⊆-poset = Subsets Reg
 
-  Reg↓-meets : (a b : Reg↓) → Meet Reg↓-poset a b
-  Reg↓-meets a b = Monotone-meets a b λ where
-    x .Meet.glb      → and (a · x) (b · x)
-    x .Meet.has-meet → Bool-has-meets _ _
+module Reg⊆ = Poset Reg⊆-poset
 
-  Reg↓-joins : (a b : Reg↓≤.Ob) → Join Reg↓-poset a b
-  Reg↓-joins a b = Monotone-joins a b λ where
-    x .Join.lub      → or (a · x) (b · x)
-    x .Join.has-join → Bool-has-joins _ _
+Reg⊆ : Type
+Reg⊆ = ⌞ Reg⊆-poset ⌟
 
-  Reg↓-lattice : is-lattice Reg↓-poset
-  Reg↓-lattice = lat where
-    open is-lattice
-    lat : is-lattice Reg↓-poset
-    lat ._∩_ a b = Meet.glb (Reg↓-meets a b)
-    lat .∩-meets a b = Meet.has-meet (Reg↓-meets a b)
-    lat ._∪_ a b = Join.lub (Reg↓-joins a b)
-    lat .∪-joins a b = Join.has-join (Reg↓-joins a b)
-    lat .has-top = Monotone-has-top Bool-has-top
-    lat .has-bottom = Monotone-has-bot Bool-has-bot
+Reg↓-lat : is-lattice Reg↓-poset
+Reg↓-lat .is-lattice._∩_ a b     = Meet.glb (Lower-sets-meets Reg-poset a b)
+Reg↓-lat .is-lattice.∩-meets a b = Meet.has-meet (Lower-sets-meets Reg-poset a b)
+Reg↓-lat .is-lattice._∪_ a b     = Join.lub (Lower-sets-joins Reg-poset a b)
+Reg↓-lat .is-lattice.∪-joins a b = Join.has-join (Lower-sets-joins Reg-poset a b)
+Reg↓-lat .is-lattice.has-top     = Lower-sets-top Reg-poset
+Reg↓-lat .is-lattice.has-bottom  = Lower-sets-bottom Reg-poset
 
-  open is-lattice Reg↓-lattice
+module Reg↓-lat = is-lattice Reg↓-lat
 
+Reg⊆-lat : is-lattice Reg⊆-poset
+Reg⊆-lat = record
+  { is-meet-semilattice Subsets-is-meet-slat
+  ; is-join-semilattice Subsets-is-join-slat
+  }
+
+module Reg⊆-lat = is-lattice Reg⊆-lat
+
+open Reg↓-lat
 open Reg≤
 
-abstract
-  ↓ : Reg → Reg↓≤.Ob
-  ↓ a .hom r = Dec→Bool (holds? (r ≤ a))
-  ↓ a .pres-≤ y≤x = implies→≤ λ p →
-    is-yes→so (true→is-yes (≤-trans y≤x (is-yes→true (so→is-yes p))))
+Forget-closure : Monotone Reg↓-poset Reg⊆-poset
+Forget-closure .hom f     = f .hom
+Forget-closure .pres-≤ Hf = Hf
 
-  ↓-mono : Monotone Reg-poset Reg↓-poset
-  ↓-mono .hom = ↓
-  ↓-mono .pres-≤ x≤y a = implies→≤ λ p →
-    is-yes→so (true→is-yes (≤-trans (is-yes→true (so→is-yes p)) x≤y))
+Close-downward : Monotone Reg⊆-poset Reg↓-poset
+Close-downward .hom f .hom x       = elΩ (Σ[ y ∈ Reg ] x ≤ y × ∣ f y ∣)
+Close-downward .hom f .pres-≤ H≤ p = do
+  (y , H≤' , Hy) ← p
+  inc (y , ≤-trans H≤ H≤' , Hy)
+Close-downward .pres-≤ H⊆ x p = do
+  (y , H≤ , Hy) ← p
+  inc (y , H≤ , H⊆ y Hy)
 
-  DecOrd-Reg↓' : ∀ a b → Dec (a Reg↓≤.≤ b)
-  DecOrd-Reg↓' _ _ = Listing→Π-dec
+↓ : Reg → Reg↓
+↓ = ↓ˡ Reg-poset
 
-  A↓-is-top : top ≡ ↓ A
-  A↓-is-top = ext λ _ → refl
-
-instance
-  DecOrd-Reg↓ : ∀ {a b} → Dec (a Reg↓≤.≤ b)
-  DecOrd-Reg↓ {a} {b} = DecOrd-Reg↓' a b
-
-A! : ∀ {a} → a Reg↓≤.≤ ↓ A
-A! {a} = subst (a Reg↓≤.≤_) A↓-is-top !
-
-A↓ P↓ C↓ PC↓ M↓ Ø↓ : Reg↓
+A↓ P↓ C↓ PC↓ Ø↓ : Reg↓.Ob
 A↓  = ↓ A
 P↓  = ↓ P
 C↓  = ↓ C
 PC↓ = P↓ ∪ C↓
-M↓  = ↓ M
 Ø↓  = bot
 
+_~ʳ_ : Reg⊆ → Reg⊆ → Type
+X ~ʳ Y =
+  (x : ∫ₚ X) (y : ∫ₚ Y) → x .fst ≤ y .fst →
+  ∃[ z ∈ ∫ₚ (X Reg⊆-lat.∩ Y) ] x .fst ≤ z .fst × z .fst ≤ y .fst
+
+is-meet-closed : Reg⊆ → Type
+is-meet-closed X = (x x' : ∫ₚ X) →
+    (∀ z → z ≤ x .fst → ¬ z ≤ x' .fst)
+  ∗ (Σ[ m ∈ Meet Reg-poset (x .fst) (x' .fst) ] Meet.glb m ∈ X)
+
+P-C-incomp : ∀ z → z ≤ P → ¬ z ≤ C
+P-C-incomp z Hz Hz' = case Hz of λ where
+  (inl p) → case Hz' of λ where
+    (inl q) → subst is-C (sym q ∙ p) tt
+    (inr q) → subst is-C q tt
+  (inr p) → subst is-P p tt
+
+Reg⊆-is-meet-closed : ∀ X → is-meet-closed X
+Reg⊆-is-meet-closed X (x , Hx) (A , _) =
+  inr (record { glb = x ; has-meet = le→is-meet (inr refl) } , Hx)
+Reg⊆-is-meet-closed X (A , _) (x' , Hx') =
+  inr (record { glb = x' ; has-meet = is-meet-sym (le→is-meet (inr refl)) } , Hx')
+Reg⊆-is-meet-closed X (P , Hx) (P , _) =
+  inr (record { glb = P ; has-meet = le→is-meet (inl refl) } , Hx)
+Reg⊆-is-meet-closed X (C , Hx) (C , _) =
+  inr (record { glb = C ; has-meet = le→is-meet (inl refl) } , Hx)
+Reg⊆-is-meet-closed X (P , _) (C , _) = inl P-C-incomp
+Reg⊆-is-meet-closed X (C , _) (P , _) = inl (flip ∘ P-C-incomp)
