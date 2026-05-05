@@ -1,16 +1,15 @@
-module Lib.Data.Vector where
-
 open import 1Lab.Prelude
+
+open import Data.Fin.Properties using (insert-delete ; insert-lookup ; avoid-insert ; skip-avoid ; delete-insert)
+open import Data.Nat.Properties using (+-≤l)
+open import Data.Fin.Base using (Fin ; fzero ; fsuc ; fin-view ; zero ; suc ; split-+ ; fshift ; inject ; Fin-cases)
+open import Data.Sum.Base using (inl ; inr ; ⊎-map)
 
 open import Lib.Data.Fin
 
-open import Data.Fin.Base
-  using (Fin ; fzero ; fsuc ; fin-view ; zero ; suc ; split-+ ; fshift ; inject ; Fin-cases)
-open import Data.Fin.Base public using (_[_≔_] ; delete)
-open import Data.Fin.Properties
-  using (insert-delete ; insert-lookup ; avoid-insert ; skip-avoid ; delete-insert)
-open import Data.Nat.Properties using (+-≤l)
-open import Data.Sum.Base using (inl ; inr ; ⊎-map)
+module Lib.Data.Vector where
+
+open Data.Fin.Base public using (_[_≔_] ; delete)
 
 Vector : {l : Level} → Type l → Nat → Type l
 Vector A n = Fin n → A

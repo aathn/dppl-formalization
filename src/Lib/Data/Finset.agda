@@ -1,24 +1,25 @@
-module Lib.Data.Finset where
-
 open import 1Lab.Prelude hiding (_≠_ ; _∉_)
 
-open import Lib.Data.Dec
-open import Lib.Data.Vector hiding (_++_)
-open import Data.Finset.Base
 open import Data.Finset.Properties
-
-open import Order.Base using (Poset)
-open import Order.Diagram.Join using (Join)
-open import Order.Instances.Nat using (Nat-poset; Nat-joins; Nat-bottom)
-open import Order.Semilattice.Join using (is-join-semilattice)
+open import Data.List.Membership using (++-memberₗ ; ++-memberᵣ ; member-++-view)
+open import Data.Sum.Properties using (Discrete-⊎)
+open import Data.Finset.Base
+open import Data.List.Base using (List ; _++_)
+open import Data.Nat.Order using (¬sucx≤x)
 open import Data.Dec.Base using (Discrete)
 open import Data.Fin.Base using (Fin ; fzero ; fsuc ; fin-view ; suc ; zero)
-open import Data.List.Base using (List ; _++_)
-open import Data.List.Membership using (++-memberₗ ; ++-memberᵣ ; member-++-view)
 open import Data.Nat.Base using (max)
-open import Data.Nat.Order using (¬sucx≤x)
 open import Data.Sum.Base using (_⊎_ ; inr ; inl)
-open import Data.Sum.Properties using (Discrete-⊎)
+
+open import Lib.Data.Vector hiding (_++_)
+open import Lib.Data.Dec
+
+open import Order.Semilattice.Join using (is-join-semilattice)
+open import Order.Instances.Nat using (Nat-poset; Nat-joins; Nat-bottom)
+open import Order.Diagram.Join using (Join)
+open import Order.Base using (Poset)
+
+module Lib.Data.Finset where
 
 private variable
   ℓ ℓ' : Level

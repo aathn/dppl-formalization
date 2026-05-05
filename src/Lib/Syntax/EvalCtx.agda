@@ -1,11 +1,11 @@
-module Lib.Syntax.EvalCtx where
-
 open import Lib.LocallyNameless.BindingSignature
 open import Lib.Data.Vector
 open import Lib.Prelude
 
-open import Data.Fin.Base
 open import Data.Nat.Order
+open import Data.Fin.Base
+
+module Lib.Syntax.EvalCtx where
 
 -- Evaluation orders, evaluation contexts and congruence closure
 

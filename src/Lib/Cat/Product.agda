@@ -1,17 +1,19 @@
-module Lib.Cat.Product where
+open import Data.Fin.Base
+
+open import Cat.Monoidal.Instances.Cartesian
+open import Cat.Diagram.Product.Indexed
+open import Cat.Diagram.Product.Finite
+open import Cat.Instances.Product
+open import Cat.Monoidal.Base
+open import Cat.Functor.Base
+open import Cat.Cartesian
+open import Cat.Prelude
 
 open import Lib.Data.Vector
 
-open import Cat.Prelude
-open import Cat.Cartesian
-open import Cat.Diagram.Product.Finite
-open import Cat.Diagram.Product.Indexed
-open import Cat.Functor.Base
-open import Cat.Instances.Product
-open import Cat.Monoidal.Base
-open import Cat.Monoidal.Instances.Cartesian
-open import Data.Fin.Base
 import Cat.Reasoning as Cr
+
+module Lib.Cat.Product where
 
 open Cr._≅_
 open Cr.Inverses

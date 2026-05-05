@@ -1,13 +1,13 @@
-module Lib.Syntax.Substitution where
-
-open import Lib.Prelude
-open import Lib.Data.Dec
-open import Lib.Data.Finset
-open import Lib.Data.Vector
+open import Lib.LocallyNameless.BindingSignature
+open import Lib.LocallyNameless.LocalClosedness
 open import Lib.LocallyNameless.Unfinite
 open import Lib.LocallyNameless.oc-Sets
-open import Lib.LocallyNameless.LocalClosedness
-open import Lib.LocallyNameless.BindingSignature
+open import Lib.Data.Finset
+open import Lib.Data.Vector
+open import Lib.Data.Dec
+open import Lib.Prelude
+
+module Lib.Syntax.Substitution where
 
 open NatOrd
 

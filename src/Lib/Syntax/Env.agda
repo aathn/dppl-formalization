@@ -1,16 +1,16 @@
-module Lib.Syntax.Env where
-
-open import Lib.Prelude hiding (⟨_,_⟩)
-open import Lib.Data.Dec
-open import Lib.Data.Finset
-open import Lib.LocallyNameless.Unfinite
-
-open import Cat.Base
 open import Cat.Cartesian
+open import Cat.Base
 
-open import Data.Dec.Base
-open import Data.Finset.Base
 open import Data.Finset.Properties
+open import Data.Finset.Base
+open import Data.Dec.Base
+
+open import Lib.LocallyNameless.Unfinite
+open import Lib.Data.Finset
+open import Lib.Data.Dec
+open import Lib.Prelude hiding (⟨_,_⟩)
+
+module Lib.Syntax.Env where
 
 open FinsetSyntax
 

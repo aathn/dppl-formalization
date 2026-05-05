@@ -1,11 +1,12 @@
-module Lib.Algebra.Reals where
-
-open import Lib.Algebra.Field
-open import Lib.Algebra.OrderedRing
-
 open import 1Lab.Prelude hiding (_*_ ; _+_)
-open import Order.Base
+
+open import Lib.Algebra.OrderedRing
+open import Lib.Algebra.Field
+
 open import Order.Diagram.Lub
+open import Order.Base
+
+module Lib.Algebra.Reals where
 
 -- We characterize the real numbers as the ordered field with the
 -- least-upper-bound property.

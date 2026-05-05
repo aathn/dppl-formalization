@@ -1,14 +1,14 @@
-module Lib.Data.Fin where
-
 open import 1Lab.Prelude
+
+open import Data.Nat.Properties using (+-≤l)
 open import Data.Fin.Base
 open import Data.Sum.Base using (_⊎_ ; inl ; inr ; ⊎-map)
 open import Data.Nat using (≤-peel)
-open import Data.Nat.Properties using (+-≤l)
+
+module Lib.Data.Fin where
 
 private variable
   n m : Nat
-
 
 Fin-search-⊎ :
   {A B : Fin n → Type}
