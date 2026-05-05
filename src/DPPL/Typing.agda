@@ -1,25 +1,26 @@
+open import Data.Power using (singleton)
+
+open import DPPL.Regularity
+
+open import Lib.LocallyNameless.AbstractionConcretion
+open import Lib.LocallyNameless.BindingSignature
+open import Lib.LocallyNameless.Unfinite
 open import Lib.Algebra.Reals
+open import Lib.Data.Vector
+open import Lib.Syntax.Env
+open import Lib.Prelude
+
+open import Order.Base
+
+import DPPL.Syntax as Syntax
 
 module DPPL.Typing (R : Reals₀) where
 
-open import DPPL.Syntax R
-open import DPPL.Regularity
-
-open import Lib.Prelude
-open import Lib.LocallyNameless.Unfinite
-open import Lib.LocallyNameless.AbstractionConcretion
-open import Lib.LocallyNameless.BindingSignature
-open import Lib.Data.Vector
-open import Lib.Syntax.Env
-
-open import Order.Base
-open import Order.Lattice
-
-open VecSyntax
 open VectorSyntax using () renaming (_∷_ to _∷ᵛ_)
-open Reg↓≤ renaming (_≤_ to _≤reg_)
-open Eff≤  renaming (_≤_ to _≤eff_)
-open is-lattice Reg↓-lattice
+open VecSyntax
+open Reg⊆-lat
+open Syntax R
+open Reg≤
 
 TyEnv : Type
 TyEnv = Env Ty
@@ -32,163 +33,148 @@ module TypingVars where
 open SyntaxVars
 open TypingVars
 
-PrimTy : (ϕ : Prim) → Coeff ^ PrimAr ϕ × Coeff
+PrimTy : (ϕ : Prim) → Reg↓ ^ PrimAr ϕ × Reg↓
 PrimTy padd    = make A↓ , A↓
+PrimTy psub    = make A↓ , A↓
 PrimTy pmul    = make A↓ , A↓
+PrimTy pdiv    = lookup (A↓ ∷ P↓ ∷ []) , P↓
 PrimTy psin    = make A↓ , A↓
-PrimTy pnormal = make M↓ , M↓
-PrimTy pgamma  = make M↓ , M↓
-PrimTy pwiener = lookup (M↓ ∷ C↓ ∷ []) , C↓
+PrimTy pcos    = make A↓ , A↓
+PrimTy pabs    = make PC↓ , PC↓
+PrimTy pwiener = lookup (Ø↓ ∷ C↓ ∷ []) , C↓
 
 infix 5 _<:_
 data _<:_ : Ty → Ty → Type where
 
   sreal :
-    (_ : c ≤reg c')
+    (H⊆ : c ⊆ c')
     → -----------------
     treal c <: treal c'
 
   stup :
     {Ts Ts' : Ty ^ n}
-    (_ : ∀ i → Ts i <: Ts' i)
-    → -----------------------
+    (H<: : ∀ i → Ts i <: Ts' i)
+    → -------------------------
     ttup n Ts <: ttup n Ts'
 
   sarr :
     {T₁ T₁' T₂ T₂' : Ty}
-    (_ : T₁' <: T₁)
-    (_ : T₂ <: T₂')
-    (_ : c ≤reg c')
-    (_ : e ≤eff e')
-    → --------------------------------------
-    T₁ ⇒[ c , e ] T₂ <: T₁' ⇒[ c' , e' ] T₂'
-
-  sdist :
-    (_ : T <: T')
-    → -----------------
-    tdist T <: tdist T'
-
+    (H<:₁ : T₁' <: T₁)
+    (H⊆ : X ⊆ X')
+    (H<:₂ : T₂ <: T₂')
+    → -----------------------------
+    T₁ ⇒[ X ] T₂ <: T₁' ⇒[ X' ] T₂'
 
 data _<:ᵉ_ : TyEnv → TyEnv → Type where
-  snil  : ε <:ᵉ ε
-  scons
-    : {H∉' : a ∉ dom Γ'} {H∉ : a ∉ dom Γ}
-    → T' <: T → Γ' <:ᵉ Γ → (Γ' ▸ (a , T') [ H∉' ]) <:ᵉ (Γ ▸ (a , T) [ H∉ ])
+  snil : ε <:ᵉ ε
+  scons :
+    {H∉' : a ∉ dom Γ'}
+    {H∉ : a ∉ dom Γ}
+    (H<:₁ : T' <: T)
+    (H<:₂ : Γ' <:ᵉ Γ)
+    → ----------------------------------------------
+    (Γ' ▸ (a , T') [ H∉' ]) <:ᵉ (Γ ▸ (a , T) [ H∉ ])
 
-_≤ᵉ_ : TyEnv → Coeff → Type
-Γ ≤ᵉ c = ∀ {a T} → a ∶ T ∈ Γ → T ≤ᵗ c
+_≤ᵉ_ : TyEnv → Reg⊆ → Type
+Γ ≤ᵉ X = ∀ {a T} → a ∶ T ∈ Γ → ty-regs T ⊆ X
 
+_~ʳ_ : Reg⊆ → Reg⊆ → Type
+X ~ʳ Y =
+  ∀ x y → x ∈ X → y ∈ Y → x ≤ y →
+  ∃[ z ∈ Reg ] z ∈ (X ∩ Y) × x ≤ z × z ≤ y
 
-infix 4 _⊢_:[_]_
-data _⊢_:[_]_ : TyEnv → Tm → Eff → Ty → Type where
+_~ᵗ_ : Reg⊆ → Ty → Type
+X ~ᵗ treal c         = ⊤
+X ~ᵗ (ty ⇒[ Y ] ty₁) = X ~ʳ Y
+X ~ᵗ ttup n tys      = ∀ i → X ~ᵗ tys i
+
+infix 4 _⊢_∶_
+data _⊢_∶_ : TyEnv → Tm → Ty → Type where
 
   tsub :
-    (_ : Γ ⊢ t :[ e ] T)
-    (_ : e ≤eff e')
-    (_ : T <: T')
-    → ------------------
-    Γ ⊢ t :[ e' ] T'
+    (Hty : Γ ⊢ t ∶ T)
+    (H<: : T <: T')
+    → ---------------
+    Γ ⊢ t ∶ T'
 
   tpromote :
-    (_ : Γ ⊢ t :[ e ] T)
-    (_ : Γ ≤ᵉ c)
-    (_ : Γ ⊆ Γ')
-    → ------------------
-    Γ' ⊢ t :[ e ] c ∩ᵗ T
+    (Hty : Γ ⊢ t ∶ T)
+    (H≤ : Γ ≤ᵉ X)
+    (H~ : X ~ᵗ T)
+    (H⊆ : Γ ⊆ Γ')
+    → ---------------
+    Γ' ⊢ t ∶ X ∩ᵗ T
 
   tvar :
-    (_ : a ∶ T ∈ Γ)
-    → -------------------
-    Γ ⊢ fvar a :[ det ] T
+    (H∈ : a ∶ T ∈ Γ)
+    → --------------
+    Γ ⊢ fvar a ∶ T
 
   tlam :
     {t : Tm ^ 1}
-    (_ : И[ a ∈ 𝔸 ] (Γ , a ∶ T) ⊢ conc (t ₀) a :[ e ] T')
-    → ---------------------------------------------------
-    Γ ⊢ lam T ▸ t :[ det ] T ⇒[ A↓ , e ] T'
+    (Hlam : И[ a ∈ 𝔸 ] (Γ , a ∶ T) ⊢ conc (t ₀) a ∶ T')
+    → -------------------------------------------------
+    Γ ⊢ lam T ▸ t ∶ T ⇒[ top ] T'
 
   tapp :
     {ts : Tm ^ 2}
-    (_ : Γ ⊢ ts ₀ :[ e ] T ⇒[ A↓ , e ] T')
-    (_ : Γ ⊢ ts ₁ :[ e ] T)
+    (Hty₁ : Γ ⊢ ts ₀ ∶ T ⇒[ top ] T')
+    (Hty₂ : Γ ⊢ ts ₁ ∶ T)
     → ------------------------------------
-    Γ ⊢ app ▸ ts :[ e ] T'
+    Γ ⊢ app ▸ ts ∶ T'
 
   tprim :
-    {cs : Coeff ^ PrimAr ϕ}
+    {cs : Reg↓ ^ PrimAr ϕ}
     {t : Tm ^ 1}
-    (_ : PrimTy ϕ ≡ (cs , c))
-    (_ : Γ ⊢ t ₀ :[ e ] treals _ cs)
-    → ------------------------------
-    Γ ⊢ prim ϕ ▸ t :[ e ] treal c
+    (Hϕ : PrimTy ϕ ≡ (cs , c))
+    (Htys : Γ ⊢ t ₀ ∶ treals _ cs)
+    → ----------------------------
+    Γ ⊢ prim ϕ ▸ t ∶ treal c
 
   treal :
     {t : Tm ^ 0}
-    → -------------------------------
-    Γ ⊢ oreal r ▸ t :[ det ] treal A↓
+    → ------------------------
+    Γ ⊢ oreal r ▸ t ∶ treal A↓
 
   ttup :
     {Ts : Ty ^ n}
     {ts : Tm ^ n}
-    (_ : ∀ i → Γ ⊢ ts i :[ e ] Ts i)
-    → ------------------------------
-    Γ ⊢ tup n ▸ ts :[ e ] ttup n Ts
+    (Htys : ∀ i → Γ ⊢ ts i ∶ Ts i)
+    → ----------------------------
+    Γ ⊢ tup n ▸ ts ∶ ttup n Ts
 
   tproj :
     {Ts : Ty ^ n}
     {t : Tm ^ 1}
     (i : Fin n)
-    (_ : Γ ⊢ t ₀ :[ e ] ttup n Ts)
-    → --------------------------------
-    Γ ⊢ proj n i ▸ t :[ e ] Ts i
+    (Hty : Γ ⊢ t ₀ ∶ ttup n Ts)
+    → -------------------------
+    Γ ⊢ proj n i ▸ t ∶ Ts i
 
   tif :
-    {cs : Coeff ^ n}
+    {cs : Reg↓ ^ n}
     {ts : Tm ^ 3}
-    (_ : Γ ⊢ ts ₀ :[ e ] treal P↓)
-    (_ : Γ ⊢ ts ₁ :[ e ] treals n cs)
-    (_ : Γ ⊢ ts ₂ :[ e ] treals n cs)
-    (_ : ∀ i → P↓ ≤reg cs i)
-    → -------------------------------
-    Γ ⊢ if ▸ ts :[ e ] treals n cs
-
-  tuniform :
-    {t : Tm ^ 0}
-    → --------------------------------
-    Γ ⊢ ouniform ▸ t :[ rnd ] treal M↓
-
-  tsample :
-    {t : Tm ^ 1}
-    (_ : Γ ⊢ t ₀ :[ rnd ] tdist T)
-    → ----------------------------
-    Γ ⊢ sample ▸ t :[ rnd ] T
-
-  tweight :
-    {t : Tm ^ 1}
-    (_ : Γ ⊢ t ₀ :[ rnd ] treal M↓)
+    (Hty : Γ ⊢ ts ₀ ∶ treal P↓)
+    (Hty₁ : Γ ⊢ ts ₁ ∶ treals n cs)
+    (Hty₂ : Γ ⊢ ts ₂ ∶ treals n cs)
+    (H≤ : ∀ i → P↓ ⊆ cs i)
     → -----------------------------
-    Γ ⊢ weight ▸ t :[ rnd ] tunit
-
-  tinfer :
-    {t : Tm ^ 1}
-    (_ : Γ ⊢ t ₀ :[ e ] tunit ⇒[ M↓ , rnd ] T)
-    → ----------------------------------------
-    Γ ⊢ infer ▸ t :[ e ] tdist T
+    Γ ⊢ if ▸ ts ∶ treals n cs
 
   tdiff :
     {ts : Tm ^ 3}
-    (_ : Γ ⊢ ts ₀ :[ e ] treals m (make c) ⇒[ P↓ , det ] treals n (make c))
-    (_ : Γ ⊢ ts ₁ :[ e ] treals m (make c))
-    (_ : Γ ⊢ ts ₂ :[ e ] treals m (make A↓))
-    (_ : c ≡ A↓ ⊎ c ≡ P↓)
+    (Hty : Γ ⊢ ts ₀ ∶ treals m (make c) ⇒[ singleton P ] treals n (make c))
+    (Hty₁ : Γ ⊢ ts ₁ ∶ treals m (make c))
+    (Hty₂ : Γ ⊢ ts ₂ ∶ treals m (make A↓))
+    (Hc : c ≡ A↓ ⊎ c ≡ P↓)
     → ---------------------------------------------------------------------
-    Γ ⊢ diff ▸ ts :[ e ] treals n (make A↓)
+    Γ ⊢ diff ▸ ts ∶ treals n (make A↓)
 
   tsolve :
     {ts : Tm ^ 3}
-    (_ : Γ ⊢ ts ₀ :[ e ] treals (1 + n) (c ∷ᵛ make A↓) ⇒[ C↓ , det ] treals n (make A↓))
-    (_ : Γ ⊢ ts ₁ :[ e ] treals (1 + n) (c ∷ᵛ make A↓))
-    (_ : Γ ⊢ ts ₂ :[ e ] treal (c ∩ PC↓))
-    (_ : c ≡ A↓ ⊎ c ≡ C↓)
+    (Hty : Γ ⊢ ts ₀ ∶ treals (1 + n) (c ∷ᵛ make A↓) ⇒[ singleton C ] treals n (make A↓))
+    (Hty₁ : Γ ⊢ ts ₁ ∶ treals (1 + n) (c ∷ᵛ make A↓))
+    (Hty₂ : Γ ⊢ ts ₂ ∶ treal (c Reg↓-lat.∩ PC↓))
+    (Hc : c ≡ A↓ ⊎ c ≡ C↓)
     → ----------------------------------------------------------------------------------
-    Γ ⊢ solve ▸ ts :[ e ] treals (1 + n) (make A↓)
+    Γ ⊢ solve ▸ ts ∶ treals (1 + n) (make A↓)
