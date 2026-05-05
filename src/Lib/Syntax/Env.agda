@@ -254,8 +254,8 @@ module EnvDenot
   Env-denot (Γ ▸ (_ , T) [ _ ]) = Env-denot Γ ⊗₀ X-denot T
 
   instance
-    ⟦⟧-RawEnv : ⟦⟧-notation (Env X)
-    ⟦⟧-RawEnv = brackets _ Env-denot
+    ⟦⟧-Env : ⟦⟧-notation (Env X)
+    ⟦⟧-Env = brackets _ Env-denot
 
   env-proj : {Γ Γ' : Env X} → Γ ⊆ Γ' → Hom ⟦ Γ' ⟧ ⟦ Γ ⟧
   env-proj sub-nil        = C.id
