@@ -1,23 +1,27 @@
-module Lib.Algebra.OrderedRing where
-
 open import 1Lab.Prelude hiding (_*_ ; _+_)
-open import Algebra.Ring
-open import Data.Sum.Base using (_⊎_ ; inl ; inr)
-open import Order.Base
-import Order.Reasoning as Or
-import Algebra.Ring.Reasoning as Rr
 
+open import Algebra.Ring
+
+open import Homotopy.Join
+
+open import Order.Total
+open import Order.Base
+
+import Algebra.Ring.Reasoning as Rr
+import Order.Reasoning as Or
+
+module Lib.Algebra.OrderedRing where
 
 record is-ordered-ring {o ℓ} (P : Poset o ℓ) (R : Ring-on ⌞ P ⌟) : Type (o ⊔ ℓ) where
   open Poset P public
   open Ring-on R
 
   field
-    -- We adopt a weaker definition of total order than Order.Total,
-    -- postulating not an ordering procedure but a "mere" ordering.
-    compare        : (a b : ⌞ P ⌟) → ∥ a ≤ b ⊎ b ≤ a ∥
+    has-is-total   : is-total-order P
     +-preserves-≤r : (a b c : ⌞ P ⌟) → a ≤ b → (a + c) ≤ (b + c)
     *-preserves-0≤ : (a b : ⌞ P ⌟) → 0r ≤ a → 0r ≤ b → 0r ≤ (a * b)
+
+  open is-total-order has-is-total public using (compare)
 
   ring : Σ (Set o) λ X → Ring-on ∣ X ∣
   ring = el ⌞ P ⌟ has-is-set , R
@@ -45,13 +49,13 @@ module Reasoning {o ℓ} {P : Poset o ℓ} (R : Ordered-ring-on P) where
     - a        ≤∎
 
   0≤a² : ∀ a → 0r ≤ a * a
-  0≤a² a = case compare 0r a of λ where
-    (inl H≤) → *-preserves-0≤ _ _ H≤ H≤
-    (inr H≤) →
-      0r            ≤⟨ *-preserves-0≤ _ _ (a≤0→0≤-a _ H≤) (a≤0→0≤-a _ H≤) ⟩
-      (- a) * (- a) =⟨ R.*-negatel ∙ ap -_ R.*-negater ⟩
-      - (- (a * a)) =⟨ inv-inv ⟩
-      a * a         ≤∎
+  0≤a² a = case compare 0r a of join-elim-prop (λ _ → hlevel 1)
+    (λ H≤ → *-preserves-0≤ _ _ H≤ H≤)
+    λ H≤ →
+    0r            ≤⟨ *-preserves-0≤ _ _ (a≤0→0≤-a _ H≤) (a≤0→0≤-a _ H≤) ⟩
+    (- a) * (- a) =⟨ R.*-negatel ∙ ap -_ R.*-negater ⟩
+    - (- (a * a)) =⟨ inv-inv ⟩
+    a * a         ≤∎
 
   0≤1 : 0r ≤ 1r
   0≤1 =

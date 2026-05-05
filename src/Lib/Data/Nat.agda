@@ -1,10 +1,11 @@
-module Lib.Data.Nat where
-
 open import 1Lab.Prelude
+
+open import Data.Nat.Properties using (+-commutative ; monus-swapr)
+open import Data.Fin using (Fin ; fin-view ; zero ; suc)
+
 open import Lib.Data.Vector
 
-open import Data.Fin using (Fin ; fin-view ; zero ; suc)
-open import Data.Nat.Properties using (+-commutative ; monus-swapr)
+module Lib.Data.Nat where
 
 module NatOrd where
   open import Data.Nat.Base public

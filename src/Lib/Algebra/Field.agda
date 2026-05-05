@@ -1,9 +1,9 @@
-module Lib.Algebra.Field where
-
 open import 1Lab.Prelude hiding (_*_ ; _+_)
 
-open import Algebra.Ring
 open import Algebra.Ring.Commutative
+open import Algebra.Ring
+
+module Lib.Algebra.Field where
 
 record is-field {ℓ} {A : Type ℓ} (1r : A) (_*_ _+_ : A → A → A) : Type ℓ where
   field

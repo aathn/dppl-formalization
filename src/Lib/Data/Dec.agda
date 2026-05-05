@@ -1,9 +1,9 @@
-module Lib.Data.Dec where
-
 open import 1Lab.Prelude hiding (_≠_ ; _∉_)
 
-open import Data.Dec.Base
 open import Data.Bool.Base
+open import Data.Dec.Base
+
+module Lib.Data.Dec where
 
 module _ {ℓ : Level} {A : Type ℓ} where
 
