@@ -1,20 +1,19 @@
+open import Lib.LocallyNameless.BindingSignature
+open import Lib.Syntax.Substitution
+open import Lib.Syntax.EvalCtx
 open import Lib.Algebra.Reals
+open import Lib.Data.Vector
+open import Lib.Prelude hiding (_*_)
+
+import DPPL.Syntax as Syntax
 
 module DPPL.SmallStep (R : Reals₀) where
 
-open Reals R
-open Interval R
-
-open import DPPL.Syntax R
-
-open import Lib.Prelude hiding (_*_)
-open import Lib.Data.Vector
-open import Lib.LocallyNameless.BindingSignature
-open import Lib.Syntax.EvalCtx
-open import Lib.Syntax.Substitution
-
-open SyntaxVars
 open ListSyntax
+open Interval R
+open Syntax R
+open SyntaxVars
+open Reals R
 
 instance
   eval-order : EvalOrder TmSig
@@ -31,44 +30,34 @@ instance
   eval-order {o} = record
     { len = length (TmAr o) ; ord = id ; inj = id }
 
-data IsValue : Tm → Type where
+data is-value : Tm → Type where
 
   vlam :
     {t : Tm ^ 1}
     → -----------------
-    IsValue (lam T ▸ t)
+    is-value (lam T ▸ t)
 
   vreal :
     {t : Tm ^ 0}
     → -------------------
-    IsValue (oreal r ▸ t)
+    is-value (oreal r ▸ t)
 
   vtup :
     {vs : Tm ^ n}
-    (_ : ∀ i → IsValue (vs i))
-    → ------------------------
-    IsValue (tup n ▸ vs)
-
-  vinfer :
-    {v : Tm ^ 1}
-    (_ : IsValue (v ₀))
-    → -----------------
-    IsValue (infer ▸ v)
+    (Hvs : ∀ i → is-value (vs i))
+    → --------------------------
+    is-value (tup n ▸ vs)
 
 Value : Type
-Value = Σ _ IsValue
+Value = Σ _ is-value
 
 DetCtx : (Tm → Tm) → Type
-DetCtx = EvalCtx IsValue
-
-RndCtx : (Tm × ℝ × List 𝕀 → Tm × ℝ × List 𝕀) → Type
-RndCtx E = Σ _ λ E' → DetCtx E' × E ≡ᵢ ×-map₁ E'
+DetCtx = EvalCtx is-value
 
 record EvalAssumptions : Type where
   field
     is-pos : ℝ → Bool
     PrimEv : (ϕ : Prim) → ℝ ^ PrimAr ϕ → ℝ
-    Infer  : Value → 𝕀 → Value
     Diff   : Value → Value → Value → Value
     Solve  : Value → Value → Value → Value
 
@@ -88,15 +77,15 @@ module Eval (Ax : EvalAssumptions) where
     eapp :
       {ts : Tm ^ 2}
       {t : Tm ^ 1}
-      (_ : ts ₀ ≡ lam T ▸ t)
-      (_ : IsValue (ts ₁))
+      (p : ts ₀ ≡ lam T ▸ t)
+      (Hv : is-value (ts ₁))
       → ---------------------------
       app ▸ ts →ᵈ (0 ≈> ts ₁) (t ₀)
   
     eprim :
       {t : Tm ^ 1}
       {rs : ℝ  ^ PrimAr ϕ}
-      (_ : t ₀ ≡ tup _ ▸ λ i → real (rs i))
+      (p : t ₀ ≡ tup _ ▸ λ i → real (rs i))
       → -----------------------------------
       prim ϕ ▸ t →ᵈ real (PrimEv ϕ rs)
   
@@ -104,75 +93,41 @@ module Eval (Ax : EvalAssumptions) where
       {ts : Tm ^ n}
       {t  : Tm ^ 1}
       (i : Fin n)
-      (_ : t ₀ ≡ tup n ▸ ts)
-      (_ : ∀ j → IsValue (ts j))
-      → ------------------------
+      (p : t ₀ ≡ tup n ▸ ts)
+      (Hvs : ∀ j → is-value (ts j))
+      → ---------------------------
       proj n i ▸ t →ᵈ ts i
 
     eif :
       {ts : Tm ^ 3}
-      (_ : ts ₀ ≡ real r)
+      (p : ts ₀ ≡ real r)
       → ------------------------------------------
       if ▸ ts →ᵈ (if is-pos r then ts ₁ else ts ₂)
 
     ediff :
       {ts : Tm ^ 3}
-      (v₀ : IsValue (ts ₀))
-      (v₁ : IsValue (ts ₁))
-      (v₂ : IsValue (ts ₂))
+      (v₀ : is-value (ts ₀))
+      (v₁ : is-value (ts ₁))
+      (v₂ : is-value (ts ₂))
       → -----------------------------------------------
       diff ▸ ts →ᵈ Diff (_ , v₀) (_ , v₁) (_ , v₂) .fst
 
     esolve :
       {ts : Tm ^ 3}
-      (v₀ : IsValue (ts ₀))
-      (v₁ : IsValue (ts ₁))
-      (v₂ : IsValue (ts ₂))
+      (v₀ : is-value (ts ₀))
+      (v₁ : is-value (ts ₁))
+      (v₂ : is-value (ts ₂))
       → -------------------------------------------------
       solve ▸ ts →ᵈ Solve (_ , v₀) (_ , v₁) (_ , v₂) .fst
 
 
-  data _→ʳ_ : (Tm × ℝ × List 𝕀) → (Tm × ℝ × List 𝕀) → Type where
-
-    edet :
-      {t₁ t₂ : Tm}
-      (_ : t₁ →ᵈ t₂)
-      → --------------------------
-      (t₁ , w , s) →ʳ (t₂ , w , s)
-
-    eweight :
-      {t : Tm ^ 1}
-      (_ : t ₀ ≡ real r)
-      → ------------------------------------------------------------------
-      (weight ▸ t , w , s) →ʳ (unit , (if is-pos r then r * w else 0r) , s)
-
-    euniform :
-      {t : Tm ^ 0}
-      → ---------------------------------------------------
-      (ouniform ▸ t , w , p ∷ s) →ʳ (real (p .fst) , w , s)
-
-    esample :
-      {t t' : Tm ^ 1}
-      (_ : t ₀ ≡ infer ▸ t')
-      (v : IsValue (t' ₀))
-      → -------------------------------------------------------
-      (sample ▸ t , w , p ∷ s) →ʳ (Infer (_ , v) p .fst , w , s)
-
-
-  -- Full evaluation relations
+  -- Full evaluation relation
 
   _→det_ : Tm → Tm → Type
   _→det_ = CongCls _→ᵈ_ DetCtx
 
-  _→rnd_ : (Tm × ℝ × List 𝕀) → (Tm × ℝ × List 𝕀) → Type
-  _→rnd_ = CongCls _→ʳ_ RndCtx
-
-  -- Multi-step relations
+  -- Multi-step relation
 
   data _→det*_ : Tm → Tm → Type where
     nil  : ∀ {t} → t →det* t
     step : ∀ {s t u} → s →det t → t →det* u → s →det* u
-
-  data _→rnd*_ : (Tm × ℝ × List 𝕀) → (Tm × ℝ × List 𝕀) → Type where
-    nil  : ∀ {t} → t →rnd* t
-    step : ∀ {s t u} → s →rnd t → t →rnd* u → s →rnd* u

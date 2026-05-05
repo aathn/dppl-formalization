@@ -1,8 +1,8 @@
 module Lib.Syntax.EvalCtx where
 
-open import Lib.Prelude
-open import Lib.Data.Vector
 open import Lib.LocallyNameless.BindingSignature
+open import Lib.Data.Vector
+open import Lib.Prelude
 
 open import Data.Fin.Base
 open import Data.Nat.Order
@@ -93,8 +93,8 @@ data CongCls
 -- Congruence with respect to evaluation contexts
 
 module CongStep
-  {Σ : Sig} {A : Type} ⦃ _ : EvalOrder Σ ⦄ {Val : (Trm Σ) → Type _}
-  (_↝_ : A → A → Type _) (Ctx : (A → A) → Type _) (Lift : (Trm Σ → Trm Σ) → (A → A))
+  {Σ : Sig} {A : Type} ⦃ _ : EvalOrder Σ ⦄ {Val : Trm Σ → Type _}
+  (_↝_ : A → A → Type _) (Ctx : (A → A) → Type _) (Lift : (Trm Σ → Trm Σ) → A → A)
   (HLift : ∀ {E E'} → Lift E ∘ Lift E' ≡ Lift (E ∘ E'))
   (HCtx : ∀ {E} → EvalCtx Val E → Ctx (Lift E))
   where
