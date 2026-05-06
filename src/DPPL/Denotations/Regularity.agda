@@ -1,55 +1,62 @@
+open import 1Lab.Prelude
+
 open import Data.Power
 
 open import DPPL.Regularity
 
-open import Homotopy.Join
+open import Lib.Homotopy.Join
 
 open import Lib.Algebra.Reals
 open import Lib.Data.Vector
-open import Lib.Prelude
 
-module DPPL.Denotations.Regularity (R : Reals₀) where
+module DPPL.Denotations.Regularity where
 
-open Reals R using (ℝ)
-open Reg≤ using (_≤_ ; ≤-trans)
+is-const : ∀ {ℓ ℓ'} {A : Type ℓ} {B : Type ℓ'} → ℙ (A → B)
+is-const {B = B} f = elΩ $ Σ[ x ∈ B ] f ≡ λ _ → x
 
-private variable
-  m n : Nat
-  c c' : Reg
+module _ (R : Reals₀) where
+  open Reals R using (ℝ)
+  open Reg≤
 
-is-const : ℙ (ℝ ^ m → ℝ ^ n)
-is-const {n = n} f = elΩ $ Σ[ x ∈ ℝ ^ n ] f ≡ λ _ → x
+  private variable
+    k m n : Nat
+    c c' : Reg
 
-record RegAssumptions : Type₁ where
-  field
-    ⟨_⟩-reg : Reg → ∀ {m n} → ℙ (ℝ ^ m → ℝ ^ n)
-    ⊆-reg : c ≤ c' → ⟨ c' ⟩-reg {m} {n} ⊆ ⟨ c ⟩-reg
+  record RegAssumptions  : Type₁ where
+    field
+      ⟨_⟩-reg : Reg → ∀ {m n} → ℙ (ℝ ^ m → ℝ ^ n)
+      ⊆-reg : c ≤ c' → ⟨ c' ⟩-reg {m} {n} ⊆ ⟨ c ⟩-reg
 
-    id-reg : (λ x → x) ∈ ⟨ c ⟩-reg {m}
-    const-reg : (x : ℝ ^ n) → (λ _ → x) ∈ ⟨ c ⟩-reg {m}
-    ∘-reg
-      : {m n k : Nat} {f : ℝ ^ n → ℝ ^ k} {g : ℝ ^ m → ℝ ^ n}
-      → f ∈ ⟨ c ⟩-reg → g ∈ ⟨ c ⟩-reg → f ∘ g ∈ ⟨ c ⟩-reg
+      id-reg : (λ x → x) ∈ ⟨ c ⟩-reg {m}
+      const-reg : (x : ℝ ^ n) → (λ _ → x) ∈ ⟨ c ⟩-reg {m}
+      ∘-reg
+        : {f : ℝ ^ n → ℝ ^ k} {g : ℝ ^ m → ℝ ^ n}
+        → f ∈ ⟨ c ⟩-reg → g ∈ ⟨ c ⟩-reg → f ∘ g ∈ ⟨ c ⟩-reg
 
-  ⟨_∣_⟩-reg : Reg → Reg → ∀ {m n} → ℙ (ℝ ^ m → ℝ ^ n)
-  ⟨ c ∣ d ⟩-reg f .∣_∣   = (c ≤ d × f ∈ ⟨ c ⟩-reg) ∗ (f ∈ is-const)
-  ⟨ c ∣ d ⟩-reg f .is-tr = join-is-prop (hlevel 1) (hlevel 1)
+      tup-reg
+        : {f : ℝ ^ k → ℝ ^ m} {g : ℝ ^ k → ℝ ^ n}
+        → f ∈ ⟨ c ⟩-reg → g ∈ ⟨ c ⟩-reg → uncurry _++_ ∘ ⟨ f , g ⟩ ∈ ⟨ c ⟩-reg
+      proj-reg₁ : fst ∘ split {m = m} {k} ∈ ⟨ c ⟩-reg
+      proj-reg₂ : snd ∘ split {m = m} {k} ∈ ⟨ c ⟩-reg
 
-module RegProperties (Ax : RegAssumptions) where
-  open RegAssumptions Ax
+    ⟨_∣_⟩-reg : Reg → Reg → ∀ {m n} → ℙ (ℝ ^ m → ℝ ^ n)
+    ⟨ c ∣ d ⟩-reg f .∣_∣   = (c ≤ d × f ∈ ⟨ c ⟩-reg) ∗ (f ∈ is-const)
+    ⟨ c ∣ d ⟩-reg f .is-tr = hlevel 1
 
-  id-reg' : c ≤ c' → (λ x → x) ∈ ⟨ c ∣ c' ⟩-reg {m}
-  id-reg' H≤ = inl (H≤ , id-reg)
+  module RegProperties (Ax : RegAssumptions) where
+    open RegAssumptions Ax
 
-  const-reg' : (x : ℝ ^ n) → (λ _ → x) ∈ ⟨ c ∣ c' ⟩-reg {m}
-  const-reg' x = inr (inc (x , refl))
+    id-reg' : c ≤ c' → (λ x → x) ∈ ⟨ c ∣ c' ⟩-reg {m}
+    id-reg' H≤ = inl (H≤ , id-reg)
 
-  ∘-reg'
-    : {c d e : Reg} {m n k : Nat} {f : ℝ ^ n → ℝ ^ k} {g : ℝ ^ m → ℝ ^ n}
-    → f ∈ ⟨ d ∣ e ⟩-reg → g ∈ ⟨ c ∣ d ⟩-reg → f ∘ g ∈ ⟨ c ∣ e ⟩-reg
-  ∘-reg' {f = f} {g} Hf Hg =
-    case Hf of join-elim-prop (λ _ → ⟨ _ ∣ _ ⟩-reg _ .is-tr)
-      (λ (H≤ , Hf') → case Hg of join-elim-prop (λ _ → ⟨ _ ∣ _ ⟩-reg _ .is-tr)
-        (λ (H≤' , Hg') → inl (≤-trans H≤' H≤ , ∘-reg (⊆-reg H≤' _ Hf') Hg'))
-        λ Hconst → inr (case Hconst of λ x p → inc (f x , ap (f ∘_) p)))
-      λ Hconst → inr (case Hconst of λ x p → inc (x , ap (_∘ g) p))
+    const-reg' : (x : ℝ ^ n) → (λ _ → x) ∈ ⟨ c ∣ c' ⟩-reg {m}
+    const-reg' x = inr (inc (x , refl))
+
+    ∘-reg'
+      : {c d e : Reg} {m n k : Nat} {f : ℝ ^ n → ℝ ^ k} {g : ℝ ^ m → ℝ ^ n}
+      → f ∈ ⟨ d ∣ e ⟩-reg → g ∈ ⟨ c ∣ d ⟩-reg → f ∘ g ∈ ⟨ c ∣ e ⟩-reg
+    ∘-reg' {f = f} {g} Hf Hg = case Hf of λ where
+      (inl (H≤ , Hf')) → case Hg of λ where
+        (inl (H≤' , Hg')) → inl (≤-trans H≤' H≤ , ∘-reg (⊆-reg H≤' _ Hf') Hg')
+        (inr Hconst) → case Hconst of λ x p → inr (inc (f x , ap (f ∘_) p))
+      (inr Hconst) → case Hconst of λ x p → inr (inc (x , ap (_∘ g) p))

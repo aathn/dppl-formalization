@@ -2,7 +2,7 @@ open import 1Lab.Prelude hiding (_*_ ; _+_)
 
 open import Algebra.Ring
 
-open import Homotopy.Join
+open import Lib.Homotopy.Join
 
 open import Order.Total
 open import Order.Base
@@ -49,13 +49,13 @@ module Reasoning {o ℓ} {P : Poset o ℓ} (R : Ordered-ring-on P) where
     - a        ≤∎
 
   0≤a² : ∀ a → 0r ≤ a * a
-  0≤a² a = case compare 0r a of join-elim-prop (λ _ → hlevel 1)
-    (λ H≤ → *-preserves-0≤ _ _ H≤ H≤)
-    λ H≤ →
-    0r            ≤⟨ *-preserves-0≤ _ _ (a≤0→0≤-a _ H≤) (a≤0→0≤-a _ H≤) ⟩
-    (- a) * (- a) =⟨ R.*-negatel ∙ ap -_ R.*-negater ⟩
-    - (- (a * a)) =⟨ inv-inv ⟩
-    a * a         ≤∎
+  0≤a² a = case compare 0r a of λ where
+    (inl H≤) → *-preserves-0≤ _ _ H≤ H≤
+    (inr H≤) →
+      0r            ≤⟨ *-preserves-0≤ _ _ (a≤0→0≤-a _ H≤) (a≤0→0≤-a _ H≤) ⟩
+      (- a) * (- a) =⟨ R.*-negatel ∙ ap -_ R.*-negater ⟩
+      - (- (a * a)) =⟨ inv-inv ⟩
+      a * a         ≤∎
 
   0≤1 : 0r ≤ 1r
   0≤1 =
