@@ -59,6 +59,12 @@ Reg-poset = Wide.Wide A
 
 module Reg≤ = Poset Reg-poset
 
+open Reg≤
+
+instance
+  H-Level-Reg≤ : ∀ {n a b} → H-Level (a ≤ b) (1 + n)
+  H-Level-Reg≤ = prop-instance ≤-thin
+
 Reg↓-poset : Poset lzero lzero
 Reg↓-poset = Lower-sets Reg-poset
 
@@ -94,7 +100,6 @@ Reg⊆-lat = record
 module Reg⊆-lat = is-lattice Reg⊆-lat
 
 open Reg↓-lat
-open Reg≤
 
 Forget-closure : Monotone Reg↓-poset Reg⊆-poset
 Forget-closure .hom f     = f .hom
