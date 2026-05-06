@@ -1,17 +1,18 @@
+open import 1Lab.Prelude
+
 open import Data.Power
 
 open import DPPL.Regularity
 
-open import Homotopy.Join
+open import Lib.Homotopy.Join
 
 open import Lib.Algebra.Reals
 open import Lib.Data.Vector
-open import Lib.Prelude
 
 module DPPL.Denotations.Regularity (R : Reals₀) where
 
 open Reals R using (ℝ)
-open Reg≤ using (_≤_ ; ≤-trans)
+open Reg≤
 
 private variable
   m n : Nat
@@ -33,7 +34,7 @@ record RegAssumptions : Type₁ where
 
   ⟨_∣_⟩-reg : Reg → Reg → ∀ {m n} → ℙ (ℝ ^ m → ℝ ^ n)
   ⟨ c ∣ d ⟩-reg f .∣_∣   = (c ≤ d × f ∈ ⟨ c ⟩-reg) ∗ (f ∈ is-const)
-  ⟨ c ∣ d ⟩-reg f .is-tr = join-is-prop (hlevel 1) (hlevel 1)
+  ⟨ c ∣ d ⟩-reg f .is-tr = hlevel 1
 
 module RegProperties (Ax : RegAssumptions) where
   open RegAssumptions Ax
@@ -48,8 +49,8 @@ module RegProperties (Ax : RegAssumptions) where
     : {c d e : Reg} {m n k : Nat} {f : ℝ ^ n → ℝ ^ k} {g : ℝ ^ m → ℝ ^ n}
     → f ∈ ⟨ d ∣ e ⟩-reg → g ∈ ⟨ c ∣ d ⟩-reg → f ∘ g ∈ ⟨ c ∣ e ⟩-reg
   ∘-reg' {f = f} {g} Hf Hg =
-    case Hf of join-elim-prop (λ _ → ⟨ _ ∣ _ ⟩-reg _ .is-tr)
-      (λ (H≤ , Hf') → case Hg of join-elim-prop (λ _ → ⟨ _ ∣ _ ⟩-reg _ .is-tr)
-        (λ (H≤' , Hg') → inl (≤-trans H≤' H≤ , ∘-reg (⊆-reg H≤' _ Hf') Hg'))
-        λ Hconst → inr (case Hconst of λ x p → inc (f x , ap (f ∘_) p)))
-      λ Hconst → inr (case Hconst of λ x p → inc (x , ap (_∘ g) p))
+    case Hf of λ where
+      (inl (H≤ , Hf')) → case Hg of λ where
+        (inl (H≤' , Hg')) → inl (≤-trans H≤' H≤ , ∘-reg (⊆-reg H≤' _ Hf') Hg')
+        (inr Hconst) → case Hconst of λ x p → inr (inc (f x , ap (f ∘_) p))
+      (inr Hconst) → case Hconst of λ x p → inr (inc (x , ap (_∘ g) p))

@@ -61,10 +61,6 @@ module Reg≤ = Poset Reg-poset
 
 open Reg≤
 
-instance
-  H-Level-Reg≤ : ∀ {n a b} → H-Level (a ≤ b) (1 + n)
-  H-Level-Reg≤ = prop-instance ≤-thin
-
 Reg↓-poset : Poset lzero lzero
 Reg↓-poset = Lower-sets Reg-poset
 
