@@ -1,9 +1,8 @@
 open import 1Lab.Prelude
 
-open import Data.Fin.Properties using (insert-delete ; insert-lookup ; avoid-insert ; skip-avoid ; delete-insert)
-open import Data.Nat.Properties using (+-≤l)
-open import Data.Fin.Base using (Fin ; fzero ; fsuc ; fin-view ; zero ; suc ; split-+ ; fshift ; inject ; Fin-cases)
-open import Data.Sum.Base using (inl ; inr ; ⊎-map)
+open import Data.Fin.Properties
+open import Data.Fin.Base
+open import Data.Sum.Base
 
 open import Lib.Data.Fin
 
@@ -52,16 +51,17 @@ instance
   Map-Vector = record { map = λ f xs → f ∘ xs }
 
 foldr : (A → B → B) → B → A ^ n → B
-foldr {n = zero} f z xs = z
+foldr {n = zero}  f z xs = z
 foldr {n = suc n} f z xs = f (head xs) (foldr f z (tail xs))
 
-_++_ : A ^ m → A ^ n → A ^ (m + n)
-(xs ++ ys) i with split-+ i
-... | inl j = xs j
-... | inr k = ys k
+vec-sum-prod : ∀ m → A ^ (m + n) ≃ (A ^ m × A ^ n)
+vec-sum-prod {n = n} m = →-ap (Fin-+-≃ m) id≃ ∙e ⊎-universal
 
-split : ∀ m → A ^ (m + n) → A ^ m × A ^ n
-split {n = n} m as = as ∘ inject (+-≤l _ _) , as ∘ fshift m
+split : A ^ (m + n) → A ^ m × A ^ n
+split {m = m} = Equiv.to (vec-sum-prod m)
+
+_++_ : A ^ m → A ^ n → A ^ (m + n)
+_++_ {m = m} = curry (Equiv.from (vec-sum-prod m))
 
 updateAt : A ^ n → Fin n → A → A ^ n
 updateAt {n = suc n} xs i x = delete xs i [ i ≔ x ]
@@ -126,28 +126,10 @@ updateAt-updateAt {n = suc n} ρ i a b j =
 ++-singleton : {x : A} {xs : A ^ m} → make x ++ xs ≡ x ∷ xs
 ++-singleton = funext $ Fin-cases refl λ _ → refl
 
-++-split : ∀ m (x : A ^ (m + n)) → uncurry _++_ (split m x) ≡ x
-++-split m x = ext go where
-  go : ∀ i → uncurry _++_ (split m x) i ≡ x i
-  go i with split-+ {m} i in Heq
-  ... | inl j = ap x (split-+-inl Heq)
-  ... | inr j = ap x (split-+-inr Heq)
-
-split-++ : (xy : A ^ m × A ^ n) → split m (uncurry _++_ xy) ≡ xy
-split-++ {m = m} {n} xy = ext Hx ,ₚ ext Hy where
-  Hx : Extensional-Π .Pathᵉ (split m (uncurry _++_ xy) .fst) (xy .fst)
-  Hx i rewrite Id≃path.from (split-+-inject {n = n} i) = refl
-  Hy : Extensional-Π .Pathᵉ (split m (uncurry _++_ xy) .snd) (xy .snd)
-  Hy i rewrite Id≃path.from (split-+-fshift m i) = refl
-
-vec-prod-sum : (A ^ m × A ^ n) ≃ A ^ (m + n)
-vec-prod-sum .fst         = uncurry _++_
-vec-prod-sum {m = m} .snd = is-iso→is-equiv $ iso (split m) (++-split m) split-++
-
 ----------------------------------------------------------------------
 -- Arrays
 ----------------------------------------------------------------------
-record Array {l : Level}(A : Type l) : Type l where
+record Array {ℓ} (A : Type ℓ) : Type ℓ where
   constructor mkArray
   field
     length : Nat

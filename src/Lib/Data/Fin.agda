@@ -1,8 +1,8 @@
 open import 1Lab.Prelude
 
-open import Data.Nat.Properties using (+-≤l)
+open import Data.Nat.Properties
 open import Data.Fin.Base
-open import Data.Sum.Base using (_⊎_ ; inl ; inr ; ⊎-map)
+open import Data.Sum.Base
 open import Data.Nat using (≤-peel)
 
 module Lib.Data.Fin where
@@ -48,3 +48,22 @@ split-+-inr {m = suc m} {i = i} p with fin-view i
 split-+-fshift : ∀ m (j : Fin n) → split-+ (fshift m j) ≡ inr j
 split-+-fshift zero j    = refl
 split-+-fshift (suc m) j = ap (⊎-map _ _) (split-+-fshift m j)
+
+Fin[_,_]
+  : ∀ {ℓ} {C : Fin m ⊎ Fin n → Type ℓ}
+  → ((x : Fin m) → C (inl x)) → ((y : Fin n) → C (inr y))
+  → (x : Fin m ⊎ Fin n) → C x
+Fin[_,_] = curry (Equiv.from ⊎-universal)
+
+Fin-+-≃ : ∀ m {n} → Fin (m + n) ≃ (Fin m ⊎ Fin n)
+Fin-+-≃ m .fst = split-+
+Fin-+-≃ m .snd = is-iso→is-equiv $ iso Fin[ inject (+-≤l _ _) , fshift m ] linv rinv
+  where
+    linv : ∀ i → split-+ (Fin[ inject (+-≤l _ _) , fshift m ] i) ≡ i
+    linv (inl j) = split-+-inject j
+    linv (inr j) = split-+-fshift m j
+
+    rinv : ∀ i → Fin[ inject (+-≤l _ _) , fshift m ] (split-+ {m} i) ≡ i
+    rinv i with split-+ {m} i in Heq
+    ... | inl j = split-+-inl Heq
+    ... | inr j = split-+-inr Heq
