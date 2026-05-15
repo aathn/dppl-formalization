@@ -1,53 +1,87 @@
-open import Lib.Algebra.Reals
+open import 1Lab.Type.Sigma
+
+open import Cat.Diagram.Exponential
+open import Cat.Displayed.Total
+open import Cat.Prelude
+
 open import DPPL.Denotations.Regularity
-
-module DPPL.Denotations.Denotations (R : Reals₀) (Ax : RegAssumptions R) where
-
 open import DPPL.Regularity
-open import DPPL.Syntax R
-open import DPPL.Typing R
-open import DPPL.Denotations.Model R
-open import DPPL.Denotations.Domain R Ax
-open import DPPL.Denotations.Site R Ax
 
+open import Data.Sum.Base
+open import Data.Power using (singleton)
+
+open import Lib.Algebra.Reals
+open import Lib.Homotopy.Join
 open import Lib.Cat.Concrete
 open import Lib.Data.Vector
 
-open import Cat.Prelude
-open import Cat.Cartesian
-open import Cat.Diagram.Exponential
-open import Cat.Functor.Adjoint.Hom
-open import Cat.Functor.FullSubcategory
-open import Cat.Functor.Hom
-open import Data.Sum using (_⊎_)
-open import Order.Lattice
+open import Order.Base
 
-open Reals R using (ℝ)
+import DPPL.Denotations.Domain as Domain
+import DPPL.Denotations.Model as Model
+import DPPL.Syntax as Syntax
+import DPPL.Typing as Typing
+
+module DPPL.Denotations.Denotations (R : Reals₀) (Ax : RegAssumptions R) where
+
+open Conc-psh.CPSh-on
 open RegAssumptions Ax
-
-open SyntaxVars
-
-open Reg↓≤ using (_≤_)
-open is-lattice Reg↓-lattice hiding (top)
-
 open VectorSyntax
+open Domain R Ax
+open Syntax R
+open SyntaxVars
+open Typing R
+open Model R
+open Cartesian-closed 𝔇-closed using () renaming ([_,_] to _⇒_)
+open Precategory 𝔇
+open Reals R using (ℝ)
+open Reg≤
 
-open Functor
+⟨_⟩-sec : Reg↓ → (U : Nat × Reg) → (ℝ ^ U .fst → ℝ) → Type
+⟨ c ⟩-sec (m , r) f =
+  (r ∈ c .hom × f' ∈ ⟨ r ⟩-reg) ∗ ∣ is-const f' ∣
+  where f' = make {n = 1} ⊙ f
 
-open Cartesian-category 𝔇-cartesian
-open Cartesian-closed 𝔇-closed renaming ([_,_] to infixr 4 _⇒_)
+⟨_⟩-sec' : Reg↓ ^ n → (U : Nat × Reg) → (ℝ ^ U .fst → ℝ ^ n) → Type
+⟨ cs ⟩-sec' U g = ∀ i → π[ i ] ⊙ g ∈ ⟨ cs i ⟩-sec U
+
+⟨_∥_⟩-reg : Reg↓ ^ m → Reg↓ ^ n → (ℝ ^ m → ℝ ^ n) → Type
+⟨_∥_⟩-reg {m = m} cs cs' f =
+  ∀ {U} (g : ℝ ^ U .fst → ℝ ^ m) → g ∈ ⟨ cs ⟩-sec' U → f ⊙ g ∈ ⟨ cs' ⟩-sec' U
+
+⟨_∣_∣_⟩-hom-sec
+  : (cs : Reg↓ ^ m) (X : Reg⊆) (cs' : Reg↓ ^ n) (U : Nat × Reg)
+  → (ℝ ^ U .fst → ∫ₚ ⟨ cs ∥ cs' ⟩-reg) → Type
+⟨_∣_∣_⟩-hom-sec cs X cs' U f =
+  □ (Σ[ V ∈ Nat × Reg ] V .snd ∈ X × U .snd ≤ V .snd ×
+     Σ[ g ∈ (ℝ ^ U .fst → ℝ ^ V .fst) ]
+     Σ[ f' ∈ (ℝ ^ V .fst → ∫ₚ ⟨ cs ∥ cs' ⟩-reg) ]
+       f ≡ f' ⊙ g
+     × g ∈ ⟨ U .snd ⟩-reg
+     × ∀ {W} {h₁} {h₂}
+       → h₁ ∈ ⟨ W .snd ∣ V .snd ⟩-reg
+       → h₂ ∈ ⟨ cs ⟩-sec' W
+       → uncurry (fst ⊙ f') ⊙ ⟨ h₁ , h₂ ⟩ ∈ ⟨ cs' ⟩-sec' W)
+  ∗ ∣ is-const f ∣
 
 record DenotAssumptions : Type where
-  field
-    Prim-denot : (ϕ : Prim) → ℝ ^ PrimAr ϕ → ℝ ^ 1
-    Prim-reg
-      : {cs : Coeff ^ PrimAr ϕ} → PrimTy ϕ ≡ (cs , c)
-      → Prim-denot ϕ ∈ ⟨ cs ∥ make c ⟩-reg
+  -- TODO: Split Prim-reg into explicit cases
+  -- TODO: Try to lay out the regularity assumptions mean in more concrete terms?
 
-    cond-denot : ℝ ^ (1 + (n + n)) → ℝ ^ n
+  field
+    Prim-denot : (ϕ : Prim) → ℝ ^ PrimAr ϕ → ℝ
+    Prim-reg
+      : ∀ {cs} (Hϕ : PrimTy ϕ ≡ (cs , c)) {U} {gs}
+      → gs ∈ ⟨ cs ⟩-sec' U
+      → Prim-denot ϕ ⊙ gs ∈ ⟨ c ⟩-sec U
+
+    cond-denot : ℝ × ℝ ^ n × ℝ ^ n → ℝ ^ n
     cond-reg
-      : (cs : Coeff ^ n) (_ : ∀ i → P↓ ≤ cs i)
-      → cond-denot ∈ ⟨ make {n = 1} P↓ ++ (cs ++ cs) ∥ cs ⟩-reg
+      : ∀ (cs : Reg↓ ^ n) (Hc : ∀ i → P↓ ⊆ cs i) {U g₁ g₂ g₃}
+      → g₁ ∈ ⟨ P↓ ⟩-sec U
+      → g₂ ∈ ⟨ cs ⟩-sec' U
+      → g₃ ∈ ⟨ cs ⟩-sec' U
+      → cond-denot ⊙ ⟨ g₁ , ⟨ g₂ , g₃ ⟩ ⟩ ∈ ⟨ cs ⟩-sec' U
 
     diff-denot
       : ∀ m n → c ≡ A↓ ⊎ c ≡ P↓
@@ -55,109 +89,71 @@ record DenotAssumptions : Type where
       → ℝ ^ n
 
     diff-reg
-      : ∀ m n (Hc : c ≡ A↓ ⊎ c ≡ P↓) {U}
-      → (g : ℝ ^ U .fst → ∫ₚ ⟨ make c ∥ make {n = n} c ⟩-reg × ℝ ^ m × ℝ ^ m)
-      → (fst ⊙ g ∈ bound-sec P↓ ⟨ make c ∥ make c ⟩-hom-sec U ×
-         fst ⊙ snd ⊙ g ∈ ⟨ make c ⟩-sec U ×
-         snd ⊙ snd ⊙ g ∈ ⟨ make A↓ ⟩-sec U)
-      → diff-denot m n Hc ⊙ g ∈ ⟨ make A↓ ⟩-sec U
+      : ∀ m n (Hc : c ≡ A↓ ⊎ c ≡ P↓) {U g₁ g₂ g₃}
+      → g₁ ∈ ⟨ make c ∣ singleton P ∣ make c ⟩-hom-sec U
+      → g₂ ∈ ⟨ make c ⟩-sec' U
+      → g₃ ∈ ⟨ make A↓ ⟩-sec' U
+      → diff-denot m n Hc ⊙ ⟨ g₁ , ⟨ g₂ , g₃ ⟩ ⟩ ∈ ⟨ make A↓ ⟩-sec' U
 
     solve-denot
       : ∀ n → c ≡ A↓ ⊎ c ≡ C↓
-      → ∫ₚ ⟨ c ∷ make {n = n} A↓ ∥ make {n = n} A↓ ⟩-reg × ℝ ^ (1 + n) × ℝ ^ 1
+      → ∫ₚ ⟨ c ∷ make {n = n} A↓ ∥ make {n = n} A↓ ⟩-reg × ℝ ^ (1 + n) × ℝ
       → ℝ ^ (1 + n)
 
     solve-reg
-      : ∀ n (Hc : c ≡ A↓ ⊎ c ≡ C↓) {U}
-      → (g : ℝ ^ U .fst → ∫ₚ ⟨ c ∷ make A↓ ∥ make A↓ ⟩-reg × ℝ ^ (1 + n) × ℝ ^ 1)
-      → (fst ⊙ g ∈ bound-sec C↓ ⟨ c ∷ make A↓ ∥ make A↓ ⟩-hom-sec U ×
-         fst ⊙ snd ⊙ g ∈ ⟨ c ∷ make A↓ ⟩-sec U ×
-         snd ⊙ snd ⊙ g ∈ ⟨ U .snd ∣ c ∩ PC↓ ⟩-reg)
-      → solve-denot n Hc ⊙ g ∈ ⟨ make A↓ ⟩-sec U
+      : ∀ n (Hc : c ≡ A↓ ⊎ c ≡ C↓) {U g₁ g₂ g₃}
+      → g₁ ∈ ⟨ c ∷ make A↓ ∣ singleton C ∣ make A↓ ⟩-hom-sec U
+      → g₂ ∈ ⟨ c ∷ make A↓ ⟩-sec' U
+      → g₃ ∈ ⟨ c Reg↓-lat.∩ PC↓ ⟩-sec U
+      → solve-denot n Hc ⊙ ⟨ g₁ , ⟨ g₂ , g₃ ⟩ ⟩ ∈ ⟨ make A↓ ⟩-sec' U
 
-module _ (Ax : DenotAssumptions) where
-  open DenotAssumptions Ax
+mk-hom-sec
+  : ∀ (cs : Reg↓ ^ m) X (cs' : Reg↓ ^ n) {U f}
+  → ∣ □⟨ X ⟩₀ (𝔇ℝ'[ cs ] ⇒ 𝔇ℝ'[ cs' ]) .snd .is-sec U f ∣
+  → ⟨ cs ∣ X ∣ cs' ⟩-hom-sec U f
+mk-hom-sec cs X cs' Hf₀ = case Hf₀ of λ where
+  (inr H⋆) → inr H⋆
+  (inl Hf) → flip (□-elim (λ _ → hlevel 1)) Hf
+    λ (W , HW , H≤ , (g , Hg) , (f' , Hf₀') , p) → case Hf₀' of λ Hf' →
+    let fac = W , HW , H≤ , g , f' , p , Hg , λ Hh Hh' →
+              Hf' _ (inc ((_ , Hh) , refl) , Hh')
+    in
+    inl (inc fac)
 
-  diff-hom
-    : ∀ m n → c ≡ A↓ ⊎ c ≡ P↓ → Hom
-      (□⟨ P↓ ⟩ .F₀ (𝔇ℝ'[ make {n = m} c ] ⇒ 𝔇ℝ'[ make {n = n} c ]) ⊗₀
-        𝔇ℝ'[ make {n = m} c ] ⊗₀ 𝔇ℝ'[ make {n = m} A↓ ])
-      𝔇ℝ'[ make {n = n} A↓ ]
-  diff-hom {c} m n Hc = Equiv.from
-    (Hom≃Cpsh-hom ℛ-conc
-      {A = □⟨ P↓ ⟩ .F₀ (𝔇ℝ'[ make {n = m} c ] ⇒ 𝔇ℝ'[ make {n = n} c ]) ⊗₀
-             𝔇ℝ'[ make {n = m} c ] ⊗₀ 𝔇ℝ'[ make {n = m} A↓ ]}
-      {𝔇ℝ'[ make {n = n} A↓ ]} ∙e
-    Cpsh-hom≃Cpsh-hom' ℛ-conc ℛ-underlying
-      (Σ-ap (□-underlying {A = 𝔇ℝ'[ make {n = m} c ] ⇒ 𝔇ℝ'[ make {n = n} c ]} ∙e
-              (⇒-underlying ℛ-conc ∙e 𝔇ℝ'-hom≃⟨∥⟩-reg)) λ _ →
-       Σ-ap (𝔇ℝ'-underlying (make c)) λ _ → 𝔇ℝ'-underlying (make A↓))
-      (𝔇ℝ'-underlying (make A↓))
-      (over-left→over
-        (→-ap ℛ-underlying
-          (Σ-ap (□-underlying {A = 𝔇ℝ'[ make {n = m} c ] ⇒ 𝔇ℝ'[ make {n = n} c ]} ∙e
-                  (⇒-underlying ℛ-conc ∙e 𝔇ℝ'-hom≃⟨∥⟩-reg)) λ _ →
-           Σ-ap (𝔇ℝ'-underlying (make c)) λ _ → 𝔇ℝ'-underlying (make A↓))) λ f →
-        ⊗-sec-equiv ℛ-conc
-          {A = □⟨ P↓ ⟩ .F₀ (𝔇ℝ'[ make {n = m} c ] ⇒ 𝔇ℝ'[ make {n = n} c ])}
-          {𝔇ℝ'[ make {n = m} c ] ⊗₀ 𝔇ℝ'[ make {n = m} A↓ ]} f ∙e
-        Σ-ap (□-sec-equiv {A = 𝔇ℝ'[ make {n = m} c ] ⇒ 𝔇ℝ'[ make {n = n} c ]}
-               ℛ-underlying (⇒-underlying ℛ-conc ∙e 𝔇ℝ'-hom≃⟨∥⟩-reg) 𝔇ℝ'⇒𝔇ℝ'-sec-equiv _ _ refl) λ _ →
-        ⊗-sec-equiv ℛ-conc {A = 𝔇ℝ'[ make {n = m} c ]} {𝔇ℝ'[ make {n = m} A↓ ]} (snd ⊙ f) ∙e
-        Σ-ap (𝔇ℝ'-sec-equiv _ _ refl) λ _ → 𝔇ℝ'-sec-equiv _ _ refl)
-      𝔇ℝ'-sec-equiv)
-    (diff-denot {c} m n Hc , diff-reg m n Hc)
 
-  solve-hom
-    : ∀ n → c ≡ A↓ ⊎ c ≡ C↓ → Hom
-      (□⟨ C↓ ⟩ .F₀ (𝔇ℝ'[ c ∷ make {n = n} A↓ ] ⇒ 𝔇ℝ'[ make {n = n} A↓ ])
-       ⊗₀ 𝔇ℝ'[ c ∷ make {n = n} A↓ ]
-       ⊗₀ 𝔇ℝ[ 1 , c ∩ PC↓ ])
-      (𝔇ℝ'[ make {n = 1 + n} A↓ ])
-  solve-hom {c} n Hc = Equiv.from
-    (Hom≃Cpsh-hom ℛ-conc
-      {A = □⟨ C↓ ⟩ .F₀ (𝔇ℝ'[ c ∷ make {n = n} A↓ ] ⇒ 𝔇ℝ'[ make {n = n} A↓ ]) ⊗₀
-             𝔇ℝ'[ c ∷ make {n = n} A↓ ] ⊗₀ 𝔇ℝ[ 1 , c ∩ PC↓ ]}
-      {𝔇ℝ'[ make {n = 1 + n} A↓ ]} ∙e
-    Cpsh-hom≃Cpsh-hom' ℛ-conc ℛ-underlying
-      (Σ-ap (□-underlying {A = 𝔇ℝ'[ c ∷ make {n = n} A↓ ] ⇒ 𝔇ℝ'[ make {n = n} A↓ ]} ∙e
-              (⇒-underlying ℛ-conc ∙e 𝔇ℝ'-hom≃⟨∥⟩-reg)) λ _ →
-       Σ-ap (𝔇ℝ'-underlying (c ∷ make A↓)) λ _ → 𝔇ℝ-underlying)
-      (𝔇ℝ'-underlying (make A↓))
-      (over-left→over
-        (→-ap ℛ-underlying
-          (Σ-ap (□-underlying {A = 𝔇ℝ'[ c ∷ make {n = n} A↓ ] ⇒ 𝔇ℝ'[ make {n = n} A↓ ]} ∙e
-              (⇒-underlying ℛ-conc ∙e 𝔇ℝ'-hom≃⟨∥⟩-reg)) λ _ →
-           Σ-ap (𝔇ℝ'-underlying (c ∷ make A↓)) λ _ → 𝔇ℝ-underlying)) λ f →
-        ⊗-sec-equiv ℛ-conc
-          {A = □⟨ C↓ ⟩ .F₀ (𝔇ℝ'[ c ∷ make {n = n} A↓ ] ⇒ 𝔇ℝ'[ make {n = n} A↓ ])}
-          {𝔇ℝ'[ c ∷ make {n = n} A↓ ] ⊗₀ 𝔇ℝ[ 1 , c ∩ PC↓ ]} f ∙e
-        Σ-ap (□-sec-equiv {A = 𝔇ℝ'[ c ∷ make {n = n} A↓ ] ⇒ 𝔇ℝ'[ make {n = n} A↓ ]}
-               ℛ-underlying (⇒-underlying ℛ-conc ∙e 𝔇ℝ'-hom≃⟨∥⟩-reg) 𝔇ℝ'⇒𝔇ℝ'-sec-equiv _ _ refl) λ _ →
-        ⊗-sec-equiv ℛ-conc {A = 𝔇ℝ'[ c ∷ make {n = n} A↓ ]} {𝔇ℝ[ 1 , c ∩ PC↓ ]} (snd ⊙ f) ∙e
-        Σ-ap (𝔇ℝ'-sec-equiv _ _ refl) λ _ → 𝔇ℝ-sec-equiv _ _ refl)
-      𝔇ℝ'-sec-equiv)
-    (solve-denot {c} n Hc , solve-reg n Hc)
+module _ (Ax' : DenotAssumptions) where
+  open DenotAssumptions Ax'
 
   model : DPPL-model _ _
   model .fst = 𝔇
   model .snd = record
     { 𝔇-cartesian = 𝔇-cartesian
     ; 𝔇-closed    = 𝔇-closed
+    ; 𝔇-ip        = 𝔇-ip
     ; □⟨_⟩        = □⟨_⟩
-    ; □-pres-top  = □-pres-top
-    ; □-pres-prod = □-pres-prod
-    ; □-≤         = □-≤
-    ; □-comult    = □-comult
-    ; □⟨A⟩-Id     = □⟨A⟩-Id
+    ; □-counit    = □-counit
+    ; □-comult    = □-comult-≅
+    ; □-⊆         = □-⊆
+    ; □-top       = □-top
+    ; □-prod      = □-prod-≅
+    ; □⟨⊤⟩-Id     = □⟨⊤⟩-Id
     ; 𝔇ℝ[_]       = 𝔇ℝ[_]
-    ; □-𝔇ℝ        = super-iso→sub-iso _ (adjunct-hom-iso-into μ⊣ν _)
-    ; 𝔇-real      = λ r → よ ℛ .F₁ (ℛ-const (make r))
-    ; 𝔇-prim      = λ Hϕ → Equiv.from (Hom≃Cpsh-hom ℛ-conc ∙e 𝔇ℝ'-hom≃⟨∥⟩-reg) (Prim-denot _ , Prim-reg Hϕ)
-    ; 𝔇-cond      = λ cs H≤ → Equiv.from (Hom≃Cpsh-hom ℛ-conc ∙e 𝔇ℝ'-hom≃⟨∥⟩-reg) (cond-denot , cond-reg cs H≤)
-    ; 𝔇-sub       = λ H≤ → よ ℛ .F₁ (ℛ-id≤ H≤)
-    ; 𝔇-diff      = diff-hom
-    ; 𝔇-solve     = solve-hom
+    ; □-𝔇ℝ        = □-𝔇ℝ
+    ; 𝔇-sub       = 𝔇ℝ-≤
+    ; 𝔇-real      = 𝔇ℝ-const
+    ; 𝔇-prim      = λ {ϕ} Hϕ → ∫hom (Prim-denot ϕ) λ _ Hg → Prim-reg Hϕ Hg
+    ; 𝔇-cond      = λ cs H≤ →
+      ∫hom cond-denot λ _ (Hg₁ , Hg₂ , Hg₃) → cond-reg cs H≤ Hg₁ Hg₂ Hg₃
+    ; 𝔇-diff = λ {c} m n Hc → ∫hom (diff-denot m n Hc) λ g (Hg₁ , Hg₂ , Hg₃) →
+      diff-reg m n Hc
+        (mk-hom-sec (make c) (singleton P) (make c) Hg₁)
+        Hg₂
+        Hg₃
+    ; 𝔇-solve = λ {c} n Hc → ∫hom (solve-denot n Hc) λ g (Hg₁ , Hg₂ , Hg₃) →
+      solve-reg n Hc
+        (mk-hom-sec (c ∷ make A↓) (singleton C) (make A↓) Hg₁)
+        Hg₂
+        Hg₃
     }
 
   open Denotations model public
