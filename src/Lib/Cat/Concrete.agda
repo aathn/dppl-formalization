@@ -78,6 +78,10 @@ module Conc-psh {κ h} {C : Precategory κ h} (Cc : Conc-category κ C) where
   CPSh : Precategory _ _
   CPSh = Structured-objects CPSh-structure
 
+  const-sec : ∀ (A : ⌞ CPSh ⌟) {U f x} → f ≡ (λ _ → x) → ∣ A .snd .is-sec U f ∣
+  const-sec A {U} {x = x} p =
+    subst (λ f → ∣ A .snd .is-sec U f ∣) (sym p) (A .snd .pt-sec x)
+
   ⊤CPSh : CPSh-on (Lift _ ⊤)
   ⊤CPSh .is-sec _ _ = ⊤Ω
   ⊤CPSh .is-sec-∘   = _
