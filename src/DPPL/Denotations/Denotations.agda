@@ -2,7 +2,7 @@ open import 1Lab.Type.Sigma
 
 open import Cat.Diagram.Exponential
 open import Cat.Displayed.Total
-open import Cat.Prelude
+open import Cat.Prelude hiding (_∨_)
 
 open import DPPL.Denotations.Regularity
 open import DPPL.Regularity
@@ -11,7 +11,7 @@ open import Data.Sum.Base
 open import Data.Power using (singleton)
 
 open import Lib.Algebra.Reals
-open import Lib.Homotopy.Join
+open import Lib.Homotopy.Join renaming (_∗_ to _∨_)
 open import Lib.Cat.Concrete
 open import Lib.Data.Vector
 
@@ -38,12 +38,12 @@ open Reals R using (ℝ)
 open Reg≤
 
 ⟨_⟩-sec : Reg↓ → (U : Nat × Reg) → (ℝ ^ U .fst → ℝ) → Type
-⟨ c ⟩-sec (m , r) f =
-  (r ∈ c .hom × f' ∈ ⟨ r ⟩-reg) ∗ ∣ is-const f' ∣
-  where f' = make {n = 1} ⊙ f
+⟨ c ⟩-sec (m , r) f = (r ∈ c × f' ∈ ⟨ r ⟩-reg) ∨ (f' ∈ is-const) where
+  f' : ℝ ^ m → ℝ ^ 1
+  f' = make {n = 1} ⊙ f
 
 ⟨_⟩-sec' : Reg↓ ^ n → (U : Nat × Reg) → (ℝ ^ U .fst → ℝ ^ n) → Type
-⟨ cs ⟩-sec' U g = ∀ i → π[ i ] ⊙ g ∈ ⟨ cs i ⟩-sec U
+⟨ cs ⟩-sec' U g = ∀ i → π[ i ] ⊙ g ∈ ⟨ π[ i ] cs ⟩-sec U
 
 ⟨_∥_⟩-reg : Reg↓ ^ m → Reg↓ ^ n → (ℝ ^ m → ℝ ^ n) → Type
 ⟨_∥_⟩-reg {m = m} cs cs' f =
@@ -62,11 +62,11 @@ open Reg≤
        → h₁ ∈ ⟨ W .snd ∣ V .snd ⟩-reg
        → h₂ ∈ ⟨ cs ⟩-sec' W
        → uncurry (fst ⊙ f') ⊙ ⟨ h₁ , h₂ ⟩ ∈ ⟨ cs' ⟩-sec' W)
-  ∗ ∣ is-const f ∣
+  ∨ (f ∈ is-const)
 
 record DenotAssumptions : Type where
   -- TODO: Split Prim-reg into explicit cases
-  -- TODO: Try to lay out the regularity assumptions mean in more concrete terms?
+  -- TODO: Try to lay out the regularity assumptions in more concrete terms?
 
   field
     Prim-denot : (ϕ : Prim) → ℝ ^ PrimAr ϕ → ℝ
@@ -109,8 +109,8 @@ record DenotAssumptions : Type where
 
 mk-hom-sec
   : ∀ (cs : Reg↓ ^ m) X (cs' : Reg↓ ^ n) {U f}
-  → ∣ □⟨ X ⟩₀ (𝔇ℝ'[ cs ] ⇒ 𝔇ℝ'[ cs' ]) .snd .is-sec U f ∣
-  → ⟨ cs ∣ X ∣ cs' ⟩-hom-sec U f
+  → f ∈ □⟨ X ⟩₀ (𝔇ℝ'[ cs ] ⇒ 𝔇ℝ'[ cs' ]) .snd .is-sec U
+  → f ∈ ⟨ cs ∣ X ∣ cs' ⟩-hom-sec U
 mk-hom-sec cs X cs' Hf₀ = case Hf₀ of λ where
   (inr H⋆) → inr H⋆
   (inl Hf) → flip (□-elim (λ _ → hlevel 1)) Hf
