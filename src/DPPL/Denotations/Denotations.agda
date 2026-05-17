@@ -32,7 +32,7 @@ open Syntax R
 open SyntaxVars
 open Typing R
 open Model R
-open Cartesian-closed 𝔇-closed using () renaming ([_,_] to _⇒_)
+open 𝔇-closed using (_⇒_)
 open Precategory 𝔇
 open Reals R using (ℝ)
 open Reg≤
@@ -121,7 +121,7 @@ mk-hom-sec cs X cs' Hf₀ = case Hf₀ of λ where
     inl (inc fac)
 
 
-module _ (Ax' : DenotAssumptions) where
+module Denotations (Ax' : DenotAssumptions) where
   open DenotAssumptions Ax'
 
   model : DPPL-model _ _
@@ -156,4 +156,4 @@ module _ (Ax' : DenotAssumptions) where
         Hg₃
     }
 
-  open Denotations model public
+  open ModelDenotations model public

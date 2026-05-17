@@ -49,11 +49,15 @@ module 𝔇 = Precategory 𝔇
 𝔇-cartesian : Cartesian-category 𝔇
 𝔇-cartesian = CPSh-cartesian
 
+module 𝔇-cartesian = Cartesian-category 𝔇-cartesian
+
 𝔇-closed : Cartesian-closed 𝔇 𝔇-cartesian
 𝔇-closed = CPSh-closed
 
-open Cartesian-category 𝔇-cartesian hiding (⟨_,_⟩)
-open Cartesian-closed 𝔇-closed using () renaming ([_,_] to _⇒_)
+module 𝔇-closed = Cartesian-closed 𝔇-closed renaming ([_,_] to _⇒_)
+
+open 𝔇-cartesian hiding (⟨_,_⟩)
+open 𝔇-closed using (_⇒_)
 open Inverses
 
 𝔇-ip : ∀ {n} → has-products-indexed-by 𝔇 (Fin n)

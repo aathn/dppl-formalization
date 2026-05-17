@@ -101,7 +101,7 @@ record is-DPPL-model {o ℓ} (𝔇 : Precategory o ℓ) : Type (o ⊔ ℓ) where
 DPPL-model : ∀ o ℓ → Type (lsuc (o ⊔ ℓ))
 DPPL-model o ℓ = Σ (Precategory o ℓ) is-DPPL-model
 
-module Denotations {o} {ℓ} (model : DPPL-model o ℓ) where
+module ModelDenotations {o} {ℓ} (model : DPPL-model o ℓ) where
   open is-DPPL-model (model .snd)
 
   Ty-denot : Ty → Ob
@@ -161,3 +161,7 @@ module Denotations {o} {ℓ} (model : DPPL-model o ℓ) where
     𝔇-diff m n Hc ∘ ⟨ Tm-denot Hty , ⟨ Tm-denot Hty₁ , Tm-denot Hty₂ ⟩ ⟩
   Tm-denot (tsolve {n = n} Hty Hty₁ Hty₂ Hc) =
     𝔇-solve n Hc ∘ ⟨ Tm-denot Hty , ⟨ Tm-denot Hty₁ , Tm-denot Hty₂ ⟩ ⟩
+
+  instance
+    ⟦⟧-Tm : ⟦⟧-notation (Γ ⊢ t ∶ T)
+    ⟦⟧-Tm = brackets _ Tm-denot

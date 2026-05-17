@@ -28,10 +28,10 @@ module Progress (Ax : EvalAssumptions) where
     → --------------------------------
     is-value t ⊎ Σ[ t' ∈ Tm ] t →det t'
 
-  progress (tlam _)                = inl vlam
-  progress treal                   = inl vreal
-  progress (tvar H∈)               = absurd (¬mem-[] (env-sub→dom-sub H∈ _ hereₛ))
-  progress (tapp Hty Hty₁)         = inr $ case (progress Hty) of λ where
+  progress (tlam _)        = inl vlam
+  progress treal           = inl vreal
+  progress (tvar H∈)       = absurd (¬mem-[] (env-sub→dom-sub H∈ _ hereₛ))
+  progress (tapp Hty Hty₁) = inr $ case (progress Hty) of λ where
     (inr (t' , Hstep)) → _ , cong-stepᵈ (λ _ ()) Hstep
     (inl Hv) → case (progress Hty₁) of λ where
       (inr (t' , Hstep)) → _ , cong-stepᵈ (Fin-cases (λ _ → Hv) λ _ ()) Hstep
