@@ -3,6 +3,7 @@ open import 1Lab.Prelude
 open import DPPL.Regularity
 
 open import Lib.Algebra.Reals
+open import Lib.Data.Vector
 
 open import Order.Lattice
 open import Order.Base
@@ -27,4 +28,19 @@ open SyntaxVars
 ≤ᵗ→~ᵗ {T = treal c} H≤             = tt
 ≤ᵗ→~ᵗ {T = T ⇒[ _ ] T₁} H≤ x y x≤y =
   inc ((y .fst , H≤ _ (y .snd) , y .snd) , x≤y , ≤-refl)
-≤ᵗ→~ᵗ {T = ttup n Ts} H≤ i         = ≤ᵗ→~ᵗ (H≤ i)
+≤ᵗ→~ᵗ {T = ttup n Ts} H≤ i = ≤ᵗ→~ᵗ (H≤ i)
+
+ttup-inj : ∀ {Ts Ts'} → ttup m Ts ≡ ttup n Ts' → (m , Ts) ≡ (n , Ts')
+ttup-inj {m} {Ts = Ts} = ap λ where
+  (ttup m Ts) → m , Ts
+  _ → m , Ts
+
+real-inj : real r ≡ real r' → r ≡ r'
+real-inj {r = r} = ap λ where
+  (oreal r ▸ _) → r
+  _             → r
+
+tup-inj : {ts : Tm ^ m} {ts' : Tm ^ n} → tup m ▸ ts ≡ tup n ▸ ts' → (m , ts) ≡ (n , ts')
+tup-inj {m} {ts = ts} = ap λ where
+  (tup m ▸ ts) → m , ts
+  _            → m , ts

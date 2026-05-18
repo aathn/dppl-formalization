@@ -129,15 +129,3 @@ module SyntaxVars where
     t t' : Tm
 
 open SyntaxVars
-
--- Injectivity lemmas
-
-ttup-inj : ∀ {Ts Ts'} → ttup n Ts ≡ ttup m Ts' → (n , Ts) ≡ (m , Ts')
-ttup-inj {n} {Ts = Ts} = ap λ where
-  (ttup n Ts) → n , Ts
-  _ → n , Ts
-
-real-inj : real r ≡ real r' → r ≡ r'
-real-inj {r = r} = ap λ where
-  (oreal r ▸ _) → r
-  _             → r

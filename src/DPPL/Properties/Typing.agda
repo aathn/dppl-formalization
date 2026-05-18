@@ -18,11 +18,13 @@ open import Lib.Prelude
 
 open import Order.Base
 
+import DPPL.Properties.Syntax as SyntaxProperties
 import DPPL.Syntax as Syntax
 import DPPL.Typing as Typing
 
 module DPPL.Properties.Typing (R : Reals₀) where
 
+open SyntaxProperties R
 open Syntax R renaming (_▸_ to _▹_)
 open SyntaxVars
 open Typing R

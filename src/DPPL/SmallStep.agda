@@ -112,6 +112,80 @@ module Eval (Ax : EvalAssumptions) where
       → -------------------------------------------------
       solve ▸ ts →ᵈ Solve (_ , v₀) (_ , v₁) (_ , v₂) .fst
 
+  data _⇓_ : Tm → Value → Type where
+
+    ereal : {t : Tm ^ 0} → real r ⇓ (real r , vreal)
+    elam  : {t : Tm ^ 1} → lam T ▸ t ⇓ (lam T ▸ t , vlam)
+
+    eapp :
+      {ts : Tm ^ 2}
+      {t : Tm ^ 1}
+      {v v' : Value}
+      (He1 : ts ₀ ⇓ (lam T ▸ t , vlam))
+      (He2 : ts ₁ ⇓ v)
+      (He3 : (0 ≈> v .fst) (t ₀) ⇓ v')
+      → -------------------------------
+      app ▸ ts ⇓ v'
+
+    eprim :
+      {t : Tm ^ 1}
+      {t₀ : Tm ^ 0}
+      {rs : ℝ  ^ PrimAr ϕ}
+      (He : t ₀ ⇓ (tup _ ▸ (λ i → real (rs i)) , vtup λ i → vreal))
+      → -----------------------------------------------------------
+      prim ϕ ▸ t ⇓ (real (PrimEv ϕ rs) , vreal)
+
+    etup :
+      {ts  : Tm ^ n}
+      {vs : Value ^ n}
+      (He : ∀ i → ts i ⇓ vs i)
+      → --------------------------------
+      tup n ▸ ts ⇓ (_ , vtup (snd ∘ vs))
+
+    eproj :
+      {t  : Tm ^ 1}
+      {vs : Value ^ n}
+      (i : Fin n)
+      (He : t ₀ ⇓ (_ , vtup (snd ∘ vs)))
+      → --------------------------------
+      proj n i ▸ t ⇓ vs i
+
+    eif1 :
+      {ts : Tm ^ 3}
+      {v : Value}
+      (p : is-pos r ≡ true)
+      (He1 : ts ₀ ⇓ (real r , vreal))
+      (He2 : ts ₁ ⇓ v)
+      → -----------------------------
+      if ▸ ts ⇓ v
+
+    eif2 :
+      {ts : Tm ^ 3}
+      {v : Value}
+      (p : is-pos r ≡ false)
+      (He1 : ts ₀ ⇓ (real r , vreal))
+      (He2 : ts ₂ ⇓ v)
+      → -----------------------------
+      if ▸ ts ⇓ v
+
+    ediff :
+      {ts : Tm ^ 3}
+      {v₀ v₁ v₂ : Value}
+      (He1 : ts ₀ ⇓ v₀)
+      (He2 : ts ₁ ⇓ v₁)
+      (He3 : ts ₂ ⇓ v₂)
+      → -----------------------
+      diff ▸ ts ⇓ Diff v₀ v₁ v₂
+
+    esolve :
+      {ts : Tm ^ 3}
+      {v₀ v₁ v₂ : Value}
+      (He1 : ts ₀ ⇓ v₀)
+      (He2 : ts ₁ ⇓ v₁)
+      (He3 : ts ₂ ⇓ v₂)
+      → -----------------------
+      solve ▸ ts ⇓ Solve v₀ v₁ v₂
+
 
   -- Full evaluation relation
 
