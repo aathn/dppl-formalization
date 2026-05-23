@@ -20,44 +20,100 @@ module _ (R : Reals₀) where
   open Reg≤
 
   private variable
-    k m n : Nat
     c c' : Reg
 
-  record RegAssumptions  : Type₁ where
-    field
-      ⟨_⟩-reg : Reg → ∀ {m n} → ℙ (ℝ ^ m → ℝ ^ n)
-      ⊆-reg : c ≤ c' → ⟨ c' ⟩-reg {m} {n} ⊆ ⟨ c ⟩-reg
+  record RegAssumptions : Type₁ where
 
-      id-reg : (λ x → x) ∈ ⟨ c ⟩-reg {m}
-      const-reg : (x : ℝ ^ n) → (λ _ → x) ∈ ⟨ c ⟩-reg {m}
+    _×ₛ_ : ∀ {m n} → ℙ (ℝ ^ m) → ℙ (ℝ ^ n) → ℙ (ℝ ^ (m + n))
+    _×ₛ_ {m} U V xy =
+      let x , y = split {m = m} xy in
+      el (x ∈ U × y ∈ V) (hlevel 1)
+
+    field
+      ⟨_⟩-open : Reg → ∀ {m} → ℙ (ℙ (ℝ ^ m))
+      ⊆-open   : c ≤ c' → ∀ {m} → ⟨ c' ⟩-open {m} ⊆ ⟨ c ⟩-open
+      ×-open
+        : ∀ {m n} {U : ℙ (ℝ ^ m)} {V : ℙ (ℝ ^ n)}
+        → U ∈ ⟨ c ⟩-open → V ∈ ⟨ c ⟩-open
+        → (U ×ₛ V) ∈ ⟨ c ⟩-open
+      ⊤-open : ∀ m → maximal ∈ ⟨ c ⟩-open {m}
+
+    ⟨_⟩-open-set : Reg → Type
+    ⟨ c ⟩-open-set = Σ[ m ∈ Nat ] ∫ₚ (⟨ c ⟩-open {m})
+
+    mk-open-set : ∀ {m} {U : ℙ (ℝ ^ m)} → U ∈ ⟨ c ⟩-open → ⟨ c ⟩-open-set
+    mk-open-set p = _ , _ , p
+
+    ⊆-open-set : c ≤ c' → ⟨ c' ⟩-open-set → ⟨ c ⟩-open-set
+    ⊆-open-set H≤ (_ , _ , U-open) = mk-open-set (⊆-open H≤ _ U-open)
+
+    ℝ-open-set : ∀ m → ⟨ c ⟩-open-set
+    ℝ-open-set m = mk-open-set (⊤-open m)
+
+    ∣_∣ₛ : ⟨ c ⟩-open-set → Type
+    ∣ m , U , _ ∣ₛ = ∫ₚ U
+
+    ×-open-set : ⟨ c ⟩-open-set → ⟨ c ⟩-open-set → ⟨ c ⟩-open-set
+    ×-open-set (_ , _ , U-open) (_ , _ , V-open) = mk-open-set (×-open U-open V-open)
+
+    to-×ₛ : (U V : ⟨ c ⟩-open-set) → ∣ U ∣ₛ × ∣ V ∣ₛ → ∣ ×-open-set U V ∣ₛ
+    to-×ₛ (m , U , _) (n , V , _) (x , y) =
+      x .fst ++ y .fst
+      , subst (_∈ U) (sym $ ap fst (Equiv.ε (vec-sum-prod m) _)) (x .snd)
+      , subst (_∈ V) (sym $ ap snd (Equiv.ε (vec-sum-prod m) _)) (y .snd)
+
+    from-×ₛ : (U V : ⟨ c ⟩-open-set) → ∣ ×-open-set U V ∣ₛ → ∣ U ∣ₛ × ∣ V ∣ₛ
+    from-×ₛ U V (xy , p , q) = let x , y = split {m = U .fst} xy in (x , p) , (y , q)
+
+    field
+      ⟨_⟩-reg : (c : Reg) (U V : ⟨ c ⟩-open-set) → ℙ (∣ U ∣ₛ → ∣ V ∣ₛ)
+      ⊆-reg
+        : ∀ {U V} (H≤ : c ≤ c')
+        → ⟨ c' ⟩-reg U V ⊆ ⟨ c ⟩-reg (⊆-open-set H≤ U) (⊆-open-set H≤ V)
+
+      id-reg    : ∀ {U} → (λ x → x) ∈ ⟨ c ⟩-reg U U
+      const-reg : ∀ {U V} (x : ∣ V ∣ₛ) → (λ _ → x) ∈ ⟨ c ⟩-reg U V
       ∘-reg
-        : {f : ℝ ^ n → ℝ ^ k} {g : ℝ ^ m → ℝ ^ n}
-        → f ∈ ⟨ c ⟩-reg → g ∈ ⟨ c ⟩-reg → f ∘ g ∈ ⟨ c ⟩-reg
+        : ∀ {U V W f g}
+        → f ∈ ⟨ c ⟩-reg V W → g ∈ ⟨ c ⟩-reg U V → f ∘ g ∈ ⟨ c ⟩-reg U W
 
       tup-reg
-        : {f : ℝ ^ k → ℝ ^ m} {g : ℝ ^ k → ℝ ^ n}
-        → f ∈ ⟨ c ⟩-reg → g ∈ ⟨ c ⟩-reg → uncurry _++_ ∘ ⟨ f , g ⟩ ∈ ⟨ c ⟩-reg
-      proj-reg₁ : fst ∘ split {m = m} {k} ∈ ⟨ c ⟩-reg
-      proj-reg₂ : snd ∘ split {m = m} {k} ∈ ⟨ c ⟩-reg
+        : ∀ {U V W f g}
+        → f ∈ ⟨ c ⟩-reg U V → g ∈ ⟨ c ⟩-reg U W
+        → to-×ₛ V W ∘ ⟨ f , g ⟩ ∈ ⟨ c ⟩-reg U (×-open-set V W)
+      proj-reg₁ : ∀ {U V} → fst ∘ from-×ₛ U V ∈ ⟨ c ⟩-reg (×-open-set U V) U
+      proj-reg₂ : ∀ {U V} → snd ∘ from-×ₛ U V ∈ ⟨ c ⟩-reg (×-open-set U V) V
 
-    ⟨_∣_⟩-reg : Reg → Reg → ∀ {m n} → ℙ (ℝ ^ m → ℝ ^ n)
-    ⟨ c ∣ d ⟩-reg f .∣_∣   = (c ≤ d × f ∈ ⟨ c ⟩-reg) ∗ (f ∈ is-const)
-    ⟨ c ∣ d ⟩-reg f .is-tr = hlevel 1
+    coerce-reg
+      : ∀ {U} {m} {V : ℙ (ℝ ^ m)} {f} → {p q : V ∈ ⟨ c ⟩-open}
+      → f ∈ ⟨ c ⟩-reg U (mk-open-set p) → f ∈ ⟨ c ⟩-reg U (mk-open-set q)
+    coerce-reg {c} = subst (λ p → ∣ ⟨ c ⟩-reg _ (mk-open-set p) _ ∣) prop!
 
-  module RegProperties (Ax : RegAssumptions) where
-    open RegAssumptions Ax
+    ×ₛ-≃ : (U V : ⟨ c ⟩-open-set) → (∣ U ∣ₛ × ∣ V ∣ₛ) ≃ ∣ ×-open-set U V ∣ₛ
+    ×ₛ-≃ U V .fst = to-×ₛ U V
+    ×ₛ-≃ U V .snd = is-iso→is-equiv $ iso (from-×ₛ U V)
+      (λ x → Σ-prop-path! (Equiv.η (vec-sum-prod (U .fst)) (x .fst)))
+      (λ x → Σ-prop-path! (ap fst (Equiv.ε (vec-sum-prod (U .fst)) _))
+          ,ₚ Σ-prop-path! (ap snd (Equiv.ε (vec-sum-prod (U .fst)) _)))
 
-    id-reg' : c ≤ c' → (λ x → x) ∈ ⟨ c ∣ c' ⟩-reg {m}
-    id-reg' H≤ = inl (H≤ , id-reg)
+    ⟨_∣_⟩-reg
+      : (c c' : Reg) (U : ⟨ c ⟩-open-set) (V : ⟨ c' ⟩-open-set) → ℙ (∣ U ∣ₛ → ∣ V ∣ₛ)
+    ⟨ c ∣ d ⟩-reg U V f .∣_∣ =
+      (Σ[ H≤ ∈ c ≤ d ] f ∈ ⟨ c ⟩-reg U (⊆-open-set H≤ V)) ∗ (f ∈ is-const)
+    ⟨ c ∣ d ⟩-reg U V f .is-tr = hlevel 1
 
-    const-reg' : (x : ℝ ^ n) → (λ _ → x) ∈ ⟨ c ∣ c' ⟩-reg {m}
+    id-reg' : ∀ {U} → (λ x → x) ∈ ⟨ c ∣ c ⟩-reg U U
+    id-reg' = inl (≤-refl , coerce-reg id-reg)
+
+    const-reg' : ∀ {U V} (x : ∣ V ∣ₛ) → (λ _ → x) ∈ ⟨ c ∣ c' ⟩-reg U V
     const-reg' x = inr (inc (x , refl))
 
     ∘-reg'
-      : {c d e : Reg} {m n k : Nat} {f : ℝ ^ n → ℝ ^ k} {g : ℝ ^ m → ℝ ^ n}
-      → f ∈ ⟨ d ∣ e ⟩-reg → g ∈ ⟨ c ∣ d ⟩-reg → f ∘ g ∈ ⟨ c ∣ e ⟩-reg
-    ∘-reg' {f = f} {g} Hf Hg = case Hf of λ where
+      : ∀ {c d e U V W f g}
+      → f ∈ ⟨ d ∣ e ⟩-reg V W → g ∈ ⟨ c ∣ d ⟩-reg U V → f ∘ g ∈ ⟨ c ∣ e ⟩-reg U W
+    ∘-reg' {c} {f = f} {g} Hf Hg = case Hf of λ where
       (inl (H≤ , Hf')) → case Hg of λ where
-        (inl (H≤' , Hg')) → inl (≤-trans H≤' H≤ , ∘-reg (⊆-reg H≤' _ Hf') Hg')
-        (inr Hconst) → case Hconst of λ x p → inr (inc (f x , ap (f ∘_) p))
-      (inr Hconst) → case Hconst of λ x p → inr (inc (x , ap (_∘ g) p))
+        (inl (H≤' , Hg')) →
+          inl (≤-trans H≤' H≤ , coerce-reg (∘-reg (⊆-reg H≤' _ Hf') Hg'))
+        (inr Hconst) → case Hconst of λ x Hx p → inr (inc (f (x , Hx) , ap (f ∘_) p))
+      (inr Hconst) → case Hconst of λ x Hx p → inr (inc ((x , Hx) , ap (_∘ g) p))

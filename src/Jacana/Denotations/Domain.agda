@@ -70,21 +70,23 @@ module 𝔇-ip {n} (F : 𝔇.Ob ^ n) = Indexed-product (𝔇-ip F)
 □⟨ X ⟩₀ A .snd = cpsh module □⟨_⟩ where
   has-factor : ∀ U → (f : ∣ U ∣ₒ → ⌞ A ⌟) → Type
   has-factor U f =
-    Σ[ V ∈ ℛ.Ob ] V .snd ∈ X × U .snd ≤ V .snd ×
-    Σ[ g ∈ ∫ₚ ⟨ U .snd ⟩-reg ] Σ[ f' ∈ ∫ₚ (A .snd .is-sec V) ]
+    Σ[ V ∈ ℛ.Ob ] V .fst ∈ X ×
+    Σ[ H≤ ∈ U .fst ≤ V .fst ]
+    Σ[ g ∈ ∫ₚ (⟨ U .fst ⟩-reg (U .snd) (⊆-open-set H≤ (V .snd))) ]
+    Σ[ f' ∈ ∫ₚ (A .snd .is-sec V) ]
     f ≡ f' .fst ⊙ g .fst
 
   cpsh : CPSh-on ⌞ A ⌟
   cpsh .is-sec U f       = el (□ (has-factor U f) ∗ ∣ is-const f ∣) (hlevel 1)
   cpsh .is-sec-∘ f h Hf₀ = case h .snd of λ where
-    (inr H⋆)        → case H⋆ of λ x p → inr (inc (_ , ap (f ⊙_) p))
+    (inr H⋆)        → case H⋆ of λ _ _ p → inr (inc (_ , ap (f ⊙_) p))
     (inl (H≤ , Hh)) → case Hf₀ of λ where
-      (inr H⋆) → case H⋆ of λ x p → inr (inc (_ , ap (_⊙ ∣ h ∣ₕ) p))
+      (inr H⋆) → case H⋆ of λ _ p → inr (inc (_ , ap (_⊙ ∣ h ∣ₕ) p))
       (inl Hf) → inl $ flip □-map Hf λ (W , HW , V≤W , (g , Hg) , f' , p) →
         ( W
         , HW
         , ≤-trans H≤ V≤W
-        , (g ⊙ ∣ h ∣ₕ , ∘-reg (⊆-reg H≤ g Hg) Hh)
+        , (g ⊙ ∣ h ∣ₕ , coerce-reg (∘-reg (⊆-reg H≤ g Hg) Hh))
         , f'
         , ap (_⊙ ∣ h ∣ₕ) p
         )
@@ -118,7 +120,9 @@ module 𝔇-ip {n} (F : 𝔇.Ob ^ n) = Indexed-product (𝔇-ip F)
     , HW .fst
     , H≤
     , h
-    , (_ , inl (inc (W , HW .snd , ≤-refl , ((λ x → x) , id-reg) , g' , refl)))
+    , ( _
+      , inl (inc (W , HW .snd , ≤-refl , ((λ x → x) , coerce-reg id-reg) , g' , refl))
+      )
     , p
     )
 □-comult .is-natural _ _ _ = ext λ _ → refl
@@ -131,14 +135,16 @@ module 𝔇-ip {n} (F : 𝔇.Ob ^ n) = Indexed-product (𝔇-ip F)
     case g1 .snd of λ where
       (inr H⋆)  → case H⋆ of λ x p → inr (inc (_ , p1 ∙ ap (_⊙ h1 .fst) p))
       (inl Hg₂) →
-        flip (□-elim (λ _ → hlevel 1)) Hg₂ λ (W2 , HW2 , H≤2 , h2 , g2 , p2) →
+        flip (□-elim (λ _ → hlevel 1)) Hg₂ λ ((_ , W2) , HW2 , H≤2 , h2 , g2 , p2) →
         case H~ (_ , HW1) (_ , HW2) of λ H∩ →
         flip (∥-∥-elim (λ _ → hlevel 1)) (H∩ H≤2) λ ((z , Hz) , x≤z , z≤y) →
         let fac = inc
-              ( (W2 .fst , z)
+              ( (z , W2 .fst , W2 .snd .fst , ⊆-open z≤y _ (W2 .snd .snd))
               , Hz
               , ≤-trans H≤1 x≤z
-              , ((h2 .fst ⊙ h1 .fst) , ∘-reg (⊆-reg H≤1 _ (h2 .snd)) (h1 .snd))
+              , ( (h2 .fst ⊙ h1 .fst)
+                , coerce-reg (∘-reg (⊆-reg H≤1 _ (h2 .snd)) (h1 .snd))
+                )
               , (g2 .fst , A .snd .is-sec-∘ _ (ℛ-id≤ z≤y) (g2 .snd))
               , p1 ∙ ap (_⊙ h1 .fst) p2
               )
@@ -184,28 +190,33 @@ module 𝔇-ip {n} (F : 𝔇.Ob ^ n) = Indexed-product (𝔇-ip F)
     (inr H⋆') → case H⋆' of λ y q → inr (inc (_ , ap₂ ⟨_,_⟩ p q))
     (inl Hg') → inl $ flip □-map Hg' λ (W , HW , H≤ , h , (f , Hf) , q) →
       W , HW , H≤ , h , (_ , A .snd .pt-sec x , Hf) , ap₂ ⟨_,_⟩ p q
-  (inl Hg) → flip (□-elim (λ _ → hlevel 1)) Hg λ (W , HW , H≤ , h , (f , Hf) , p) →
+  (inl Hg) → flip (□-elim (λ _ → hlevel 1)) Hg λ (W₀ , HW , H≤ , h , (f , Hf) , p) →
     case Hg₀' of λ where
       (inr H⋆') → case H⋆' of λ x q →
-        inl (inc (W , HW , H≤ , h , (_ , Hf , B .snd .pt-sec x) , ap₂ ⟨_,_⟩ p q))
+        inl (inc (W₀ , HW , H≤ , h , (_ , Hf , B .snd .pt-sec x) , ap₂ ⟨_,_⟩ p q))
       (inl Hg') →
-        flip (□-elim (λ _ → hlevel 1)) Hg' λ (W' , HW' , H≤' , h' , (f' , Hf') , q) →
+        flip (□-elim (λ _ → hlevel 1)) Hg' λ (W₀' , HW' , H≤' , h' , (f' , Hf') , q) →
         case HX (_ , HW) (_ , HW') of λ where
           (inl W-incompat)   → absurd (W-incompat _ H≤ H≤')
           (inr (glb , Hglb)) →
-            let fac = inc
-                  ( (W .fst + W' .fst , Meet.glb glb)
-                  , Hglb
-                  , Meet.greatest glb _ H≤ H≤'
-                  , (uncurry _++_ ⊙ ⟨ h .fst , h' .fst ⟩ , tup-reg (h .snd) (h' .snd))
-                  , ( ×-map f f' ⊙ split {m = W .fst}
-                    , A .snd .is-sec-∘ _ (_ , inl (Meet.meet≤l glb , proj-reg₁)) Hf
-                    , B .snd .is-sec-∘ _ (_ , inl (Meet.meet≤r glb , proj-reg₂)) Hf'
-                    )
-                  , ap₂ ⟨_,_⟩ p q
-                  ∙ ap (λ z → ×-map f f' ⊙ z ⊙ ⟨ h .fst , h' .fst ⟩)
-                       (sym $ funext (Equiv.ε (vec-sum-prod (W .fst))))
+            let
+              W   = ⊆-open-set (Meet.meet≤l glb) (W₀ .snd)
+              W'  = ⊆-open-set (Meet.meet≤r glb) (W₀' .snd)
+              fac = inc
+                ( (Meet.glb glb , ×-open-set W W')
+                , Hglb
+                , Meet.greatest glb _ H≤ H≤'
+                , ( to-×ₛ W W' ⊙ ⟨ h .fst , h' .fst ⟩
+                  , coerce-reg (tup-reg (h .snd) (h' .snd))
                   )
+                , ( ×-map f f' ⊙ from-×ₛ W W'
+                  , A .snd .is-sec-∘ _ (_ , inl (Meet.meet≤l glb , proj-reg₁)) Hf
+                  , B .snd .is-sec-∘ _ (_ , inl (Meet.meet≤r glb , proj-reg₂)) Hf'
+                  )
+                , ap₂ ⟨_,_⟩ p q
+                ∙ ap (λ z → ×-map f f' ⊙ z ⊙ ⟨ h .fst , h' .fst ⟩)
+                  (sym $ funext $ Equiv.η (×ₛ-≃ W W'))
+                )
             in
             inl fac
 
@@ -219,7 +230,7 @@ module 𝔇-ip {n} (F : 𝔇.Ob ^ n) = Indexed-product (𝔇-ip F)
 □⟨⊤⟩-Id : Id => □⟨ Reg⊆-lat.top ⟩
 □⟨⊤⟩-Id .η A .fst x        = x
 □⟨⊤⟩-Id .η A .snd {U} g Hg =
-  inl (inc (U , tt , ≤-refl , ((λ x → x) , id-reg) , (g , Hg) , refl))
+  inl (inc (U , tt , ≤-refl , ((λ x → x) , coerce-reg id-reg) , (g , Hg) , refl))
 □⟨⊤⟩-Id .is-natural _ _ _  = ext λ _ → refl
 
 𝔇ℝ[_] : Reg↓ → 𝔇.Ob
@@ -227,42 +238,42 @@ module 𝔇-ip {n} (F : 𝔇.Ob ^ n) = Indexed-product (𝔇-ip F)
 𝔇ℝ[ c ] .snd = cpsh where
   cpsh : CPSh-on _
   cpsh .is-sec U f .∣_∣ =
-    (U .snd ∈ c .hom × f' ∈ ⟨ U .snd ⟩-reg) ∗ (f' ∈ is-const)
-    where f' = make {n = 1} ⊙ f
+    (U .fst ∈ c × f' ∈ ⟨ U .fst ⟩-reg (U .snd) (ℝ-open-set 1)) ∗ (f ∈ is-const)
+    where f' = ⟨ make ⊙ f , _ ⟩
   cpsh .is-sec U f .is-tr = hlevel 1
   cpsh .is-sec-∘ g h Hg = case h .snd of λ where
-    (inr H⋆)        → case H⋆ of λ _ p → inr (inc (_ , ap ((make ⊙ g) ⊙_) p))
+    (inr H⋆)        → case H⋆ of λ _ _ p → inr (inc (_ , ap (g ⊙_) p))
     (inl (H≤ , Hh)) → case Hg of λ where
       (inr H⋆)         → case H⋆ of λ _ p → inr (inc (_ , ap (_⊙ h .fst) p))
-      (inl (HU , Hg')) → inl (c .pres-≤ H≤ HU , ∘-reg (⊆-reg H≤ _ Hg') Hh)
-  cpsh .pt-sec x = inr (inc (make x , refl))
+      (inl (HU , Hg')) → inl (c .pres-≤ H≤ HU , coerce-reg (∘-reg (⊆-reg H≤ _ Hg') Hh))
+  cpsh .pt-sec x = inr (inc (x , refl))
 
 □-𝔇ℝ : □⟨ X ⟩₀ 𝔇ℝ[ c ] ≅ 𝔇ℝ[ Close-downward · (X ∩ c .hom) ]
 □-𝔇ℝ .to .fst x = x
 □-𝔇ℝ {c = c} .to .snd {U} g Hg₀ = case Hg₀ of λ where
-  (inr H⋆) → case H⋆ of λ x p → inr (inc (_ , ap (make ⊙_) p))
-  (inl Hg) →
-    flip (□-elim (λ _ → hlevel 1)) Hg λ (W , HW , H≤ , h , (g' , Hg₀') , p) →
+  (inr H⋆) → case H⋆ of λ x p → inr (inc (_ , p))
+  (inl Hg) → flip (□-elim (λ _ → hlevel 1)) Hg λ (W , HW , H≤ , h , (g' , Hg₀') , p) →
     case Hg₀' of λ where
-      (inr H⋆)  → case H⋆ of λ x q →
-        inr (inc (_ , ap (make {n = 1} ⊙_) p ∙ ap (_⊙ h .fst) q))
+      (inr H⋆) → case H⋆ of λ x q → inr (inc (_ , p ∙ ap (_⊙ h .fst) q))
       (inl (Hc , Hreg)) → inl
-        ( inc (W .snd , H≤ , HW , Hc)
-        , subst (λ f → ∣ ⟨ U .snd ⟩-reg f ∣)
-          (ap (make ⊙_) (sym p)) (∘-reg (⊆-reg H≤ _ Hreg) (h .snd))
+        ( inc (_ , H≤ , HW , Hc)
+        , subst (λ f → ∣ ⟨ U .fst ⟩-reg (U .snd) (ℝ-open-set 1) f ∣)
+          (ap (λ f → ⟨ make ⊙ f , _ ⟩) (sym p))
+          (coerce-reg (∘-reg (⊆-reg H≤ _ Hreg) (h .snd)))
         )
 □-𝔇ℝ .from .fst x = x
 □-𝔇ℝ {X} {c} .from .snd {U} g Hg = case Hg of λ where
-  (inr H⋆) → case H⋆ of λ x p → inr (inc (_ , ext λ z → p $ₚ z $ₚ fzero))
+  (inr H⋆) → case H⋆ of λ x p → inr (inc (_ , ext λ z Hz → p $ₚ (z , Hz)))
   (inl (HU , Hreg)) → inl $ flip □-map HU λ (z , U≤z , Hz , Hz') →
-    ( (1 , z)
+    ( (z , ℝ-open-set 1)
     , Hz
     , U≤z
-    , (make ⊙ g , Hreg)
-    , ( (λ r → r fzero)
+    , (⟨ make ⊙ g , _ ⟩ , coerce-reg Hreg)
+    , ( (λ r → r .fst fzero)
       , inl
         ( Hz'
-        , subst (λ f → ∣ ⟨ z ⟩-reg f ∣) (ext λ x → Fin-cases refl λ ()) id-reg
+        , subst (λ f → ∣ ⟨ z ⟩-reg (ℝ-open-set 1) (ℝ-open-set 1) f ∣)
+          (ext λ _ _ → Σ-prop-path! (funext $ Fin-cases refl λ ())) id-reg
         )
       )
     , refl

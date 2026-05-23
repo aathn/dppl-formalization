@@ -36,13 +36,14 @@ record Conc-category {o ℓ} κ (C : Precategory o ℓ) : Type (o ⊔ ℓ ⊔ ls
   is-conc-hom U V f = fibre ∣_∣ₕ f
 
   is-conc-hom-prop : (U V : Ob) (f : ∣ U ∣ₒ → ∣ V ∣ₒ) → is-prop (is-conc-hom U V f)
-  is-conc-hom-prop U V f (g , p) (h , q) = underlying-faithful (p ∙ sym q) ,ₚ prop!
+  is-conc-hom-prop U V f (g , p) (h , q) =
+    Σ-prop-path! (underlying-faithful (p ∙ sym q))
 
   hom≃conc-hom : {U V : Ob} → Hom U V ≃ ∫ₚ (is-conc-hom U V)
   hom≃conc-hom .fst = λ f → ∣ f ∣ₕ , f , refl
   hom≃conc-hom .snd = is-iso→is-equiv $
     iso (λ (_ , f , _) → f)
-      (λ (f , g , p) → p ,ₚ refl ,ₚ prop!)
+      (λ (f , g , p) → p ,ₚ Σ-prop-pathp! refl)
       (λ _ → refl)
 
 module Conc-psh {κ h} {C : Precategory κ h} (Cc : Conc-category κ C) where
@@ -177,4 +178,4 @@ module Conc-psh {κ h} {C : Precategory κ h} (Cc : Conc-category κ C) where
           , Hh .snd
           )
       exp .has-is-exp .commutes m = ext λ _ _ → refl
-      exp .has-is-exp .unique _ p = ext λ _ → ext (λ _ → ap fst p $ₚ _) ,ₚ prop!
+      exp .has-is-exp .unique _ p = ext λ _ → Σ-prop-path! (ext (λ _ → ap fst p $ₚ _))

@@ -2,7 +2,7 @@ open import 1Lab.Type.Sigma
 
 open import Cat.Diagram.Exponential
 open import Cat.Displayed.Total
-open import Cat.Prelude hiding (_∨_)
+open import Cat.Prelude hiding (_∨_) renaming (_⊙_ to _∘_)
 
 open import Jacana.Denotations.Regularity
 open import Jacana.Regularity
@@ -33,35 +33,37 @@ open SyntaxVars
 open Typing R
 open Model R
 open Cartesian-closed 𝔇-closed using () renaming ([_,_] to _⇒_)
-open Precategory 𝔇
 open Reals R using (ℝ)
 open Reg≤
 
-⟨_⟩-sec : Reg↓ → (U : Nat × Reg) → (ℝ ^ U .fst → ℝ) → Type
-⟨ c ⟩-sec (m , r) f = (r ∈ c × f' ∈ ⟨ r ⟩-reg) ∨ (f' ∈ is-const) where
-  f' : ℝ ^ m → ℝ ^ 1
-  f' = make {n = 1} ⊙ f
+⟨_⟩-sec : Reg↓ → (U : ∫ₚ ⟨_⟩-open-set) → (∣ U .snd ∣ₛ → ℝ) → Type
+⟨ c ⟩-sec (r , U) f =
+  (r ∈ c × f' ∈ ⟨ r ⟩-reg U (ℝ-open-set 1)) ∨ (f ∈ is-const)
+  where
+    f' : ∣ U ∣ₛ → ∣ ℝ-open-set {r} 1 ∣ₛ
+    f' = ⟨ make ∘ f , _ ⟩
 
-⟨_⟩-sec' : Reg↓ ^ n → (U : Nat × Reg) → (ℝ ^ U .fst → ℝ ^ n) → Type
-⟨ cs ⟩-sec' U g = ∀ i → π[ i ] ⊙ g ∈ ⟨ π[ i ] cs ⟩-sec U
+⟨_⟩-sec' : Reg↓ ^ n → (U : ∫ₚ ⟨_⟩-open-set) → (∣ U .snd ∣ₛ → ℝ ^ n) → Type
+⟨ cs ⟩-sec' U g = ∀ i → π[ i ] ∘ g ∈ ⟨ π[ i ] cs ⟩-sec U
 
 ⟨_∥_⟩-reg : Reg↓ ^ m → Reg↓ ^ n → (ℝ ^ m → ℝ ^ n) → Type
 ⟨_∥_⟩-reg {m = m} cs cs' f =
-  ∀ {U} (g : ℝ ^ U .fst → ℝ ^ m) → g ∈ ⟨ cs ⟩-sec' U → f ⊙ g ∈ ⟨ cs' ⟩-sec' U
+  ∀ {U} (g : ∣ U .snd ∣ₛ → ℝ ^ m) → g ∈ ⟨ cs ⟩-sec' U → f ∘ g ∈ ⟨ cs' ⟩-sec' U
 
 ⟨_∣_∣_⟩-hom-sec
-  : (cs : Reg↓ ^ m) (X : Reg⊆) (cs' : Reg↓ ^ n) (U : Nat × Reg)
-  → (ℝ ^ U .fst → ∫ₚ ⟨ cs ∥ cs' ⟩-reg) → Type
+  : (cs : Reg↓ ^ m) (X : Reg⊆) (cs' : Reg↓ ^ n) (U : ∫ₚ ⟨_⟩-open-set)
+  → (∣ U .snd ∣ₛ → ∫ₚ ⟨ cs ∥ cs' ⟩-reg) → Type
 ⟨_∣_∣_⟩-hom-sec cs X cs' U f =
-  □ (Σ[ V ∈ Nat × Reg ] V .snd ∈ X × U .snd ≤ V .snd ×
-     Σ[ g ∈ (ℝ ^ U .fst → ℝ ^ V .fst) ]
-     Σ[ f' ∈ (ℝ ^ V .fst → ∫ₚ ⟨ cs ∥ cs' ⟩-reg) ]
-       f ≡ f' ⊙ g
-     × g ∈ ⟨ U .snd ⟩-reg
+  □ (Σ[ V ∈ ∫ₚ ⟨_⟩-open-set ] V .fst ∈ X ×
+     Σ[ H≤ ∈ U .fst ≤ V .fst ]
+     Σ[ g ∈ (∣ U .snd ∣ₛ → ∣ V .snd ∣ₛ) ]
+     Σ[ f' ∈ (∣ V .snd ∣ₛ → ∫ₚ ⟨ cs ∥ cs' ⟩-reg) ]
+       f ≡ f' ∘ g
+     × g ∈ ⟨ U .fst ⟩-reg (U .snd) (⊆-open-set H≤ (V .snd))
      × ∀ {W} {h₁} {h₂}
-       → h₁ ∈ ⟨ W .snd ∣ V .snd ⟩-reg
+       → h₁ ∈ ⟨ W .fst ∣ V .fst ⟩-reg (W .snd) (V .snd)
        → h₂ ∈ ⟨ cs ⟩-sec' W
-       → uncurry (fst ⊙ f') ⊙ ⟨ h₁ , h₂ ⟩ ∈ ⟨ cs' ⟩-sec' W)
+       → uncurry (fst ∘ f') ∘ ⟨ h₁ , h₂ ⟩ ∈ ⟨ cs' ⟩-sec' W)
   ∨ (f ∈ is-const)
 
 record DenotAssumptions : Type where
@@ -73,7 +75,7 @@ record DenotAssumptions : Type where
     Prim-reg
       : ∀ {cs} (Hϕ : PrimTy ϕ ≡ (cs , c)) {U} {gs}
       → gs ∈ ⟨ cs ⟩-sec' U
-      → Prim-denot ϕ ⊙ gs ∈ ⟨ c ⟩-sec U
+      → Prim-denot ϕ ∘ gs ∈ ⟨ c ⟩-sec U
 
     cond-denot : ℝ × ℝ ^ n × ℝ ^ n → ℝ ^ n
     cond-reg
@@ -81,7 +83,7 @@ record DenotAssumptions : Type where
       → g₁ ∈ ⟨ P↓ ⟩-sec U
       → g₂ ∈ ⟨ cs ⟩-sec' U
       → g₃ ∈ ⟨ cs ⟩-sec' U
-      → cond-denot ⊙ ⟨ g₁ , ⟨ g₂ , g₃ ⟩ ⟩ ∈ ⟨ cs ⟩-sec' U
+      → cond-denot ∘ ⟨ g₁ , ⟨ g₂ , g₃ ⟩ ⟩ ∈ ⟨ cs ⟩-sec' U
 
     diff-denot
       : ∀ m n
@@ -100,7 +102,7 @@ record DenotAssumptions : Type where
       → g₁ ∈ ⟨ make c ∣ singleton P ∣ make c ⟩-hom-sec U
       → g₂ ∈ ⟨ make c ⟩-sec' U
       → g₃ ∈ ⟨ make A↓ ⟩-sec' U
-      → diff-denot m n Hc ⊙ ⟨ g₁ , ⟨ g₂ , g₃ ⟩ ⟩ ∈ ⟨ make A↓ ⟩-sec' U
+      → diff-denot m n Hc ∘ ⟨ g₁ , ⟨ g₂ , g₃ ⟩ ⟩ ∈ ⟨ make A↓ ⟩-sec' U
 
     -- TODO: Add the explicit characterization for these properties like above
     solve-denot
@@ -120,7 +122,7 @@ record DenotAssumptions : Type where
       → g₁ ∈ □⟨ X ⟩₀ (𝔇ℝ[ c ] ⇒ □⟨ X ⟩₀ (𝔇ℝ'[ make {n = n} c' ] ⇒ 𝔇ℝ'[ make {n = n} c' ])) .snd .is-sec U
       → g₂ ∈ ⟨ c ∷ make c' ⟩-sec' U
       → g₃ ∈ ⟨ c Reg↓-lat.∩ PL↓ ⟩-sec U
-      → solve-denot n Hc ⊙ ⟨ g₁ , ⟨ g₂ , g₃ ⟩ ⟩ ∈ ⟨ make A↓ ⟩-sec' U
+      → solve-denot n Hc ∘ ⟨ g₁ , ⟨ g₂ , g₃ ⟩ ⟩ ∈ ⟨ make A↓ ⟩-sec' U
 
 mk-hom-sec
   : ∀ (cs : Reg↓ ^ m) X (cs' : Reg↓ ^ n) {U f}
