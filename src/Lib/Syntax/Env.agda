@@ -148,12 +148,12 @@ env-sub-dom-eq : Γ ⊆ Γ' → dom Γ' ⊆ dom Γ → Γ ≡ Γ'
 env-sub-dom-eq sub-nil Hdom                                    = refl
 env-sub-dom-eq (sub-cons {Γ = Γ} {Γ'} {H∉ = H∉} {H∉'} H⊆) Hdom =
   let Hdom' : dom Γ' ⊆ dom Γ
-      Hdom' a H∈ = ∈ᶠˢ-split (λ where reflᵢ → absurd $ᵢ is-no→false H∉' H∈) id
+      Hdom' a H∈ = ∈ᶠˢ-split (λ where reflᵢ → absurd $ is-no→false H∉' H∈) id
         (Hdom a (thereₛ H∈))
   in
   sym (cons-∉ H∉) ∙ ap (_, _ ∶ _) (env-sub-dom-eq H⊆ Hdom') ∙ cons-∉ H∉'
 env-sub-dom-eq (sub-consr {H∉' = H∉'} H⊆) Hdom =
-  absurd $ᵢ is-no→false H∉' $ env-sub→dom-sub H⊆ _ (Hdom _ hereₛ)
+  absurd $ is-no→false H∉' $ env-sub→dom-sub H⊆ _ (Hdom _ hereₛ)
 
 env-sub-&
   : {Γ₁ Γ₁' Γ₂ Γ₂' : Env X} → Γ₁ ⊆ Γ₁' → Γ₂ ⊆ Γ₂'
@@ -210,7 +210,7 @@ env-sub-strengthenr
 env-sub-strengthenr {Γ₂' = Γ₂'} H⊆ Hcont =
   let Γ₁ , Γ₂ , p , H⊆₁ , H⊆₂ , Hdisj = env-sub-&-inv {Γ₂' = Γ₂'} H⊆
       q : Γ₂ ≡ ε
-      q = dom-empty→is-nil λ _ H∈ → absurd $ᵢ is-no→false
+      q = dom-empty→is-nil λ _ H∈ → absurd $ is-no→false
         (Hdisj _ H∈)
         (Hcont _ $
           subst (_ ∈ᶠˢ_) (sym $ ap dom p ∙ dom-& Γ₁ Γ₂) (unionr-∈ᶠˢ _ (dom Γ₁) _ H∈))
@@ -222,7 +222,7 @@ env-sub-strengthenl
 env-sub-strengthenl {Γ₂' = Γ₂'} H⊆ Hdisj =
   let Γ₁ , Γ₂ , p , H⊆₁ , H⊆₂ , _ = env-sub-&-inv {Γ₂' = Γ₂'} H⊆
       q : Γ₁ ≡ ε
-      q = dom-empty→is-nil λ _ H∈ → absurd $ᵢ is-no→false
+      q = dom-empty→is-nil λ _ H∈ → absurd $ is-no→false
         (Hdisj _ $
           subst (_ ∈ᶠˢ_) (sym $ ap dom p ∙ dom-& Γ₁ Γ₂) (unionl-∈ᶠˢ _ _ (dom Γ₂) H∈))
         (env-sub→dom-sub H⊆₁ _ H∈)
@@ -239,7 +239,7 @@ env-sub-&-diffl {Γ₁' = Γ₁'} {Γ₂'} Hcont H⊆ =
             H∈Γ = subst (_ ∈ᶠˢ_) (ap dom p ∙ dom-& Γ₁ Γ₂) (Hcont a H∈)
         in case ∈ᶠˢ-union _ _ _ H∈Γ of λ where
           (inl H∈') → H∈'
-          (inr H∈') → absurd $ᵢ is-no→false (Hdisj _ H∈') H∈
+          (inr H∈') → absurd $ is-no→false (Hdisj _ H∈') H∈
   in
   Γ₂ , p ∙ ap (_& Γ₂) q , H⊆₂ , Hdisj
 

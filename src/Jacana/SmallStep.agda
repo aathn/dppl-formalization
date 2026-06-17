@@ -1,3 +1,5 @@
+open import Data.Fin.Closure
+
 open import Lib.LocallyNameless.BindingSignature
 open import Lib.Syntax.Substitution
 open import Lib.Syntax.EvalCtx
@@ -22,11 +24,12 @@ instance
   eval-order {if} = record
     { len = 1
     ; ord = lookup (₀ ∷ [])
-    ; inj = λ {x} {y} _ →
-      case fin-view x of λ { zero →
-      case fin-view y of λ { zero → refl }}
+    ; inj = λ {x} {y} _ → sym (p x) ∙ p y
     }
-    where open VecSyntax
+    where
+      open VecSyntax
+      p : ∀ (i : Fin 1) → fzero ≡ i
+      p = Finite-one-is-contr .paths
   eval-order {o} = record
     { len = length (TmAr o) ; ord = id ; inj = id }
 

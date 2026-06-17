@@ -173,12 +173,13 @@ subst-pres-typing {Γ = Γ} {x = x} reflᵢ Hu (tvar {a = a} H∈) with x ≡? a
   weaken-typing Hu sub-nil'
 ... | no x≠a = tvar $ env-sub-strengthenl H∈ λ _ H∈' → false→is-no $
   ∈ᶠˢ-split (λ where reflᵢ → ∈ᶠˢ-split (λ where reflᵢ → x≠a refl) ¬mem-[] H∈') ¬mem-[]
-subst-pres-typing {Γ = Γ} {x = x} {u = u} {T₂ = T₂} reflᵢ Hu
+subst-pres-typing {Γ = Γ} {x = x} {u = u} {T₂ = T₂} Heq Hu
   (tlam {T = T} {T'} {t = t} (Иi As Hty)) = tlam $ Иi ([ x ] ∪ As) λ a ⦃ H∉ ⦄ →
-  let Heq : (x => u)((0 ~> a) (t ₀)) ≡ (0 ~> a)((x => u) (t ₀))
-      Heq = subst-open-comm (t ₀) (sym≠ a x (∉∷₁ H∉)) (lc-at→≻ _ _ $ well-typed→lc Hu)
-  in subst (λ x → _ ⊢ x ∶ _) Heq
-     $ subst-pres-typing (Id≃path.from (&-cons-distr {Γ' = Γ})) Hu (Hty a ⦃ ∉∷₂ H∉ ⦄)
+  let Heq' : (x => u)((0 ~> a) (t ₀)) ≡ (0 ~> a)((x => u) (t ₀))
+      Heq' = subst-open-comm (t ₀) (sym≠ a x (∉∷₁ H∉)) (lc-at→≻ _ _ $ well-typed→lc Hu)
+  in subst (_ ⊢_∶ _) Heq'
+     $ subst-pres-typing (apᵢ (_, a ∶ T) Heq ∙ᵢ Id≃path.from (&-cons-distr {Γ' = Γ}))
+       Hu (Hty a ⦃ ∉∷₂ H∉ ⦄)
 subst-pres-typing HΓ Hu (tapp Hty Hty₁) =
   tapp (subst-pres-typing HΓ Hu Hty) (subst-pres-typing HΓ Hu Hty₁)
 subst-pres-typing HΓ Hu (tprim Hϕ Hty) = tprim Hϕ (subst-pres-typing HΓ Hu Hty)

@@ -19,12 +19,9 @@ Fin-search-⊎ :
 Fin-search-⊎ {zero} f = inl λ()
 Fin-search-⊎ {suc n} f with f fzero | Fin-search-⊎ (f ∘ fsuc)
 ... | inr Hb | _ = inr $ _ , Hb , λ _ ()
-... | inl Ha | inl Has = inl λ i → case fin-view i of λ where
-  zero    → Ha
-  (suc i) → Has i
-... | inl Ha | inr (j , Hb , Has) = inr $ _ , Hb , λ i → case fin-view i of λ where
-  zero _      → Ha
-  (suc i) i≤j → Has i (≤-peel i≤j)
+... | inl Ha | inl Has = inl (Fin-cases Ha Has)
+... | inl Ha | inr (j , Hb , Has) = inr $ _ , Hb ,
+  Fin-cases (λ _ → Ha) (λ i i≤j → Has i (≤-peel i≤j))
 
 split-+-inl
   : {i : Fin (m + n)} {j : Fin m}

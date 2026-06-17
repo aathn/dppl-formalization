@@ -21,12 +21,15 @@ open import Lib.Cat.Thin
 open import Order.Diagram.Meet
 open import Order.Base
 
+import Cat.Morphism as Cm
+
 import Jacana.Denotations.Site as Site
 import Jacana.Syntax as Syntax
 
 module Jacana.Denotations.Domain (R : Reals₀) (Ax : RegAssumptions R) where
 
 open RegAssumptions Ax
+open Cm.Inverses
 open Reg⊆-lat hiding (top ; !)
 open Functor
 open Syntax R
@@ -37,6 +40,7 @@ open Conc-category ℛ-conc
 open Conc-psh ℛ-conc
 open Repr-conc (λ x → ℛ-const x , refl)
 open CPSh-on
+open Cm._≅_
 open Reals R using (ℝ)
 open Reg≤
 open ∫Hom

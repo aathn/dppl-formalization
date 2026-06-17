@@ -1,10 +1,7 @@
 depend: 1lab
 include: src
 flags:
-  --cubical
+  --prop
   --no-load-primitives
-  --rewriting
-  --guardedness
-  --two-level
-  --warning=noUnsupportedIndexedMatch
+  -W noUnsupportedIndexedMatch
   --experimental-lazy-instances
