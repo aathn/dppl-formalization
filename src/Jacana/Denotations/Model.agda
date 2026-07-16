@@ -63,7 +63,13 @@ record is-Jacana-model {o ℓ} (𝔇 : Precategory o ℓ) : Type (o ⊔ ℓ) whe
     □⟨⊤⟩-Id : Id => □⟨ Reg⊆-lat.top ⟩
 
     𝔇ℝ[_] : Reg↓ → Ob
-    □-𝔇ℝ : □⟨ X ⟩ .F₀ 𝔇ℝ[ c ] ≅ 𝔇ℝ[ Close-downward · (X ∩ c .hom) ]
+    □-𝔇ℝ  : □⟨ X ⟩ .F₀ 𝔇ℝ[ c ] ≅ 𝔇ℝ[ Close-downward · (X ∩ c .hom) ]
+
+    LM      : Functor 𝔇 𝔇
+    LM-unit : Id => LM
+    LM-mult : LM F∘ LM => LM
+
+    □-LM : □⟨ X ⟩ F∘ LM => LM F∘ □⟨ X ⟩
 
   𝔇ℝ'[_] : Reg↓ ^ n → Ob
   𝔇ℝ'[ cs ] = 𝔇-ip.ΠF (𝔇ℝ[_] ⊙ cs)
@@ -114,7 +120,7 @@ module Denotations {o} {ℓ} (model : Jacana-model o ℓ) where
 
   Ty-denot : Ty → Ob
   Ty-denot (treal c)      = 𝔇ℝ[ c ]
-  Ty-denot (T₁ ⇒[ X ] T₂) = □⟨ X ⟩ .F₀ (Ty-denot T₁ ⇒ Ty-denot T₂)
+  Ty-denot (T₁ ⇒[ X ] T₂) = □⟨ X ⟩ .F₀ (Ty-denot T₁ ⇒ LM .F₀ (Ty-denot T₂))
   Ty-denot (ttup n Ts)    = 𝔇-ip.ΠF λ i → Ty-denot (Ts i)
 
   instance
@@ -127,8 +133,8 @@ module Denotations {o} {ℓ} (model : Jacana-model o ℓ) where
   Sub-denot (sreal H⊆) = 𝔇-sub H⊆
   Sub-denot (stup H<:) = 𝔇-ip.tuple _ λ i → Sub-denot (H<: i) ∘ 𝔇-ip.π _ i
   Sub-denot (sarr {X = X} {T₁' = T₁'} {T₂' = T₂'} H<: H⊆ H<:₁) =
-      □-⊆ {X = X} H⊆ .η (⟦ T₁' ⟧ ⇒ ⟦ T₂' ⟧)
-    ∘ □⟨ X ⟩ .F₁ ([-,-]₁ _ _ 𝔇-closed (Sub-denot H<:₁) (Sub-denot H<:))
+      □-⊆ H⊆ .η (⟦ T₁' ⟧ ⇒ LM .F₀ ⟦ T₂' ⟧)
+    ∘ □⟨ X ⟩ .F₁ ([-,-]₁ _ _ 𝔇-closed (LM .F₁ (Sub-denot H<:₁)) (Sub-denot H<:))
 
   ∩ᵗ-is-□ : ∀ T → X ~ᵗ T → □⟨ X ⟩ .F₀ ⟦ T ⟧ ≅ ⟦ X ∩ᵗ T ⟧
   ∩ᵗ-is-□ (treal c) HX       = □-𝔇ℝ
@@ -148,24 +154,25 @@ module Denotations {o} {ℓ} (model : Jacana-model o ℓ) where
     in
     □-prod (Reg⊆-is-meet-closed X) ∙Iso (Hl ⊗Iso HT)
 
-  Tm-denot : Γ ⊢ t ∶ T → Hom ⟦ Γ ⟧ ⟦ T ⟧
-  Tm-denot (tsub Hty H<:) = Sub-denot H<: ∘ Tm-denot Hty
+  Tm-denot : Γ ⊢ t ∶ T → Hom ⟦ Γ ⟧ (LM .F₀ ⟦ T ⟧)
+  Tm-denot (tsub Hty H<:) = LM .F₁ (Sub-denot H<:) ∘ Tm-denot Hty
   Tm-denot (tpromote {T = T} {X} Hty H≤ H~ H⊆) =
-    ∩ᵗ-is-□ T H~ .to ∘ □⟨ X ⟩ .F₁ (Tm-denot Hty) ∘ env-≤-□ H≤ .from ∘ env-proj H⊆
-  Tm-denot (tvar H∈) = π₂ ∘ env-proj H∈
+      LM .F₁ (∩ᵗ-is-□ T H~ .to) ∘ □-LM .η _ ∘ □⟨ X ⟩ .F₁ (Tm-denot Hty)
+    ∘ env-≤-□ H≤ .from ∘ env-proj H⊆
+  Tm-denot (tvar H∈) = LM-unit .η _ ∘ π₂ ∘ env-proj H∈
   Tm-denot {Γ} (tlam {T = T} {T'} (Иi As Hty))
-    with (a , H∉) ← fresh{𝔸} (As ∪ᶠ dom Γ) = □⟨⊤⟩-Id .η _ ∘ ƛ body
+    with (a , H∉) ← fresh{𝔸} (As ∪ᶠ dom Γ) = LM-unit .η _ ∘ □⟨⊤⟩-Id .η _ ∘ ƛ body
     where
       body = subst (λ Γ → Hom ⟦ Γ ⟧ _) (cons-∉ {Γ = Γ} (∉∪₂ As H∉))
         (Tm-denot (Hty a ⦃ ∉∪₁ H∉ ⦄))
-  Tm-denot (tapp Hty Hty₁) = ev ∘ ⟨ □-counit .η _ ∘ Tm-denot Hty , Tm-denot Hty₁ ⟩
-  Tm-denot (tprim Hϕ Hty)  = 𝔇-prim Hϕ ∘ Tm-denot Hty
-  Tm-denot (treal {r = r}) = 𝔇-real r ∘ !
-  Tm-denot (ttup Htys)     = 𝔇-ip.tuple _ λ i → Tm-denot (Htys i)
-  Tm-denot (tproj i Hty)   = 𝔇-ip.π _ i ∘ Tm-denot Hty
-  Tm-denot (tif {cs = cs} Hty Hty₁ Hty₂ H≤) =
-    𝔇-cond cs H≤ ∘ ⟨ Tm-denot Hty , ⟨ Tm-denot Hty₁ , Tm-denot Hty₂ ⟩ ⟩
-  Tm-denot (tdiff {m = m} {n = n} Hty Hty₁ Hty₂ Hc) =
-    𝔇-diff m n Hc ∘ ⟨ Tm-denot Hty , ⟨ Tm-denot Hty₁ , Tm-denot Hty₂ ⟩ ⟩
-  Tm-denot (tsolve {n = n} Hty Hty₁ Hty₂ Hc) =
-    𝔇-solve n Hc ∘ ⟨ Tm-denot Hty , ⟨ Tm-denot Hty₁ , Tm-denot Hty₂ ⟩ ⟩
+  Tm-denot (tapp Hty Hty₁) = {!!} -- ev ∘ ⟨ □-counit .η _ ∘ Tm-denot Hty , Tm-denot Hty₁ ⟩
+  Tm-denot (tprim Hϕ Hty)  = LM .F₁ (𝔇-prim Hϕ) ∘ Tm-denot Hty
+  Tm-denot (treal {r = r}) = LM-unit .η _ ∘ 𝔇-real r ∘ !
+  Tm-denot (ttup Htys)     = {!!} -- 𝔇-ip.tuple _ λ i → Tm-denot (Htys i)
+  Tm-denot (tproj i Hty)   = LM .F₁ (𝔇-ip.π _ i) ∘ Tm-denot Hty
+  Tm-denot (tif {cs = cs} Hty Hty₁ Hty₂ H≤) = {!!}
+    -- 𝔇-cond cs H≤ ∘ ⟨ Tm-denot Hty , ⟨ Tm-denot Hty₁ , Tm-denot Hty₂ ⟩ ⟩
+  Tm-denot (tdiff {m = m} {n = n} Hty Hty₁ Hty₂ Hc) = {!!}
+    -- 𝔇-diff m n Hc ∘ ⟨ Tm-denot Hty , ⟨ Tm-denot Hty₁ , Tm-denot Hty₂ ⟩ ⟩
+  Tm-denot (tsolve {n = n} Hty Hty₁ Hty₂ Hc) = {!!}
+    -- 𝔇-solve n Hc ∘ ⟨ Tm-denot Hty , ⟨ Tm-denot Hty₁ , Tm-denot Hty₂ ⟩ ⟩
