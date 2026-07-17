@@ -3,7 +3,9 @@ open import 1Lab.Type.Sigma
 open import Cat.Diagram.Product.Indexed
 open import Cat.Diagram.Exponential
 open import Cat.Functor.Naturality
+open import Cat.Diagram.Comonad
 open import Cat.Displayed.Total
+open import Cat.Diagram.Monad
 open import Cat.Cartesian
 open import Cat.Prelude
 
@@ -150,6 +152,14 @@ open □-factor
     ; factors = fac .factors
     }
 □-comult .is-natural _ _ _ = ext λ _ → refl
+
+□-comult-base : □⟨ X ⟩ => □⟨ X ⟩ F∘ □⟨ X ⟩
+□-comult-base {X} = subst (λ Z → □⟨ Z ⟩ => □⟨ X ⟩ F∘ □⟨ X ⟩) ∩-idem □-comult
+
+□-is-comonad : is-comonad □-counit (□-comult-base {X})
+□-is-comonad .is-comonad.δ-unitl = ext λ _ → transport-refl _ ∙ transport-refl _
+□-is-comonad .is-comonad.δ-unitr = ext λ _ → transport-refl _ ∙ transport-refl _
+□-is-comonad .is-comonad.δ-assoc = ext λ _ → refl
 
 □-comult' : X ~ʳ X' → □⟨ X ⟩ F∘ □⟨ X' ⟩ => □⟨ X ∩ X' ⟩
 □-comult' H~ .η A .fst x                  = x
@@ -329,10 +339,10 @@ record LM-factor (A : ⌞ 𝔇 ⌟) U (f : ∣ U ∣ₒ → Maybe ⌞ A ⌟) : T
   no-eta-equality
   field
     {dom}      : ℙ (ℝ ^ U .snd .dim)
+    {map}      : ∫ₚ dom → ⌞ A ⌟
     {dom-open} : ∣ ⟨ U .fst ⟩-open dom ∣
     {dom-sub}  : dom ⊆ U .snd .set
 
-    map      : ∫ₚ dom → ⌞ A ⌟
     map-sec  : ∣ A .snd .is-sec (_ , mk-open-set dom-open) map ∣
     just-dom : ∀ {x y} → f x ≡ just y → x .fst ∈ dom
     dom-just : just ⊙ map ≡ f ⊙ ⟨ fst , dom-sub _ ⊙ snd ⟩
@@ -422,3 +432,40 @@ LM-mult .η A .snd g Hg₀ = case Hg₀ of λ where
         ∙ ap (λ x → maybe-join ⊙ x ⊙ ⟨ _ , fac' .dom-sub _ ⊙ snd ⟩) (fac .dom-just)
       }
 LM-mult .is-natural _ _ _ = ext (happly join-nat)
+
+LM-is-monad : is-monad LM-unit LM-mult
+LM-is-monad .is-monad.μ-unitr = ext (happly join-unitr)
+LM-is-monad .is-monad.μ-unitl = ext (happly join-unitl)
+LM-is-monad .is-monad.μ-assoc = ext (happly join-assoc)
+
+□-LM : □⟨ X ⟩ F∘ LM => LM F∘ □⟨ X ⟩
+□-LM .η A .fst x             = x
+□-LM .η A .snd {_ , U} g Hg₀ = case Hg₀ of λ where
+  (inr H⋆) → inr H⋆
+  (inl Hg₁) → case Hg₁ of λ fac → case fac .map-sec of λ where
+    (inr H⋆) → case H⋆ of λ x p → inr (inc (_ , fac .factors ∙ ap (_⊙ fac .leg) p))
+    (inl Hg) → case Hg of λ fac' → inl
+      ( let
+          V  = ⊆-open-set (fac .reg-geq) (fac .dom)
+          U' = pbₛ U V (fac .leg) (fac' .dom)
+        in inc record
+        { dom-sub = pb-⊆ U V (fac .leg) (fac' .dom)
+        ; map-sec = inl
+          ( inc record
+            { reg-mem = fac .reg-mem
+            ; reg-geq = fac .reg-geq
+            ; leg-reg =
+              pb-proj-reg (leg-reg fac) (⊆-open (reg-geq fac) _ (fac' .dom-open))
+            ; map-sec = fac' .map-sec
+            ; factors = refl
+            }
+          )
+        ; just-dom = λ {x} p →
+          inc (_ , fac' .just-dom (sym (ap (_$ x) (fac .factors)) ∙ p))
+        ; dom-just =
+            ap (_⊙ pb-projₛ U V (fac .leg) (fac' .dom)) (fac' .dom-just)
+          ∙ ext (λ _ _ → ap (fac .map) (Σ-prop-path! refl))
+          ∙ sym (ap (_⊙ (λ (x : ∫ₚ U') → _)) (fac .factors))
+        }
+      )
+□-LM .is-natural _ _ _ = ext λ _ → refl

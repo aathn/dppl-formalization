@@ -37,3 +37,16 @@ join-nat : {f : A → B} → maybe-join ∘ map (map f) ≡ map f ∘ maybe-join
 join-nat = ext λ where
   nothing   → refl
   (just _)  → refl
+
+join-unitr : maybe-join ∘ map (just {A = A}) ≡ id
+join-unitr = ext λ where
+  nothing  → refl
+  (just _) → refl
+
+join-unitl : maybe-join ∘ just {A = Maybe A} ≡ id
+join-unitl = refl
+
+join-assoc : maybe-join ∘ map (maybe-join {A = A}) ≡ maybe-join ∘ maybe-join
+join-assoc = ext λ where
+  nothing  → refl
+  (just _) → refl
